@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waiting for File</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #181c27;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+            color: #1abc9c;
+        }
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: #181c27;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        .navbar a {
+            color: #1abc9c;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .navbar a:hover {
+            background-color: #1e2733;
+        }
+        .container {
+            text-align: center;
+            background-color: #1e2733;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            position: relative;
+        }
+        h1 {
+            color: #1abc9c;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <a href="{% url 'main' %}">Home</a>
+        <a href="{% url 'crypto' %}">Crypto</a>
+        <a href="#">Shares</a>
+    </div>
+    <div class="container">
+        <h1>Please wait for the file to be uploaded soon!</h1>
+    </div>
+</body>
+</html>
