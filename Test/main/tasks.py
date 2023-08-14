@@ -1,7 +1,11 @@
+import io
+
 from celery import shared_task
 from binance.client import Client
 from datetime import datetime, timedelta
 import openpyxl
+from django.core.cache import cache
+import requests
 
 
 def minute(symbol, open_price, bound, date, time_frame):
@@ -36,7 +40,6 @@ def minute(symbol, open_price, bound, date, time_frame):
 
 @shared_task
 def process_data_async(data):
-    print('WOOOOOORK!')
     client = Client()
     symbol = data['symbol'].upper()
     timeframe = float(data['interval']) * 60
@@ -49,40 +52,18 @@ def process_data_async(data):
         0.05: Client.KLINE_INTERVAL_3MINUTE,
         0.0833333333: Client.KLINE_INTERVAL_5MINUTE,
         0.25: Client.KLINE_INTERVAL_15MINUTE,
+        0.5: Client.KLINE_INTERVAL_30MINUTE,
+        1.0: Client.KLINE_INTERVAL_1HOUR,
+        2.0: Client.KLINE_INTERVAL_2HOUR,
+        4.0: Client.KLINE_INTERVAL_4HOUR,
+        6.0: Client.KLINE_INTERVAL_6HOUR,
+        8.0: Client.KLINE_INTERVAL_8HOUR,
+        12.0: Client.KLINE_INTERVAL_12HOUR,
+        24.0: Client.KLINE_INTERVAL_1DAY,
+        72.0: Client.KLINE_INTERVAL_3DAY,
+        168.0: Client.KLINE_INTERVAL_1WEEK,
+        720.0: Client.KLINE_INTERVAL_1MONTH
     }
-    # if inter == '0.0166666667':
-    #     interval = Client.KLINE_INTERVAL_1MINUTE
-    # elif inter == '0.05':
-    #     interval = Client.KLINE_INTERVAL_3MINUTE
-    # elif inter == '0.0833333333':
-    #     interval = Client.KLINE_INTERVAL_5MINUTE
-    # elif inter == '0.25':
-    #     interval = Client.KLINE_INTERVAL_15MINUTE
-    # elif inter == '0.5':
-    #     interval = Client.KLINE_INTERVAL_30MINUTE
-    # elif inter == '1.0':
-    #     interval = Client.KLINE_INTERVAL_1HOUR
-    # elif inter == '2.0':
-    #     interval = Client.KLINE_INTERVAL_2HOUR
-    # elif inter == '4.0':
-    #     interval = Client.KLINE_INTERVAL_4HOUR
-    # elif inter == '6.0':
-    #     interval = Client.KLINE_INTERVAL_6HOUR
-    # elif inter == '8.0':
-    #     interval = Client.KLINE_INTERVAL_8HOUR
-    # elif inter == '12.0':
-    #     interval = Client.KLINE_INTERVAL_12HOUR
-    # elif inter == '24.0':
-    #     interval = Client.KLINE_INTERVAL_1DAY
-    # elif inter == '72.0':
-    #     interval = Client.KLINE_INTERVAL_3DAY
-    # elif inter == '168.0':
-    #     interval = Client.KLINE_INTERVAL_1WEEK
-    # elif inter == '720.0':
-    #     interval = Client.KLINE_INTERVAL_1MONTH
-    # else:
-    #     print('ggggg')
-    #     return HttpResponse('GG')
 
     start_date_str = data['start_data']
     if 'T' in start_date_str:
@@ -215,6 +196,13 @@ def process_data_async(data):
             ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date())
             ws.cell(row=day_count, column=col_index + 1, value=item['output'])
         day_count += 1
-    file_path = f"{symbol} data.xlsx"
-    wb.save(file_path)
 
+
+    output_buffer = io.BytesIO()
+    wb.save(output_buffer)
+    output_buffer.seek(0)
+    file_path = f"{symbol} data.xlsx"
+    with open(file_path, 'wb') as file:
+        file.write(output_buffer.read())
+
+    return file_path
