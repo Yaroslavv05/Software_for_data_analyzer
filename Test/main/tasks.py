@@ -239,7 +239,7 @@ def shared_async_task(data):
         end_date_input += ' 00:00:00'
 
     start_date = datetime.strptime(start_date_input, '%Y-%m-%d %H:%M:%S')
-    end_date = datetime.strptime(end_date_input, '%Y-%m-%d %H:%M:%S')
+    end_date = datetime.strptime(end_date_input, '%Y-%m-%d %H:%M:%S') + timedelta(days=1)
 
     start_date_str = start_date.strftime('%Y-%m-%d %H:%M:%S')
     end_date_str = end_date.strftime('%Y-%m-%d %H:%M:%S')
@@ -290,7 +290,7 @@ def shared_async_task(data):
     ws = wb.active
     daily_data = {}
     day_count = 1
-    for item in output_data:
+    for item in output_data[::-1]:
         day = item['time'][:10]
         if day in daily_data:
             daily_data[day].append(item)
