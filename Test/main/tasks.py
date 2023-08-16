@@ -1,11 +1,11 @@
 import io
-
 from celery import shared_task
 from binance.client import Client
 from datetime import datetime, timedelta
 import openpyxl
-from django.core.cache import cache
+import time
 import requests
+import re
 
 
 def minute(symbol, open_price, bound, date, time_frame):
@@ -201,7 +201,111 @@ def process_data_async(data):
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
-    file_path = f"{symbol} data.xlsx"
+    file_path = f"{symbol} data crypto.xlsx"
+    with open(file_path, 'wb') as file:
+        file.write(output_buffer.read())
+
+    return file_path
+
+
+def controversial(symbol, timeframe, open_price, date, bound):
+    start_date = date
+    start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    end_date_datetime = start_date_datetime + timedelta(hours=float(timeframe))
+    print(symbol, timeframe, bound, start_date, end_date_datetime)
+    response = requests.get(f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval=1min&symbol={symbol}&timezone=utc&start_date={start_date}&end_date={end_date_datetime}")
+    d = response.json()['values']
+
+    for j in d:
+        if float(j['high']) - open_price >= bound:
+            return '1'
+        elif open_price - float(j['low']) >= bound:
+            return '0'
+
+
+@shared_task
+def shared_async_task(data):
+    symbol = data['symbol'].upper()
+    timeframe = data['interval']
+    bound = float(data['bound'])
+    bound_unit = data['bound_unit']
+    start_date_input = data['start_data']
+    end_date_input = data['end_data']
+
+    if len(start_date_input) == 10:
+        start_date_input += ' 00:00:00'
+
+    if len(end_date_input) == 10:
+        end_date_input += ' 00:00:00'
+
+    start_date = datetime.strptime(start_date_input, '%Y-%m-%d %H:%M:%S')
+    end_date = datetime.strptime(end_date_input, '%Y-%m-%d %H:%M:%S')
+
+    start_date_str = start_date.strftime('%Y-%m-%d %H:%M:%S')
+    end_date_str = end_date.strftime('%Y-%m-%d %H:%M:%S')
+    print(symbol, timeframe, bound, bound_unit, start_date, end_date)
+    response = requests.get(
+        f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval={timeframe}&symbol={symbol}&timezone=utc&start_date={start_date_str}&end_date={end_date_str}")
+
+    data = response.json()['values']
+
+    output_data = []
+    if bound_unit == '$':
+        for i in data:
+            if float(i['high']) - float(i['open']) >= bound and float(i['open']) - float(i['low']) >= bound:
+                times = i['datetime']
+                output = controversial(symbol=symbol, timeframe=re.search(r'\d+', timeframe).group(),
+                                       open_price=float(i['open']), date=i['datetime'], bound=bound)
+                time.sleep(10)
+            elif float(i['high']) - float(i['open']) >= bound:
+                times = i['datetime']
+                output = '1'
+            elif float(i['open']) - float(i['low']) >= bound:
+                times = i['datetime']
+                output = '0'
+            else:
+                times = i['datetime']
+                output = '2'
+            output_data.append({'time': times, 'output': output})
+    elif bound_unit == '%':
+        for i in data:
+            if float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound) and float(i['open']) - float(
+                    i['low']) >= (float(i['open']) / 100 * bound):
+                times = i['datetime']
+                output = controversial(symbol=symbol, timeframe=re.search(r'\d+', timeframe).group(),
+                                       open_price=float(i['open']), date=i['datetime'],
+                                       bound=(float(i['open']) / 100 * bound))
+                time.sleep(10)
+            elif float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound):
+                times = i['datetime']
+                output = '1'
+            elif float(i['open']) - float(i['low']) >= (float(i['open']) / 100 * bound):
+                times = i['datetime']
+                output = '0'
+            else:
+                times = i['datetime']
+                output = '2'
+            output_data.append({'time': times, 'output': output})
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    daily_data = {}
+    day_count = 1
+    for item in output_data:
+        day = item['time'][:10]
+        if day in daily_data:
+            daily_data[day].append(item)
+        else:
+            daily_data[day] = [item]
+
+    for day_data in daily_data.values():
+        for col_index, item in enumerate(day_data, 1):
+            ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date())
+            ws.cell(row=day_count, column=col_index + 1, value=item['output'])
+        day_count += 1
+    output_buffer = io.BytesIO()
+    wb.save(output_buffer)
+    output_buffer.seek(0)
+    file_path = f"{symbol} data shares.xlsx"
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
 

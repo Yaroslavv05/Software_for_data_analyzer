@@ -1,11 +1,10 @@
 from django.shortcuts import render, redirect
-from .forms import MyForm
-from .tasks import process_data_async
+from .forms import MyForm, SharesForm
+from .tasks import process_data_async, shared_async_task
 from celery.result import AsyncResult
-from django.http import FileResponse, JsonResponse
+from django.http import JsonResponse
 from django.http import HttpResponse
 import os
-import io
 
 def main(request):
     return render(request, 'main.html')
@@ -36,8 +35,40 @@ def index(request):
         form = MyForm()
     return render(request, 'index.html', {'form': form})
 
+
 def process(request):
     return render(request, 'process.html')
+
+
+def shares(request):
+    form = SharesForm(request.POST)
+    if request.method == 'POST':
+        if form.is_valid():
+            symbol = form.cleaned_data['symbol']
+            interval = form.cleaned_data['interval']
+            bound = form.cleaned_data['bound']
+            bound_unit = form.cleaned_data['bound_unit']
+            start_data = form.cleaned_data['start_data']
+            end_data = form.cleaned_data['end_data']
+            data = {
+                'symbol': symbol,
+                'interval': interval,
+                'bound': bound,
+                'bound_unit': bound_unit,
+                'start_data': start_data,
+                'end_data': end_data
+            }
+            task = shared_async_task.delay(data)
+            request.session['task_id'] = task.id
+            print(request.session.get('task_id'))
+            return redirect('process_shares')
+    else:
+        form = SharesForm()
+    return render(request, 'shares.html', {'form': form})
+
+
+def process_shares(request):
+    return render(request, 'process_shares.html')
 
 
 def check_task_status(request):

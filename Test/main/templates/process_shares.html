@@ -3,7 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Analysis Welcome Page</title>
+    <title>Waiting for File</title>
+    <script>
+        function checkTaskStatus() {
+    fetch("{% url 'check_task_status' %}")
+        .then(response => response.text())
+        .then(data => {
+            const parsedData = JSON.parse(data); // Преобразование текста в объект
+            console.log(parsedData.status);
+
+            if (parsedData.status === "completed") {
+                window.location.href = "{% url 'result' %}"; // Перенаправление на страницу с результатами
+            } else if (parsedData.status === "Task failed.") {
+                document.getElementById("status").innerHTML = "Task failed.";
+            } else if (parsedData.status === "running") {
+                setTimeout(checkTaskStatus, 1000);  // Повторное обновление через 1 секунду
+            } else {
+                console.log(parsedData);
+                document.getElementById("status").innerHTML = "Task not found.";
+            }
+        });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    checkTaskStatus();
+});
+
+    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -33,7 +59,7 @@
         .navbar a {
             color: #1abc9c;
             text-decoration: none;
-            padding: 10px 20px;
+            padding: 5px 10px;
             border-radius: 5px;
             transition: background-color 0.3s ease;
         }
@@ -52,11 +78,6 @@
             color: #1abc9c;
             margin-bottom: 20px;
         }
-        p {
-            color: #1abc9c;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
     </style>
 </head>
 <body>
@@ -66,10 +87,8 @@
         <a href="{% url 'shares' %}">Shares</a>
     </div>
     <div class="container">
-        <h1>Welcome to Data Analysis Hub</h1>
-        <p>We're here to explore and analyze data to uncover insights and make informed decisions.</p>
-        <p>Whether it's statistics, visualizations, or predictive modeling, we've got you covered.</p>
-        <p>Join us on this exciting journey of discovery!</p>
+        <h1>Please wait for the file to be uploaded soon!</h1>
+        <div id="status"></div>
     </div>
 </body>
 </html>
