@@ -14,6 +14,9 @@
 
             if (parsedData.status === "completed") {
                 window.location.href = "{% url 'result' %}"; // Перенаправление на страницу с результатами
+                setTimeout(function() {
+                  window.location.href = "{% url 'main' %}";
+                }, 3000);
             } else if (parsedData.status === "Task failed.") {
                 document.getElementById("status").innerHTML = "Task failed.";
             } else if (parsedData.status === "running") {

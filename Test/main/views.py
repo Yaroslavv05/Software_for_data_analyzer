@@ -1,13 +1,42 @@
 from django.shortcuts import render, redirect
+from django.contrib import messages
 from .forms import MyForm, SharesForm
 from .tasks import process_data_async, shared_async_task
 from celery.result import AsyncResult
+from binance.client import Client
 from django.http import JsonResponse
 from django.http import HttpResponse
+import requests
 import os
+
+
+def get_binance_symbols():
+    client = Client()
+    exchange_info = client.get_exchange_info()
+    symbols = [symbol['symbol'] for symbol in exchange_info['symbols']]
+    return symbols
+
+
+def check_symbol_validity(symbol, start_data, end_data):
+    api_key = "7e1f42d9a4f743749ffa9e77958e06a4"
+    url = f"https://api.twelvedata.com/time_series?apikey={api_key}&interval=1min&symbol={symbol}&timezone=utc&start_date={start_data}&end_date={end_data}"
+
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()
+        if "status" in data and data["status"] == "error" and "message" in data and "**symbol** not found" in data[
+            "message"]:
+            return "invalid symbol"
+        else:
+            return "valid symbol"
+    else:
+        return "error"
+
 
 def main(request):
     return render(request, 'main.html')
+
 
 def index(request):
     form = MyForm(request.POST)
@@ -19,18 +48,25 @@ def index(request):
             bound_unit = form.cleaned_data['bound_unit']
             start_data = form.cleaned_data['start_data']
             end_data = form.cleaned_data['end_data']
-            data = {
-                'symbol': symbol,
-                'interval': interval,
-                'bound': bound,
-                'bound_unit': bound_unit,
-                'start_data': start_data,
-                'end_data': end_data
-            }
-            task = process_data_async.delay(data)
-            request.session['task_id'] = task.id
-            print(request.session.get('task_id'))
-            return redirect('process')
+            if symbol not in get_binance_symbols():
+                messages.error(request, 'Invalid symbol!')
+            elif float(bound) < 0:
+                messages.error(request, 'Bound cannot be negative!')
+            elif end_data < start_data:
+                messages.error(request, 'The end date must be after the start date!')
+            else:
+                data = {
+                    'symbol': symbol,
+                    'interval': interval,
+                    'bound': bound,
+                    'bound_unit': bound_unit,
+                    'start_data': start_data,
+                    'end_data': end_data
+                }
+                task = process_data_async.delay(data)
+                request.session['task_id'] = task.id
+                print(request.session.get('task_id'))
+                return redirect('process')
     else:
         form = MyForm()
     return render(request, 'index.html', {'form': form})
@@ -50,18 +86,26 @@ def shares(request):
             bound_unit = form.cleaned_data['bound_unit']
             start_data = form.cleaned_data['start_data']
             end_data = form.cleaned_data['end_data']
-            data = {
-                'symbol': symbol,
-                'interval': interval,
-                'bound': bound,
-                'bound_unit': bound_unit,
-                'start_data': start_data,
-                'end_data': end_data
-            }
-            task = shared_async_task.delay(data)
-            request.session['task_id'] = task.id
-            print(request.session.get('task_id'))
-            return redirect('process_shares')
+            symbol_validity = check_symbol_validity(symbol, start_data, end_data)
+            if symbol_validity == "invalid symbol":
+                messages.error(request, 'Invalid symbol!')
+            elif float(bound) < 0:
+                messages.error(request, 'Bound cannot be negative!')
+            elif end_data < start_data:
+                messages.error(request, 'The end date must be after the start date!')
+            else:
+                data = {
+                    'symbol': symbol,
+                    'interval': interval,
+                    'bound': bound,
+                    'bound_unit': bound_unit,
+                    'start_data': start_data,
+                    'end_data': end_data
+                }
+                task = shared_async_task.delay(data)
+                request.session['task_id'] = task.id
+                print(request.session.get('task_id'))
+                return redirect('process_shares')
     else:
         form = SharesForm()
     return render(request, 'shares.html', {'form': form})
@@ -90,6 +134,8 @@ def check_task_status(request):
     else:
         print('not found')
         return JsonResponse({'status': 'task_id_not_found'})
+
+
 def result(request):
     file_path = request.session.get('file_path')
     if file_path and os.path.exists(file_path):

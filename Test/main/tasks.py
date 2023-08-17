@@ -197,7 +197,6 @@ def process_data_async(data):
             ws.cell(row=day_count, column=col_index + 1, value=item['output'])
         day_count += 1
 
-
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
