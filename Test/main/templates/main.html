@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Analysis Welcome Page</title>
+    <title>Главная страница</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -61,15 +61,17 @@
 </head>
 <body>
     <div class="navbar">
-        <a href="{% url 'main' %}">Home</a>
-        <a href="{% url 'crypto' %}">Crypto</a>
-        <a href="{% url 'shares' %}">Shares</a>
+        <div class="navbar">
+        <a href="{% url 'main' %}">Главная</a>
+        <a href="{% url 'crypto' %}">Крипта</a>
+        <a href="{% url 'shares' %}">Акции</a>
+    </div>
     </div>
     <div class="container">
-        <h1>Welcome to Data Analysis Hub</h1>
-        <p>We're here to explore and analyze data to uncover insights and make informed decisions.</p>
-        <p>Whether it's statistics, visualizations, or predictive modeling, we've got you covered.</p>
-        <p>Join us on this exciting journey of discovery!</p>
+        <h1>Добро пожаловать в Центр анализа данных</h1>
+        <p>Мы здесь, чтобы исследовать и анализировать данные для выявления понимания и принятия обоснованных решений.</p>
+        <p>Будь то статистика, визуализации или предиктивное моделирование, мы вас покроем.</p>
+        <p>Присоединяйтесь к нам в этом захватывающем путешествии открытий!</p>
     </div>
 </body>
 </html>
