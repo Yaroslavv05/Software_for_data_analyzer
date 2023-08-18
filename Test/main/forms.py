@@ -1,6 +1,7 @@
 from django import forms
 from django.forms.widgets import MultiWidget, TextInput
 from django.utils.safestring import mark_safe
+from binance.client import Client
 import datetime
 
 
@@ -37,8 +38,14 @@ class SplitDateTimeField(forms.MultiValueField):
         return None
 
 
+client = Client()
+exchange_info = client.futures_exchange_info()
+symbols = exchange_info['symbols']
+futures_symbols = [(symbol['symbol'], symbol['symbol']) for symbol in symbols if symbol['contractType'] == 'PERPETUAL']
+
+
 class MyForm(forms.Form):
-    symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
+    symbol = forms.ChoiceField(choices=futures_symbols, widget=forms.Select(attrs={'class': 'form-control mb-2'}), label='Выберите символ')
     interval = forms.ChoiceField(choices=(
         (0.0166666667, '1м'), (0.05, '3м'), (0.0833333333, '5м'), (0.25, '15м'), (0.5, '30м'), (1, '1ч'), (2, '2ч'),
         (4, '4ч'),
