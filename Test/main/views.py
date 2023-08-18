@@ -60,9 +60,10 @@ def index(request):
                     'interval': interval,
                     'bound': bound,
                     'bound_unit': bound_unit,
-                    'start_data': start_data,
-                    'end_data': end_data
+                    'start_data': start_data.strftime('%Y-%m-%d'),
+                    'end_data': end_data.strftime('%Y-%m-%d')
                 }
+                print(data)
                 task = process_data_async.delay(data)
                 request.session['task_id'] = task.id
                 print(request.session.get('task_id'))
@@ -99,8 +100,8 @@ def shares(request):
                     'interval': interval,
                     'bound': bound,
                     'bound_unit': bound_unit,
-                    'start_data': start_data,
-                    'end_data': end_data
+                    'start_data': start_data.strftime('%Y-%m-%d'),
+                    'end_data': end_data.strftime('%Y-%m-%d')
                 }
                 task = shared_async_task.delay(data)
                 request.session['task_id'] = task.id
