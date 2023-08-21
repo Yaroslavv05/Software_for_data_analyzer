@@ -208,9 +208,22 @@ def process_data_async(data):
 
 
 def controversial(symbol, timeframe, open_price, date, bound):
+    interval_mapping = {
+        '1min': 0.0166666667,
+        '5min': 0.05,
+        '15min': 0.0833333333,
+        '30min': 0.25,
+        '45min': 0.375,
+        '1h': 1.0,
+        '2h': 2.0,
+        '4h': 4.0,
+        '1day': 24.0,
+        '1week': 168.0,
+        '1month': 720.0
+    }
     start_date = date
     start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    end_date_datetime = start_date_datetime + timedelta(hours=float(timeframe))
+    end_date_datetime = start_date_datetime + timedelta(hours=float(interval_mapping[timeframe]))
     print(symbol, timeframe, bound, start_date, end_date_datetime)
     response = requests.get(f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval=1min&symbol={symbol}&timezone=utc&start_date={start_date}&end_date={end_date_datetime}")
     d = response.json()['values']
@@ -253,7 +266,7 @@ def shared_async_task(data):
         for i in data:
             if float(i['high']) - float(i['open']) >= bound and float(i['open']) - float(i['low']) >= bound:
                 times = i['datetime']
-                output = controversial(symbol=symbol, timeframe=re.search(r'\d+', timeframe).group(),
+                output = controversial(symbol=symbol, timeframe=timeframe,
                                        open_price=float(i['open']), date=i['datetime'], bound=bound)
                 time.sleep(10)
             elif float(i['high']) - float(i['open']) >= bound:
@@ -271,7 +284,7 @@ def shared_async_task(data):
             if float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound) and float(i['open']) - float(
                     i['low']) >= (float(i['open']) / 100 * bound):
                 times = i['datetime']
-                output = controversial(symbol=symbol, timeframe=re.search(r'\d+', timeframe).group(),
+                output = controversial(symbol=symbol, timeframe=timeframe,
                                        open_price=float(i['open']), date=i['datetime'],
                                        bound=(float(i['open']) / 100 * bound))
                 time.sleep(10)
