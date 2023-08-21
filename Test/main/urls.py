@@ -9,4 +9,5 @@ urlpatterns = [
     path('process_shares', process_shares, name='process_shares'),
     path('result', result, name='result'),
     path('check-task-status', check_task_status, name='check_task_status'),
+    path('in-work', work, name='in_work'),
 ]

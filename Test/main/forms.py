@@ -42,10 +42,11 @@ client = Client()
 exchange_info = client.futures_exchange_info()
 symbols = exchange_info['symbols']
 futures_symbols = [(symbol['symbol'], symbol['symbol']) for symbol in symbols if symbol['contractType'] == 'PERPETUAL']
+sorted_symbols = sorted(futures_symbols, key=lambda x: x[0])
 
 
 class MyForm(forms.Form):
-    symbol = forms.ChoiceField(choices=futures_symbols, widget=forms.Select(attrs={'class': 'form-control mb-2'}), label='Выберите символ')
+    symbol = forms.ChoiceField(choices=sorted_symbols, widget=forms.Select(attrs={'class': 'form-control mb-2'}))
     interval = forms.ChoiceField(choices=(
         (0.0166666667, '1м'), (0.05, '3м'), (0.0833333333, '5м'), (0.25, '15м'), (0.5, '30м'), (1, '1ч'), (2, '2ч'),
         (4, '4ч'),

@@ -147,3 +147,7 @@ def result(request):
             return response
     else:
         return HttpResponse("File not found.")
+
+
+def work(request):
+    return render(request, 'in_work.html')
