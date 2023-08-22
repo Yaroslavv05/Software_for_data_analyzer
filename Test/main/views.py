@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .forms import MyForm, SharesForm
+from .forms import MyForm, SharesForm, SharesPolygonForm
 from .tasks import process_data_async, shared_async_task
 from celery.result import AsyncResult
 from binance.client import Client
@@ -116,6 +116,38 @@ def process_shares(request):
     return render(request, 'process_shares.html')
 
 
+def shares_polygon(request):
+    form = SharesPolygonForm(request.POST)
+    if request.method == 'POST':
+        if form.is_valid():
+            symbol = form.cleaned_data['symbol']
+            interval = form.cleaned_data['interval']
+            bound = form.cleaned_data['bound']
+            bound_unit = form.cleaned_data['bound_unit']
+            start_data = form.cleaned_data['start_data']
+            end_data = form.cleaned_data['end_data']
+            symbol_validity = check_symbol_validity(symbol, start_data, end_data)
+            if symbol_validity == "invalid symbol":
+                messages.error(request, 'Invalid symbol!')
+            elif float(bound) < 0:
+                messages.error(request, 'Bound cannot be negative!')
+            elif end_data < start_data:
+                messages.error(request, 'The end date must be after the start date!')
+            else:
+                data = {
+                    'symbol': symbol,
+                    'interval': interval,
+                    'bound': bound,
+                    'bound_unit': bound_unit,
+                    'start_data': start_data.strftime('%Y-%m-%d'),
+                    'end_data': end_data.strftime('%Y-%m-%d')
+                }
+                print(data)
+    else:
+        form = SharesPolygonForm()
+    return render(request, 'shares_polygon.html', {'form': form})
+
+
 def check_task_status(request):
     task_id = request.session.get('task_id')
     print(task_id)
@@ -147,7 +179,3 @@ def result(request):
             return response
     else:
         return HttpResponse("File not found.")
-
-
-def work(request):
-    return render(request, 'in_work.html')

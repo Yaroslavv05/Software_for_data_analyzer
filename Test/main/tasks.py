@@ -200,7 +200,7 @@ def process_data_async(data):
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
-    file_path = f"{symbol} data crypto.xlsx"
+    file_path = f"{symbol} data crypto(binance).xlsx"
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
 
@@ -317,7 +317,7 @@ def shared_async_task(data):
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
-    file_path = f"{symbol} data shares.xlsx"
+    file_path = f"{symbol} data shares(twelvedata).xlsx"
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
 
