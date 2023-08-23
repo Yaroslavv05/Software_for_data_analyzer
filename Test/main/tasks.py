@@ -323,6 +323,7 @@ def shared_async_task(data):
 
 
 def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
+    time.sleep(10)
     interval_mapping = {
         '1 minute': 0.0166666667,
         '5 minute': 0.05,
