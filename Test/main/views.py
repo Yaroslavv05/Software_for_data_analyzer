@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .forms import MyForm, SharesForm, SharesPolygonForm
-from .tasks import process_data_async, shared_async_task
+from .tasks import process_data_async, shared_async_task, shares_polygon_async_task
 from celery.result import AsyncResult
 from binance.client import Client
 from django.http import JsonResponse
@@ -142,7 +142,11 @@ def shares_polygon(request):
                     'start_data': start_data.strftime('%Y-%m-%d'),
                     'end_data': end_data.strftime('%Y-%m-%d')
                 }
-                print(data)
+                task = shares_polygon_async_task.delay(data)
+                request.session['task_id'] = task.id
+                print(request.session.get('task_id'))
+                return redirect('process_shares')
+
     else:
         form = SharesPolygonForm()
     return render(request, 'shares_polygon.html', {'form': form})

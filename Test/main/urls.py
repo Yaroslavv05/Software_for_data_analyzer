@@ -3,7 +3,7 @@ from .views import *
 
 urlpatterns = [
     path('', main, name='main'),
-    path('crypto', index, name='crypto'),
+    path('crypto-binance', index, name='crypto'),
     path('shares-twelvedata', shares, name='shares'),
     path('process', process, name='process'),
     path('process_shares', process_shares, name='process_shares'),

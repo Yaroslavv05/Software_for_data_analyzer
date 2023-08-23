@@ -203,7 +203,6 @@ def process_data_async(data):
     file_path = f"{symbol} data crypto(binance).xlsx"
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
-
     return file_path
 
 
@@ -320,5 +319,139 @@ def shared_async_task(data):
     file_path = f"{symbol} data shares(twelvedata).xlsx"
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
+    return file_path
 
+
+def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
+    interval_mapping = {
+        '1 minute': 0.0166666667,
+        '5 minute': 0.05,
+        '15 minute': 0.0833333333,
+        '30 minute': 0.25,
+        '45 minute': 0.375,
+        '1 hour': 1.0,
+        '2 hour': 2.0,
+        '3 hour': 3.0,
+        '4 hour': 4.0,
+        '5 hour': 5.0,
+        '6 hour': 6.0,
+        '7 hour': 7.0,
+        '8 hour': 8.0,
+        '9 hour': 9.0,
+        '10 hour': 10.0,
+        '11 hour': 11.0,
+        '12 hour': 12.0,
+        '1 day': 24.0,
+        '1 week': 168.0,
+        '1 month': 720.0,
+        '1 year': 8760
+    }
+    start_date = date
+    start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
+    start_unix_timestamp = int(start_date_datetime.timestamp())
+    end_unix_timestamp = int(end_date_datetime.timestamp())
+    start_unix_timestamp_milliseconds = start_unix_timestamp * 1000
+    end_unix_timestamp_milliseconds = end_unix_timestamp * 1000
+    response = requests.get(
+        f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+    d = response.json()['results']
+    mass = []
+    for i in d:
+        dt = datetime.fromtimestamp(i['t'] / 1000) - timedelta(hours=2)
+        mass.append({
+            'time': dt.strftime('%Y-%m-%d %H:%M:%S'),
+            'open': i['o'],
+            'close': i['c'],
+            'high': i['h'],
+            'low': i['l']
+        })
+
+    for i in mass:
+        if float(i['high']) - open_price >= bound:
+            return '1'
+        elif open_price - float(i['low']) >= bound:
+            return '0'
+
+
+@shared_task
+def shares_polygon_async_task(data):
+    symbol = data['symbol'].upper()
+    timeframe = data['interval']
+    bound = float(data['bound'])
+    bound_unit = data['bound_unit']
+    start_date = data['start_data']
+    end_date = data['end_data']
+
+    response = requests.get(
+        f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz')
+    result = response.json()['results']
+    mass = []
+    for i in result:
+        dt = datetime.fromtimestamp(i['t'] / 1000) - timedelta(hours=2)
+        mass.append({
+            'time': dt.strftime('%Y-%m-%d %H:%M:%S'),
+            'open': i['o'],
+            'close': i['c'],
+            'high': i['h'],
+            'low': i['l']
+        })
+    output_data = []
+    if bound_unit == '$':
+        for i in mass:
+            if float(i['high']) - float(i['open']) >= bound and float(i['open']) - float(i['low']) >= bound:
+                time = i['time']
+                output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=float(i['open']),
+                                               date=i['time'], bound=bound)
+            elif float(i['high']) - float(i['open']) >= bound:
+                time = i['time']
+                output = '1'
+            elif float(i['open']) - float(i['low']) >= bound:
+                time = i['time']
+                output = '0'
+            else:
+                time = i['time']
+                output = '2'
+            output_data.append({'time': time, 'output': output})
+    elif bound_unit == '%':
+        for i in mass:
+            if float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound) and float(i['open']) - float(
+                    i['low']) >= (float(i['open']) / 100 * bound):
+                time = i['time']
+                output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=float(i['open']),
+                                               date=i['time'], bound=(float(i['open']) / 100 * bound))
+            elif float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound):
+                time = i['time']
+                output = '1'
+            elif float(i['open']) - float(i['low']) >= (float(i['open']) / 100 * bound):
+                time = i['time']
+                output = '0'
+            else:
+                time = i['time']
+                output = '2'
+            output_data.append({'time': time, 'output': output})
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    daily_data = {}
+    day_count = 1
+    for item in output_data:
+        day = item['time'][:10]
+        if day in daily_data:
+            daily_data[day].append(item)
+        else:
+            daily_data[day] = [item]
+
+    for day_data in daily_data.values():
+        for col_index, item in enumerate(day_data, 1):
+            ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date())
+            ws.cell(row=day_count, column=col_index + 1, value=item['output'])
+        day_count += 1
+
+    output_buffer = io.BytesIO()
+    wb.save(output_buffer)
+    output_buffer.seek(0)
+    file_path = f"{symbol} data shares(polygon).xlsx"
+    with open(file_path, 'wb') as file:
+        file.write(output_buffer.read())
     return file_path
