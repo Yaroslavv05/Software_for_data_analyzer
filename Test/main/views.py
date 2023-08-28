@@ -1,11 +1,12 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .forms import MyForm, SharesForm, SharesPolygonForm
+from .forms import MyForm, SharesForm, SharesPolygonForm, UserLoginForm
 from .tasks import process_data_async, shared_async_task, shares_polygon_async_task
 from celery.result import AsyncResult
 from binance.client import Client
 from django.http import JsonResponse
 from django.http import HttpResponse
+from django.contrib.auth import login
 import requests
 import os
 
@@ -183,3 +184,21 @@ def result(request):
             return response
     else:
         return HttpResponse("File not found.")
+
+
+def user_login(request):
+    if request.method == 'POST':
+        form = UserLoginForm(data=request.POST)
+        if form.is_valid():
+            user = form.get_user()
+            login(request, user)
+            return redirect('profile')
+        else:
+            messages.error(request, 'Ошибка авторизации')
+    else:
+        form = UserLoginForm()
+    return render(request, 'login.html', {'form': form})
+
+
+def profile(request):
+    return render(request, 'profile.html')

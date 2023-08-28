@@ -3,36 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Страница ожидания</title>
-    <script>
-        function checkTaskStatus() {
-    fetch("{% url 'check_task_status' %}")
-        .then(response => response.text())
-        .then(data => {
-            const parsedData = JSON.parse(data); // Преобразование текста в объект
-            console.log(parsedData.status);
-
-            if (parsedData.status === "completed") {
-                window.location.href = "{% url 'result' %}"; // Перенаправление на страницу с результатами
-                setTimeout(function() {
-                  window.location.href = "{% url 'main' %}";
-                }, 3000);
-            } else if (parsedData.status === "Task failed.") {
-                document.getElementById("status").innerHTML = "Task failed.";
-            } else if (parsedData.status === "running") {
-                setTimeout(checkTaskStatus, 1000);  // Повторное обновление через 1 секунду
-            } else {
-                console.log(parsedData);
-                document.getElementById("status").innerHTML = "Task not found.";
-            }
-        });
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-    checkTaskStatus();
-});
-
-    </script>
+    <title>Страница входа</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -68,6 +39,23 @@ document.addEventListener("DOMContentLoaded", function () {
         }
         .navbar a:hover {
             background-color: #1e2733;
+        }
+        .container {
+            text-align: center;
+            background-color: #1e2733;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            position: relative;
+        }
+        h1 {
+            color: #1abc9c;
+            margin-bottom: 20px;
+        }
+        p {
+            color: #1abc9c;
+            line-height: 1.6;
+            margin-bottom: 20px;
         }
         /* Стили для dropdown-меню */
         .dropdown {
@@ -111,17 +99,47 @@ document.addEventListener("DOMContentLoaded", function () {
             left: auto;
             right: 0;
         }
-        .container {
+
+        .login-container {
             text-align: center;
             background-color: #1e2733;
             border-radius: 10px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
             padding: 40px;
             position: relative;
+            width: 300px; /* Задайте желаемую ширину контейнера */
         }
-        h1 {
-            color: #1abc9c;
+
+        /* Стили для формы входа */
+        .login-form input[type="email"],
+        .login-form input[type="password"] {
+            width: 100%;
+            padding: 10px;
             margin-bottom: 20px;
+            border: none;
+            background-color: #1e2733;
+            color: #1abc9c;
+            border-bottom: 2px solid #1abc9c;
+        }
+
+        .login-form input[type="email"]:focus,
+        .login-form input[type="password"]:focus {
+            outline: none;
+            border-bottom: 2px solid #1e2733;
+        }
+
+        .login-form button {
+            background-color: #1abc9c;
+            color: #1e2733;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .login-form button:hover {
+            background-color: #149178;
         }
     </style>
 </head>
@@ -148,8 +166,15 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>
     </div>
     <div class="container">
-        <h1>Пожалуйста, подождите, скоро будет загружен файл!</h1>
-        <div id="status"></div>
+        <div class="login-container">
+            <h1>Вход</h1>
+            <form class="login-form" action="{% url 'login' %}" method="post">
+                {% csrf_token %}
+                {{ form.username }}
+                {{ form.password }}
+                <button type="submit">Войти</button>
+            </form>
+        </div>
     </div>
 </body>
 </html>

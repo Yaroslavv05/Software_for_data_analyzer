@@ -81,19 +81,24 @@
 </head>
 <body>
     <div class="navbar">
-        <a href="{% url 'main' %}">Главная</a>
-        <div class="dropdown crypto">
-            <a href="#" class="dropbtn">Крипта</a>
-            <div class="dropdown-content">
-                <a href="{% url 'crypto' %}">Binance</a>
+        <div class="nav-left">
+            <a href="{% url 'main' %}">Главная</a>
+            <div class="dropdown crypto">
+                <a href="#" class="dropbtn">Крипта</a>
+                <div class="dropdown-content">
+                    <a href="{% url 'crypto' %}">Binance</a>
+                </div>
+            </div>
+            <div class="dropdown stocks">
+                <a href="#" class="dropbtn">Акции</a>
+                <div class="dropdown-content">
+                    <a href="{% url 'shares' %}">Twelve Data</a>
+                    <a href="{% url 'shares_polygon' %}">Polygon</a>
+                </div>
             </div>
         </div>
-        <div class="dropdown stocks">
-            <a href="#" class="dropbtn">Акции</a>
-            <div class="dropdown-content">
-                <a href="{% url 'shares' %}">Twelve Data</a>
-                <a href="{% url 'shares_polygon' %}">Polygon</a>
-            </div>
+        <div class="nav-right">
+            <a href="{% url 'login' %}">Войти</a>
         </div>
     </div>
     {% for msg in messages %}

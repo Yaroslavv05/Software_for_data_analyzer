@@ -10,4 +10,6 @@ urlpatterns = [
     path('result', result, name='result'),
     path('check-task-status', check_task_status, name='check_task_status'),
     path('shares-polygon', shares_polygon, name='shares_polygon'),
+    path('login', user_login, name='login'),
+    path('profile', profile, name='profile')
 ]

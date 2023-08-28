@@ -1,5 +1,7 @@
 from django import forms
 from django.forms.widgets import MultiWidget, TextInput
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User
 from django.utils.safestring import mark_safe
 from binance.client import Client
 import datetime
@@ -93,3 +95,8 @@ class SharesPolygonForm(forms.Form):
     bound_unit = forms.ChoiceField(choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
     start_data = SplitDateTimeField()
     end_data = SplitDateTimeField()
+
+
+class UserLoginForm(AuthenticationForm):
+    username = forms.CharField(label="Имя пользователя:", widget=forms.TextInput(attrs={'type': 'email', 'name': 'email', 'placeholder': 'Почта'}))
+    password = forms.CharField(label="Пароль:", widget=forms.PasswordInput(attrs={'type': 'password', 'name': 'password', 'placeholder': 'Пароль'}))
