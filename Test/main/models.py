@@ -1,10 +1,9 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
-class MyData(models.Model):
-    symbol = models.CharField(max_length=255)
-    interval = models.FloatField()
-    bound = models.CharField(max_length=255)
-    bound_unit = models.CharField(max_length=5)
-    start_data = models.CharField(max_length=255)
-    end_data = models.CharField(max_length=255)
+class UserProfiles(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=50)
+    api_key = models.CharField(max_length=255)
+    secret_key = models.CharField(max_length=255)

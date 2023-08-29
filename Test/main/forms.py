@@ -1,4 +1,5 @@
 from django import forms
+from .models import UserProfiles
 from django.forms.widgets import MultiWidget, TextInput
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User

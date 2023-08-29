@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib import messages
 from .forms import MyForm, SharesForm, SharesPolygonForm, UserLoginForm, PasswordChangeForm, FirstNameChangeForm, AccountBinanceForm
 from .tasks import process_data_async, shared_async_task, shares_polygon_async_task
+from .models import UserProfiles
 from celery.result import AsyncResult
 from django.contrib.auth.decorators import login_required
 from binance.client import Client
@@ -202,13 +203,30 @@ def user_login(request):
 
 
 def profile(request):
-    form = AccountBinanceForm(request.POST)
+    user_profile = None
+
     if request.method == 'POST':
+        form = AccountBinanceForm(request.POST)
         if form.is_valid():
-            pass
+            user_profile = UserProfiles(user=request.user)  # Создание экземпляра модели
+            user_profile.name = form.cleaned_data['name']
+            user_profile.api_key = form.cleaned_data['api_key']
+            user_profile.secret_key = form.cleaned_data['secret_key']
+            user_profile.save()  # Сохранение экземпляра модели
+
     else:
         form = AccountBinanceForm()
-    return render(request, 'profile.html', {'form': form})
+
+    user_profiles = UserProfiles.objects.filter(user=request.user)
+
+    return render(request, 'profile.html', {'form': form, 'user_profiles': user_profiles})
+
+
+def delete_profile(request, profile_id):
+    profile = UserProfiles.objects.get(pk=profile_id)
+    if profile.user == request.user:
+        profile.delete()
+    return redirect('profile')
 
 
 @login_required
