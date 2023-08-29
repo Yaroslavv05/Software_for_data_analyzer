@@ -2,4 +2,4 @@ venv
 .idea
 main.py
 test.py
-
+db.sqlite3
