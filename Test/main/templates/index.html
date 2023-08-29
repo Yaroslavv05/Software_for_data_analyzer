@@ -77,58 +77,73 @@
             left: auto;
             right: 0;
         }
+
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <div class="nav-left">
-            <a href="{% url 'main' %}">Главная</a>
-            <div class="dropdown crypto">
-                <a href="#" class="dropbtn">Крипта</a>
-                <div class="dropdown-content">
-                    <a href="{% url 'crypto' %}">Binance</a>
-                </div>
-            </div>
-            <div class="dropdown stocks">
-                <a href="#" class="dropbtn">Акции</a>
-                <div class="dropdown-content">
-                    <a href="{% url 'shares' %}">Twelve Data</a>
-                    <a href="{% url 'shares_polygon' %}">Polygon</a>
-                </div>
+<div class="navbar">
+    <div class="nav-left">
+        <a href="{% url 'main' %}">Главная</a>
+        <div class="dropdown crypto">
+            <a href="#" class="dropbtn">Крипта</a>
+            <div class="dropdown-content">
+                <a href="{% url 'crypto' %}">Binance</a>
             </div>
         </div>
-        <div class="nav-right">
-            <a href="{% url 'login' %}">Войти</a>
+        <div class="dropdown crypto">
+            <a href="#" class="dropbtn">Акции</a>
+            <div class="dropdown-content">
+                <a href="{% url 'shares' %}">Twelve Data</a>
+                <a href="{% url 'shares_polygon' %}">Polygon</a>
+            </div>
         </div>
     </div>
-    {% for msg in messages %}
-    <div class="alert alert-danger" role="alert">
-      {{ msg }}
-    </div>
-    {% endfor %}
-    <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh">
-        <div id="forms" class="col-lg-6 col-md-8 col-sm-10 col-12">
-            <h1 class="text-center" style="color: #1abc9c;">Крипта</h1>
-            <form method="post">
-                {% csrf_token %}
-                <input type="text" id="symbol-search" class="form-control mb-2" placeholder="Поиск...">
-                {{ form.symbol }}
-                {{ form.interval }}
-                <div class="d-flex">
-                    {{ form.bound }}
-                    {{ form.bound_unit }}
-                </div>
-                {{ form.start_data }}
-                {{ form.end_data }}
-                <button type="submit" class="btn btn-primary">Отправить</button>
-            </form>
+    {% if request.user.is_authenticated %}
+    <div class="nav-right">
+        <div class="dropdown stocks">
+            <a href="#" class="dropbtn">{{ request.user.first_name }}</a>
+            <div class="dropdown-content">
+                <a href="{% url 'profile' %}">Профиль</a>
+                <a href="{% url 'change_nickname' %}">Изменить имя</a>
+                <a href="{% url 'change_password' %}">Изменить пароль</a>
+                <a href="{% url 'logout' %}">Выйти</a>
+            </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
-            crossorigin="anonymous"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
+    {% else %}
+    <div class="nav-right">
+        <a href="{% url 'login' %}">Войти</a>
+    </div>
+    {% endif %}
+</div>
+{% for msg in messages %}
+<div class="alert alert-danger" role="alert">
+    {{ msg }}
+</div>
+{% endfor %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh">
+    <div id="forms" class="col-lg-6 col-md-8 col-sm-10 col-12">
+        <h1 class="text-center" style="color: #1abc9c;">Крипта</h1>
+        <form method="post">
+            {% csrf_token %}
+            <input type="text" id="symbol-search" class="form-control mb-2" placeholder="Поиск...">
+            {{ form.symbol }}
+            {{ form.interval }}
+            <div class="d-flex">
+                {{ form.bound }}
+                {{ form.bound_unit }}
+            </div>
+            {{ form.start_data }}
+            {{ form.end_data }}
+            <button type="submit" class="btn btn-primary">Отправить</button>
+        </form>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
+        crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
     $(document).ready(function() {
         // Сохраняем все опции выбора для последующей фильтрации
         var allOptions = $("#id_symbol option");
@@ -152,6 +167,7 @@
             }
         });
     });
-    </script>
+
+</script>
 </body>
 </html>

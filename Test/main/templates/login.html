@@ -141,40 +141,80 @@
         .login-form button:hover {
             background-color: #149178;
         }
+
+        .messages .success {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .messages .error {
+            background-color: #FF5733;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
     </style>
 </head>
 <body>
-    <div class="navbar">
-        <div class="nav-left">
-            <a href="{% url 'main' %}">Главная</a>
-            <div class="dropdown crypto">
-                <a href="#" class="dropbtn">Крипта</a>
-                <div class="dropdown-content">
-                    <a href="{% url 'crypto' %}">Binance</a>
-                </div>
-            </div>
-            <div class="dropdown stocks">
-                <a href="#" class="dropbtn">Акции</a>
-                <div class="dropdown-content">
-                    <a href="{% url 'shares' %}">Twelve Data</a>
-                    <a href="{% url 'shares_polygon' %}">Polygon</a>
-                </div>
+<div class="navbar">
+    <div class="nav-left">
+        <a href="{% url 'main' %}">Главная</a>
+        <div class="dropdown crypto">
+            <a href="#" class="dropbtn">Крипта</a>
+            <div class="dropdown-content">
+                <a href="{% url 'crypto' %}">Binance</a>
             </div>
         </div>
-        <div class="nav-right">
-            <a href="{% url 'login' %}">Войти</a>
+        <div class="dropdown crypto">
+            <a href="#" class="dropbtn">Акции</a>
+            <div class="dropdown-content">
+                <a href="{% url 'shares' %}">Twelve Data</a>
+                <a href="{% url 'shares_polygon' %}">Polygon</a>
+            </div>
         </div>
     </div>
-    <div class="container">
-        <div class="login-container">
-            <h1>Вход</h1>
-            <form class="login-form" action="{% url 'login' %}" method="post">
-                {% csrf_token %}
-                {{ form.username }}
-                {{ form.password }}
-                <button type="submit">Войти</button>
-            </form>
+    {% if request.user.is_authenticated %}
+    <div class="nav-right">
+        <div class="dropdown stocks">
+            <a href="#" class="dropbtn">{{ request.user.first_name }}</a>
+            <div class="dropdown-content">
+                <a href="{% url 'profile' %}">Профиль</a>
+                <a href="{% url 'change_nickname' %}">Изменить имя</a>
+                <a href="{% url 'change_password' %}">Изменить пароль</a>
+                <a href="{% url 'logout' %}">Выйти</a>
+            </div>
         </div>
     </div>
+    {% else %}
+    <div class="nav-right">
+        <a href="{% url 'login' %}">Войти</a>
+    </div>
+    {% endif %}
+</div>
+<div class="container">
+    <div class="login-container">
+        <h1>Вход</h1>
+        <div class="messages">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="{{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+        <form class="login-form" action="{% url 'login' %}" method="post">
+            {% csrf_token %}
+            {{ form.username }}
+            {{ form.password }}
+            <button type="submit">Войти</button>
+        </form>
+    </div>
+</div>
 </body>
 </html>

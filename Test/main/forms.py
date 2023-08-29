@@ -100,3 +100,19 @@ class SharesPolygonForm(forms.Form):
 class UserLoginForm(AuthenticationForm):
     username = forms.CharField(label="Имя пользователя:", widget=forms.TextInput(attrs={'type': 'email', 'name': 'email', 'placeholder': 'Почта'}))
     password = forms.CharField(label="Пароль:", widget=forms.PasswordInput(attrs={'type': 'password', 'name': 'password', 'placeholder': 'Пароль'}))
+
+
+class PasswordChangeForm(forms.Form):
+    old_password = forms.CharField(widget=forms.PasswordInput(attrs={'type': 'password', 'name': 'password', 'placeholder': 'Старый пароль'}))
+    new_password1 = forms.CharField(widget=forms.PasswordInput(attrs={'type': 'password', 'name': 'password', 'placeholder': 'Новый пароль'}))
+    new_password2 = forms.CharField(widget=forms.PasswordInput(attrs={'type': 'password', 'name': 'password', 'placeholder': 'Повторите новый пароль'}))
+
+
+class FirstNameChangeForm(forms.Form):
+    new_nickname = forms.CharField(widget=forms.TextInput(attrs={'type': 'text', 'name': 'username', 'placeholder': 'Новое имя'}))
+
+
+class AccountBinanceForm(forms.Form):
+    name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Название'}))
+    api_key = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Api ключ'}))
+    secret_key = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Secret ключ'}))

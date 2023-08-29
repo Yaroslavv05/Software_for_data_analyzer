@@ -1,12 +1,13 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .forms import MyForm, SharesForm, SharesPolygonForm, UserLoginForm
+from .forms import MyForm, SharesForm, SharesPolygonForm, UserLoginForm, PasswordChangeForm, FirstNameChangeForm, AccountBinanceForm
 from .tasks import process_data_async, shared_async_task, shares_polygon_async_task
 from celery.result import AsyncResult
+from django.contrib.auth.decorators import login_required
 from binance.client import Client
 from django.http import JsonResponse
 from django.http import HttpResponse
-from django.contrib.auth import login
+from django.contrib.auth import login, logout
 import requests
 import os
 
@@ -201,4 +202,52 @@ def user_login(request):
 
 
 def profile(request):
-    return render(request, 'profile.html')
+    form = AccountBinanceForm(request.POST)
+    if request.method == 'POST':
+        if form.is_valid():
+            pass
+    else:
+        form = AccountBinanceForm()
+    return render(request, 'profile.html', {'form': form})
+
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.POST)
+        if form.is_valid():
+            old_password = form.cleaned_data['old_password']
+            new_password1 = form.cleaned_data['new_password1']
+            new_password2 = form.cleaned_data['new_password2']
+
+            if not request.user.check_password(old_password):
+                messages.error(request, 'Старый пароль неверен.')
+            elif new_password1 != new_password2:
+                messages.error(request, 'Новые пароли не совпадают.')
+            else:
+                request.user.set_password(new_password1)
+                request.user.save()
+                messages.success(request, 'Пароль успешно изменен.')
+                return redirect('password_change_done')
+    else:
+        form = PasswordChangeForm()
+    return render(request, 'change_password.html', {'form': form})
+
+
+def change_nickname(request):
+    if request.method == 'POST':
+        form = FirstNameChangeForm(request.POST)
+        if form.is_valid():
+            request.user.first_name = form.cleaned_data['new_nickname']
+            request.user.save()
+            messages.success(request, f'Ваше имя было измененно на {form.cleaned_data["new_nickname"]}')
+            return redirect('change_nickname')
+    else:
+        form = FirstNameChangeForm()
+    return render(request, 'change_nickname.html', {'form': form})
+
+
+def password_change_done(request):
+    logout(request)
+    return redirect('login')
+
