@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .forms import MyForm, SharesForm, SharesPolygonForm, UserLoginForm, PasswordChangeForm, FirstNameChangeForm, AccountBinanceForm
 from .tasks import process_data_async, shared_async_task, shares_polygon_async_task
@@ -227,6 +227,27 @@ def delete_profile(request, profile_id):
     if profile.user == request.user:
         profile.delete()
     return redirect('profile')
+
+
+def edit_profile(request, profile_id):
+    profile = get_object_or_404(UserProfiles, id=profile_id)
+
+    if request.method == 'POST':
+        form = AccountBinanceForm(request.POST)
+        if form.is_valid():
+            profile.name = form.cleaned_data['name']
+            profile.api_key = form.cleaned_data['api_key']
+            profile.secret_key = form.cleaned_data['secret_key']
+            profile.save()  # Сохранение изменений
+            return redirect('profile')  # Перенаправление на список профилей после сохранения
+    else:
+        form = AccountBinanceForm(initial={
+            'name': profile.name,
+            'api_key': profile.api_key,
+            'secret_key': profile.secret_key,
+        })
+
+    return render(request, 'edit_profile.html', {'form': form})
 
 
 @login_required

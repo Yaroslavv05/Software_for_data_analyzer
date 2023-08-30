@@ -18,4 +18,5 @@ urlpatterns = [
     path('change-nickname', change_nickname, name='change_nickname'),
     path('logout/', auth_views.LogoutView.as_view(next_page='main'), name='logout'),
     path('profile/delete/<int:profile_id>/', delete_profile, name='delete_profile'),
+    path('edit_profile/<int:profile_id>/', edit_profile, name='edit_profile'),
 ]
