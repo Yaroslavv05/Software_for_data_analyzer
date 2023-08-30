@@ -129,6 +129,7 @@ document.addEventListener("DOMContentLoaded", function () {
 </head>
 <body>
 <div class="navbar">
+    {% if request.user.is_authenticated %}
     <div class="nav-left">
         <a href="{% url 'main' %}">Главная</a>
         <div class="dropdown crypto">
@@ -145,7 +146,6 @@ document.addEventListener("DOMContentLoaded", function () {
             </div>
         </div>
     </div>
-    {% if request.user.is_authenticated %}
     <div class="nav-right">
         <div class="dropdown stocks">
             <a href="#" class="dropbtn">{{ request.user.first_name }}</a>
@@ -158,6 +158,9 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>
     </div>
     {% else %}
+    <div class="nav-left">
+        <a href="{% url 'main' %}">Главная</a>
+    </div>
     <div class="nav-right">
         <a href="{% url 'login' %}">Войти</a>
     </div>
