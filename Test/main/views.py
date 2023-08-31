@@ -1,14 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .forms import MyForm, SharesForm, SharesPolygonForm, UserLoginForm, PasswordChangeForm, FirstNameChangeForm, AccountBinanceForm
+from .forms import MyForm, SharesForm, SharesPolygonForm, UserLoginForm, PasswordChangeForm, FirstNameChangeForm, AccountBinanceForm,  TradingForm
 from .tasks import process_data_async, shared_async_task, shares_polygon_async_task
-from .models import UserProfiles
+from .models import UserProfiles, TradingData
 from celery.result import AsyncResult
 from django.contrib.auth.decorators import login_required
 from binance.client import Client
 from django.http import JsonResponse
 from django.http import HttpResponse
 from django.contrib.auth import login, logout
+from django.conf import settings
 import requests
 import os
 
@@ -290,3 +291,19 @@ def password_change_done(request):
     logout(request)
     return redirect('login')
 
+
+def trade(request):
+    if request.method == 'POST':
+        form = TradingForm(request.POST, request.FILES)
+        if form.is_valid():
+            trading_data = TradingData(user=request.user,
+                                       account=form.cleaned_data['account'],
+                                       uploaded_file=request.FILES['uploaded_file'],
+                                       crypto_name=form.cleaned_data['crypto_name'],
+                                       usdt_amount=form.cleaned_data['usdt_amount'],
+                                       leverage=form.cleaned_data['leverage'])
+            trading_data.save()
+            return redirect('orders')
+    else:
+        form = TradingForm()
+    return render(request, 'trading.html', {'form': form})

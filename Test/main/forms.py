@@ -117,3 +117,23 @@ class AccountBinanceForm(forms.Form):
     name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Название'}))
     api_key = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Api ключ'}))
     secret_key = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Secret ключ'}))
+
+
+class TradingForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        super(TradingForm, self).__init__(*args, **kwargs)
+
+        # Извлекаем данные из базы данных
+        user_profiles = UserProfiles.objects.all()
+        ACCOUNT_CHOICES = [(profile.name, profile.name) for profile in user_profiles]
+
+        # Добавляем выбор аккаунта на основе данных из базы
+        self.fields['account'] = forms.ChoiceField(
+            choices=ACCOUNT_CHOICES,
+            widget=forms.Select(attrs={'class': 'form-select mb-2'})
+        )
+
+    uploaded_file = forms.CharField(widget=forms.FileInput(attrs={'class': 'form-control mb-2'}))
+    crypto_name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Название'}))
+    usdt_amount = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Кол-во USDT'}))
+    leverage = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Кредитное плече'}))
