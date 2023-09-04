@@ -1,4 +1,5 @@
 import io
+from django.contrib.auth.models import User
 from celery import shared_task
 from binance.client import Client
 from datetime import datetime, timedelta
@@ -6,6 +7,7 @@ import openpyxl
 import time
 import requests
 import re
+from .models import DataEntry
 
 
 def minute(symbol, open_price, bound, date, time_frame):
@@ -456,3 +458,30 @@ def shares_polygon_async_task(data):
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
     return file_path
+
+
+@shared_task
+def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api_key, secret_key):
+    time.sleep(3)
+    workbook = openpyxl.load_workbook(f'media/{file_path}')
+    sheet = workbook['Sheet']
+    data = []
+    user = User.objects.get(pk=user_id)
+
+    for row in sheet.iter_rows(values_only=True):
+        data.append(row)
+
+    current_time = datetime.strptime('00:00', '%H:%M')
+
+    for row in data:
+        if len(row) == 7:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=4)

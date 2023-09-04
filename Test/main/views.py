@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .forms import MyForm, SharesForm, SharesPolygonForm, UserLoginForm, PasswordChangeForm, FirstNameChangeForm, AccountBinanceForm,  TradingForm
-from .tasks import process_data_async, shared_async_task, shares_polygon_async_task
+from .tasks import process_data_async, shared_async_task, shares_polygon_async_task, async_parse_file_task
 from .models import UserProfiles, TradingData
 from celery.result import AsyncResult
 from django.contrib.auth.decorators import login_required
@@ -209,11 +209,11 @@ def profile(request):
     if request.method == 'POST':
         form = AccountBinanceForm(request.POST)
         if form.is_valid():
-            user_profile = UserProfiles(user=request.user)  # Создание экземпляра модели
+            user_profile = UserProfiles(user=request.user)
             user_profile.name = form.cleaned_data['name']
             user_profile.api_key = form.cleaned_data['api_key']
             user_profile.secret_key = form.cleaned_data['secret_key']
-            user_profile.save()  # Сохранение экземпляра модели
+            user_profile.save()
 
     else:
         form = AccountBinanceForm()
@@ -297,13 +297,18 @@ def trade(request):
         form = TradingForm(request.POST, request.FILES)
         if form.is_valid():
             trading_data = TradingData(user=request.user,
-                                       account=form.cleaned_data['account'],
-                                       uploaded_file=request.FILES['uploaded_file'],
-                                       crypto_name=form.cleaned_data['crypto_name'],
-                                       usdt_amount=form.cleaned_data['usdt_amount'],
-                                       leverage=form.cleaned_data['leverage'])
+                                       uploaded_file=request.FILES['uploaded_file'],)
             trading_data.save()
-            return redirect('orders')
+            file_path = TradingData.objects.all().last().uploaded_file.name
+            user_profile = UserProfiles.objects.get(name=form.cleaned_data['account'])
+            api_key = user_profile.api_key
+            secret_key = user_profile.secret_key
+            async_parse_file_task.delay(file_path=file_path, user_id=request.user.id, symbol=form.cleaned_data['crypto_name'], amount_usdt=form.cleaned_data['usdt_amount'], leverage=form.cleaned_data['leverage'], api_key=api_key, secret_key=secret_key)
+            # return redirect('waiting')
     else:
         form = TradingForm()
     return render(request, 'trading.html', {'form': form})
+
+
+def waiting(request):
+    return render(request, 'waiting.html')
