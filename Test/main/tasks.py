@@ -2,12 +2,13 @@ import io
 from django.contrib.auth.models import User
 from celery import shared_task
 from binance.client import Client
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import openpyxl
 import time
 import requests
 import re
 from .models import DataEntry
+from plyer import notification
 
 
 def minute(symbol, open_price, bound, date, time_frame):
@@ -460,28 +461,65 @@ def shares_polygon_async_task(data):
     return file_path
 
 
+def send_notification_at_time(datetime_str):
+    current_time = datetime.now()
+
+    try:
+        target_time = datetime.strptime(datetime_str, '%Y-%m-%d %H:%M')
+    except ValueError:
+        print("Неверный формат даты и времени. Используйте формат 'ГГГГ-ММ-ДД ЧЧ:ММ'")
+        return False
+
+    if target_time <= current_time:
+        print('Время пришло')
+        return True
+
+    time_until_notification = target_time - current_time
+    delay = time_until_notification.total_seconds()
+
+    if delay > 0:
+        print(f"Уведомление будет отправлено через {time_until_notification}")
+        time.sleep(delay)
+        notification.notify(
+            title='Уведомление',
+            message='Пора!',
+            app_name='ВашеПриложение'
+        )
+        return True
+    else:
+        print("Указанное время уже прошло.")
+        return False
+
+
 @shared_task
 def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api_key, secret_key):
-    time.sleep(3)
-    workbook = openpyxl.load_workbook(f'media/{file_path}')
-    sheet = workbook['Sheet']
-    data = []
-    user = User.objects.get(pk=user_id)
-
-    for row in sheet.iter_rows(values_only=True):
-        data.append(row)
-
-    current_time = datetime.strptime('00:00', '%H:%M')
-
-    for row in data:
-        if len(row) == 7:
-            date = row[0]
-            for i in row[1:]:
-                combined_datetime = datetime.combine(date, current_time.time())
-                position = i
-
-                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
-                data_entry.save()
-
-                current_time += timedelta(hours=4)
+    # time.sleep(3)
+    # workbook = openpyxl.load_workbook(f'media/{file_path}')
+    # sheet = workbook['Sheet']
+    # data = []
+    # user = User.objects.get(pk=user_id)
+    #
+    # for row in sheet.iter_rows(values_only=True):
+    #     data.append(row)
+    #
+    # current_time = datetime.strptime('00:00', '%H:%M')
+    #
+    # for row in data:
+    #     if len(row) == 7:
+    #         date = row[0]
+    #         for i in row[1:]:
+    #             combined_datetime = datetime.combine(date, current_time.time())
+    #             position = i
+    #
+    #             formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+    #             data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+    #             data_entry.save()
+    #
+    #             current_time += timedelta(hours=4)
+    current_datetime = datetime.now()
+    entries_to_process = DataEntry.objects.filter(is_completed=False)
+    for entry in entries_to_process:
+        entry_datetime = datetime.strptime(entry.date, '%Y-%m-%d %H:%M')
+        if entry_datetime > current_datetime:
+            if send_notification_at_time(f"{entry_datetime.strftime('%Y-%m-%d %H:%M')}"):
+                print('сделана сделка')
