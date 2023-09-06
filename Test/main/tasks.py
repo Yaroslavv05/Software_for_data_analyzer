@@ -491,34 +491,60 @@ def send_notification_at_time(datetime_str):
         return False
 
 
+def trade(symbol, api_key, secret_key):
+    # api_key = '6a2f9138eed98ec1f4de4116e5127b1d68fd8066353c21bb99aa8d6b55f3f6a5'
+    # secret_key = '0170e94fd7a8f052c60f5a960f9a9161cf14544fd63b7dc1f6454d1227df509a'
+
+    client = Client(api_key, secret_key, testnet=True)
+
+    side = Client.SIDE_BUY
+    quantity = 1
+    price = '28000'
+    order_type = Client.ORDER_TYPE_LIMIT
+    time_in_force = Client.TIME_IN_FORCE_GTC
+
+    order = client.futures_create_order(
+        symbol=symbol,
+        side=side,
+        quantity=quantity,
+        price=price,
+        type=order_type,
+        timeInForce=time_in_force
+    )
+
+    print(order)
+
+
 @shared_task
 def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api_key, secret_key):
-    # time.sleep(3)
-    # workbook = openpyxl.load_workbook(f'media/{file_path}')
-    # sheet = workbook['Sheet']
-    # data = []
-    # user = User.objects.get(pk=user_id)
-    #
-    # for row in sheet.iter_rows(values_only=True):
-    #     data.append(row)
-    #
-    # current_time = datetime.strptime('00:00', '%H:%M')
-    #
-    # for row in data:
-    #     if len(row) == 7:
-    #         date = row[0]
-    #         for i in row[1:]:
-    #             combined_datetime = datetime.combine(date, current_time.time())
-    #             position = i
-    #
-    #             formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-    #             data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
-    #             data_entry.save()
-    #
-    #             current_time += timedelta(hours=4)
+    workbook = openpyxl.load_workbook(f'media/{file_path}')
+    sheet = workbook['Sheet']
+    data = []
+    user = User.objects.get(pk=user_id)
+
+    for row in sheet.iter_rows(values_only=True):
+        data.append(row)
+
+    current_time = datetime.strptime('00:00', '%H:%M')
+
+    for row in data:
+        if len(row) == 7:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=4)
+        else:
+            break
     current_datetime = datetime.now()
-    entries_to_process = DataEntry.objects.filter(is_completed=False)
+    entries_to_process = DataEntry.objects.filter(user=user_id, is_completed=False)
     for entry in entries_to_process:
+        print(entry.date)
         entry_datetime = datetime.strptime(entry.date, '%Y-%m-%d %H:%M')
         if entry_datetime > current_datetime:
             if send_notification_at_time(f"{entry_datetime.strftime('%Y-%m-%d %H:%M')}"):
