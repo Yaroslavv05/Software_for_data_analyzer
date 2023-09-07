@@ -120,6 +120,22 @@ def process_shares(request):
     return render(request, 'process_shares.html')
 
 
+def cancel_task(request):
+    if request.method == 'POST':
+        task_id = request.session.get('task_id')
+        try:
+            result = AsyncResult(task_id)
+            if result.state == 'PENDING':
+                result.revoke(terminate=True)
+                return redirect('main')
+            else:
+                return JsonResponse({'message': 'Задача уже выполнена или в процессе выполнения'})
+        except Exception as e:
+            return JsonResponse({'message': f'Ошибка при отмене задачи: {str(e)}'})
+
+    return JsonResponse({'message': 'Метод запроса должен быть POST'})
+
+
 def shares_polygon(request):
     form = SharesPolygonForm(request.POST)
     if request.method == 'POST':

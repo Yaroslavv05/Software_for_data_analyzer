@@ -20,5 +20,6 @@ urlpatterns = [
     path('profile/delete/<int:profile_id>/', delete_profile, name='delete_profile'),
     path('edit_profile/<int:profile_id>/', edit_profile, name='edit_profile'),
     path('trade', trade, name='trade'),
-    path('waiting', waiting, name='waiting')
+    path('waiting', waiting, name='waiting'),
+    path('cancel_task', cancel_task, name='cancel_task')
 ]

@@ -223,8 +223,13 @@ def controversial(symbol, timeframe, open_price, date, bound):
         '1week': 168.0,
         '1month': 720.0
     }
+    # if len(date) == 10:
+    #     date += ' 00:00:00'
     start_date = date
-    start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    if len(date) == 10:
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+    else:
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
     end_date_datetime = start_date_datetime + timedelta(hours=float(interval_mapping[timeframe]))
     print(symbol, timeframe, bound, start_date, end_date_datetime)
     response = requests.get(f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval=1min&symbol={symbol}&timezone=utc&start_date={start_date}&end_date={end_date_datetime}")
@@ -313,7 +318,10 @@ def shared_async_task(data):
 
     for day_data in daily_data.values():
         for col_index, item in enumerate(day_data, 1):
-            ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date())
+            if len(start_date_input) == 10:
+                ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d").date())
+            else:
+                ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date())
             ws.cell(row=day_count, column=col_index + 1, value=item['output'])
         day_count += 1
     output_buffer = io.BytesIO()
@@ -326,7 +334,7 @@ def shared_async_task(data):
 
 
 def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
-    time.sleep(10)
+    time.sleep(30)
     interval_mapping = {
         '1 minute': 0.0166666667,
         '5 minute': 0.05,
@@ -359,6 +367,7 @@ def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
     end_unix_timestamp_milliseconds = end_unix_timestamp * 1000
     response = requests.get(
         f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+    print(response.json())
     d = response.json()['results']
     mass = []
     for i in d:
@@ -392,7 +401,7 @@ def shares_polygon_async_task(data):
     result = response.json()['results']
     mass = []
     for i in result:
-        dt = datetime.fromtimestamp(i['t'] / 1000) - timedelta(hours=2)
+        dt = datetime.fromtimestamp(i['t'] / 1000)
         mass.append({
             'time': dt.strftime('%Y-%m-%d %H:%M:%S'),
             'open': i['o'],
@@ -405,6 +414,7 @@ def shares_polygon_async_task(data):
         for i in mass:
             if float(i['high']) - float(i['open']) >= bound and float(i['open']) - float(i['low']) >= bound:
                 time = i['time']
+                print(time)
                 output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=float(i['open']),
                                                date=i['time'], bound=bound)
             elif float(i['high']) - float(i['open']) >= bound:

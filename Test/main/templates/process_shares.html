@@ -5,34 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Страница ожидания</title>
     <script>
-        function checkTaskStatus() {
-    fetch("{% url 'check_task_status' %}")
-        .then(response => response.text())
-        .then(data => {
-            const parsedData = JSON.parse(data); // Преобразование текста в объект
-            console.log(parsedData.status);
+    function checkTaskStatus() {
+        fetch("{% url 'check_task_status' %}")
+            .then(response => response.text())
+            .then(data => {
+                const parsedData = JSON.parse(data); // Преобразование текста в объект
+                console.log(parsedData.status);
 
-            if (parsedData.status === "completed") {
-                window.location.href = "{% url 'result' %}"; // Перенаправление на страницу с результатами
-                setTimeout(function() {
-                  window.location.href = "{% url 'main' %}";
-                }, 3000);
-            } else if (parsedData.status === "Task failed.") {
-                document.getElementById("status").innerHTML = "Task failed.";
-            } else if (parsedData.status === "running") {
-                setTimeout(checkTaskStatus, 1000);  // Повторное обновление через 1 секунду
-            } else {
-                console.log(parsedData);
-                document.getElementById("status").innerHTML = "Task not found.";
-            }
-        });
-}
+                document.getElementById("status").innerHTML = parsedData.status;
+                if (parsedData.status === "completed") {
+                    window.location.href = "{% url 'result' %}"; // Перенаправление на страницу с результатами
+                    setTimeout(function() {
+                      window.location.href = "{% url 'main' %}";
+                    }, 3000);
+                } else if (parsedData.status === "Task failed.") {
+                    document.getElementById("status").innerHTML = "Task failed.";
+                } else if (parsedData.status === "running") {
+                    setTimeout(checkTaskStatus, 1000);  // Повторное обновление через 1 секунду
+                } else {
+                    console.log(parsedData);
+                    document.getElementById("status").innerHTML = "Task not found.";
+                }
+            });
+    }
 
-document.addEventListener("DOMContentLoaded", function () {
-    checkTaskStatus();
-});
-
-
+    document.addEventListener("DOMContentLoaded", function () {
+        checkTaskStatus();
+    });
     </script>
     <style>
         body {
@@ -125,6 +124,35 @@ document.addEventListener("DOMContentLoaded", function () {
             margin-bottom: 20px;
         }
 
+        #status {
+          position: absolute;
+          top: 0;
+          left: 0;
+          margin-top: 100px;
+          margin-left: 165px;
+        }
+
+        #for-status {
+          position: absolute;
+          top: 0;
+          left: 0;
+          margin-top: 100px;
+          margin-left: 50px;
+        }
+
+        .red-button {
+          background-color: red;
+          color: white;
+          border: none;
+          padding: 12px 64px; /* Вы можете настроить отступы по вашему выбору */
+          position: absolute;
+          top: 0;
+          left: 0;
+          margin-top: 135px;
+          margin-left: 35px;
+          border-radius: 6px;
+        }
+
     </style>
 </head>
 <body>
@@ -167,9 +195,13 @@ document.addEventListener("DOMContentLoaded", function () {
     </div>
     {% endif %}
 </div>
+<p id="for-status">Статус задачи: </p><div id="status"></div>
+<form method="POST" action="{% url 'cancel_task' %}" id="cancel-task-form">
+    {% csrf_token %}
+    <button type="submit" class="red-button">Отменить задачу</button>
+</form>
 <div class="container">
     <h1>Пожалуйста, подождите, скоро будет загружен файл!</h1>
-    <div id="status"></div>
 </div>
 </body>
 </html>
