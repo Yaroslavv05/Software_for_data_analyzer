@@ -223,8 +223,6 @@ def controversial(symbol, timeframe, open_price, date, bound):
         '1week': 168.0,
         '1month': 720.0
     }
-    # if len(date) == 10:
-    #     date += ' 00:00:00'
     start_date = date
     if len(date) == 10:
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d')
@@ -318,10 +316,15 @@ def shared_async_task(data):
 
     for day_data in daily_data.values():
         for col_index, item in enumerate(day_data, 1):
-            if len(start_date_input) == 10:
-                ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d").date())
-            else:
+            try:
+                date_time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
+                has_time = True
+            except ValueError:
+                has_time = False
+            if has_time:
                 ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date())
+            else:
+                ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d").date())
             ws.cell(row=day_count, column=col_index + 1, value=item['output'])
         day_count += 1
     output_buffer = io.BytesIO()
