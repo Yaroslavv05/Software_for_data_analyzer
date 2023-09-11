@@ -82,6 +82,9 @@ class SharesForm(forms.Form):
 
 
 class SharesPolygonForm(forms.Form):
+    api = forms.ChoiceField(choices=(
+        ('EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz', 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'), ('sBQPoe39YLoEVj7m4KpfFEHNmwFxXR9F', 'sBQPoe39YLoEVj7m4KpfFEHNmwFxXR9F'), ('MVClxfjQ3zxZYyH8symJZqIW0TtV2vQP', 'MVClxfjQ3zxZYyH8symJZqIW0TtV2vQP')
+    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
     symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
     interval = forms.ChoiceField(choices=(
         ('1 minute', '1м'), ('5 minute', '5м'), ('15 minute', '15м'), ('30 minute', '30м'), ('45 minute', '45м'), ('1 hour', '1ч'), ('2 hour', '2ч'), ('3 hour', '3ч'), ('4 hour', '4ч'),
@@ -123,11 +126,9 @@ class TradingForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super(TradingForm, self).__init__(*args, **kwargs)
 
-        # Извлекаем данные из базы данных
         user_profiles = UserProfiles.objects.all()
         ACCOUNT_CHOICES = [(profile.name, profile.name) for profile in user_profiles]
 
-        # Добавляем выбор аккаунта на основе данных из базы
         self.fields['account'] = forms.ChoiceField(
             choices=ACCOUNT_CHOICES,
             widget=forms.Select(attrs={'class': 'form-select mb-2'})

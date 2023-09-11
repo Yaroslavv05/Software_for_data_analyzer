@@ -398,9 +398,10 @@ def shares_polygon_async_task(data):
     bound_unit = data['bound_unit']
     start_date = data['start_data']
     end_date = data['end_data']
+    api = data['api']
 
     response = requests.get(
-        f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz')
+        f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api}')
     result = response.json()['results']
     mass = []
     for i in result:

@@ -146,6 +146,7 @@ def shares_polygon(request):
             bound_unit = form.cleaned_data['bound_unit']
             start_data = form.cleaned_data['start_data']
             end_data = form.cleaned_data['end_data']
+            api = form.cleaned_data['api']
             symbol_validity = check_symbol_validity(symbol, start_data, end_data)
             if symbol_validity == "invalid symbol":
                 messages.error(request, 'Invalid symbol!')
@@ -160,7 +161,8 @@ def shares_polygon(request):
                     'bound': bound,
                     'bound_unit': bound_unit,
                     'start_data': start_data.strftime('%Y-%m-%d'),
-                    'end_data': end_data.strftime('%Y-%m-%d')
+                    'end_data': end_data.strftime('%Y-%m-%d'),
+                    'api': api
                 }
                 task = shares_polygon_async_task.delay(data)
                 request.session['task_id'] = task.id
