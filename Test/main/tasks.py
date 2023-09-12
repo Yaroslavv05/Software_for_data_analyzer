@@ -505,28 +505,34 @@ def send_notification_at_time(datetime_str):
         return False
 
 
-def trade(symbol, api_key, secret_key):
-    # api_key = '6a2f9138eed98ec1f4de4116e5127b1d68fd8066353c21bb99aa8d6b55f3f6a5'
-    # secret_key = '0170e94fd7a8f052c60f5a960f9a9161cf14544fd63b7dc1f6454d1227df509a'
-
+def trade(symbol, api_key, secret_key, leverage, amount_usdt, position):
     client = Client(api_key, secret_key, testnet=True)
 
-    side = Client.SIDE_BUY
-    quantity = 1
-    price = '28000'
-    order_type = Client.ORDER_TYPE_LIMIT
-    time_in_force = Client.TIME_IN_FORCE_GTC
+    price = client.futures_mark_price(symbol=symbol)['markPrice']
+    change_leverage = client.futures_change_leverage(symbol=symbol, leverage=leverage)
 
-    order = client.futures_create_order(
-        symbol=symbol,
-        side=side,
-        quantity=quantity,
-        price=price,
-        type=order_type,
-        timeInForce=time_in_force
-    )
-
-    print(order)
+    col_vo_usdt = round((float(amount_usdt) * int(leverage)) / float(price), 3)
+    print(col_vo_usdt, change_leverage)
+    if position == '1':
+        limit_order_long = client.futures_create_order(
+            symbol=symbol,
+            side='BUY',
+            positionSide='LONG',
+            type='LIMIT',
+            quantity=col_vo_usdt,
+            timeInForce='GTC',
+            price=round(float(price), 0))
+        print(limit_order_long)
+    elif position == '0':
+        limit_order_short = client.futures_create_order(
+            symbol=symbol,
+            side='SELL',
+            positionSide='SHORT',
+            type='LIMIT',
+            quantity=col_vo_usdt,
+            timeInForce='GTC',
+            price=round(float(price), 0))
+        print(limit_order_short)
 
 
 @shared_task
@@ -542,7 +548,84 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
     current_time = datetime.strptime('00:00', '%H:%M')
 
     for row in data:
-        if len(row) == 7:
+        if len(row) == 1441:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=0.0166666667)
+        elif len(row) == 481:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=0.05)
+        elif len(row) == 289:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=0.0833333333)
+        elif len(row) == 97:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=0.25)
+        elif len(row) == 49:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=0.5)
+        elif len(row) == 25:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=1)
+        elif len(row) == 13:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=2)
+        elif len(row) == 7:
             date = row[0]
             for i in row[1:]:
                 combined_datetime = datetime.combine(date, current_time.time())
@@ -553,13 +636,68 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
                 data_entry.save()
 
                 current_time += timedelta(hours=4)
+        elif len(row) == 5:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
+                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                       secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=6)
+        elif len(row) == 4:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
+                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                       secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=8)
+        elif len(row) == 3:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
+                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                       secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=12)
+        elif len(row) == 2:
+            date = row[0]
+            for i in row[1:]:
+                combined_datetime = datetime.combine(date, current_time.time())
+                position = i
+
+                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
+                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                       secret_key=secret_key)
+                data_entry.save()
+
+                current_time += timedelta(hours=24)
         else:
             break
     current_datetime = datetime.now()
     entries_to_process = DataEntry.objects.filter(user=user_id, is_completed=False)
     for entry in entries_to_process:
-        print(entry.date)
+        print(entry.date, entry.position, entry.symbol, entry.amount_usdt, entry.leverage, entry.api_key, entry.secret_key)
         entry_datetime = datetime.strptime(entry.date, '%Y-%m-%d %H:%M')
         if entry_datetime > current_datetime:
             if send_notification_at_time(f"{entry_datetime.strftime('%Y-%m-%d %H:%M')}"):
-                print('сделана сделка')
+                print('yes')
+                trade(symbol=entry.symbol, api_key=entry.api_key, secret_key=entry.secret_key, leverage=entry.leverage, amount_usdt=entry.amount_usdt, position=entry.position)
+                entry.is_completed = True
+                entry.save()
