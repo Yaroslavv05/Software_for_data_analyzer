@@ -767,7 +767,7 @@ def shares_yfinance_async_task(data):
     if timeframe == '1d' or timeframe == '5d' or timeframe == '1wk' or timeframe == '1mo' or timeframe == '3mo':
         name = 'Date'
     else:
-        data["Datetime"] = data["Datetime"].str.replace(r'(-04:00)?', '')
+        data["Datetime"] = data["Datetime"].str.replace("-04:00", "")
         name = 'Datetime'
     data_dict = data.to_dict(orient="records")
 
