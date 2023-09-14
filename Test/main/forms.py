@@ -139,11 +139,12 @@ class AccountBinanceForm(forms.Form):
 
 
 class TradingForm(forms.Form):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, user_id, *args, **kwargs):
         super(TradingForm, self).__init__(*args, **kwargs)
 
-        user_profiles = UserProfiles.objects.all()
-        ACCOUNT_CHOICES = [(profile.name, profile.name) for profile in user_profiles]
+        # Filter UserProfiles by user_id
+        user_profiles = UserProfiles.objects.filter(user_id=user_id)
+        ACCOUNT_CHOICES = [(profile.id, profile.name) for profile in user_profiles]
 
         self.fields['account'] = forms.ChoiceField(
             choices=ACCOUNT_CHOICES,

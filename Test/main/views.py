@@ -348,8 +348,9 @@ def password_change_done(request):
 
 
 def trade(request):
+    user_id = request.user.id
     if request.method == 'POST':
-        form = TradingForm(request.POST, request.FILES)
+        form = TradingForm(user_id, request.POST, request.FILES)
         if form.is_valid():
             trading_data = TradingData(user=request.user,
                                        uploaded_file=request.FILES['uploaded_file'],)
@@ -361,7 +362,7 @@ def trade(request):
             async_parse_file_task.delay(file_path=file_path, user_id=request.user.id, symbol=form.cleaned_data['crypto_name'], amount_usdt=form.cleaned_data['usdt_amount'], leverage=form.cleaned_data['leverage'], api_key=api_key, secret_key=secret_key)
             # return redirect('waiting')
     else:
-        form = TradingForm()
+        form = TradingForm(user_id=user_id)
     return render(request, 'trading.html', {'form': form})
 
 
