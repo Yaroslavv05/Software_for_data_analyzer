@@ -21,5 +21,6 @@ urlpatterns = [
     path('edit_profile/<int:profile_id>/', edit_profile, name='edit_profile'),
     path('trade', trade, name='trade'),
     path('waiting', waiting, name='waiting'),
-    path('cancel_task', cancel_task, name='cancel_task')
+    path('cancel_task', cancel_task, name='cancel_task'),
+    path('shares-yfinance', shares_yfinance, name='shares_yfinance')
 ]

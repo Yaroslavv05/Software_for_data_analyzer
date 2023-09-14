@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .forms import MyForm, SharesForm, SharesPolygonForm, UserLoginForm, PasswordChangeForm, FirstNameChangeForm, AccountBinanceForm,  TradingForm
-from .tasks import process_data_async, shared_async_task, shares_polygon_async_task, async_parse_file_task
+from .forms import *
+from .tasks import *
 from .models import UserProfiles, TradingData
 from celery.result import AsyncResult
 from django.contrib.auth.decorators import login_required
@@ -172,6 +172,43 @@ def shares_polygon(request):
     else:
         form = SharesPolygonForm()
     return render(request, 'shares_polygon.html', {'form': form})
+
+
+def shares_yfinance(request):
+    form = SharesYFinanceForm(request.POST)
+    if request.method == 'POST':
+        if form.is_valid():
+            symbol = form.cleaned_data['symbol']
+            interval = form.cleaned_data['interval']
+            bound = form.cleaned_data['bound']
+            bound_unit = form.cleaned_data['bound_unit']
+            start_data = form.cleaned_data['start_data']
+            end_data = form.cleaned_data['end_data']
+            symbol_validity = check_symbol_validity(symbol, start_data, end_data)
+            if symbol_validity == "invalid symbol":
+                messages.error(request, 'Invalid symbol!')
+            elif float(bound) < 0:
+                messages.error(request, 'Bound cannot be negative!')
+            elif end_data < start_data:
+                messages.error(request, 'The end date must be after the start date!')
+            else:
+                data = {
+                    'symbol': symbol,
+                    'interval': interval,
+                    'bound': bound,
+                    'bound_unit': bound_unit,
+                    'start_data': start_data.strftime('%Y-%m-%d'),
+                    'end_data': end_data.strftime('%Y-%m-%d')
+                }
+                print(data)
+                task = shares_yfinance_async_task.delay(data)
+                request.session['task_id'] = task.id
+                print(request.session.get('task_id'))
+                return redirect('process_shares')
+
+    else:
+        form = SharesYFinanceForm()
+    return render(request, 'shares_yfinance.html', {'form': form})
 
 
 def check_task_status(request):

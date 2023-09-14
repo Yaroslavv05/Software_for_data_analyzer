@@ -101,6 +101,22 @@ class SharesPolygonForm(forms.Form):
     end_data = SplitDateTimeField()
 
 
+class SharesYFinanceForm(forms.Form):
+    symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
+    interval = forms.ChoiceField(choices=(
+        ('1m', '1м'), ('2m', '2м'), ('5m', '5м'), ('15m', '15м'), ('30m', '30м'), ('1h', '1ч'), ('90m', '1.5ч'), ('1d', '1д'), ('5d', '5д'),
+        ('1wk', '1н'), ('1mo', '1М'), ('3mo', '3М')
+    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    BOUND_UNIT_CHOICES = [
+        ('$', 'Доллар ($)'),
+        ('%', 'Процент (%)'),
+    ]
+    bound = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Предел'}))
+    bound_unit = forms.ChoiceField(choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    start_data = SplitDateTimeField()
+    end_data = SplitDateTimeField()
+
+
 class UserLoginForm(AuthenticationForm):
     username = forms.CharField(label="Имя пользователя:", widget=forms.TextInput(attrs={'type': 'email', 'name': 'email', 'placeholder': 'Почта'}))
     password = forms.CharField(label="Пароль:", widget=forms.PasswordInput(attrs={'type': 'password', 'name': 'password', 'placeholder': 'Пароль'}))

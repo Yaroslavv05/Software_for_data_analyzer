@@ -1,11 +1,14 @@
 import io
 from django.contrib.auth.models import User
 from celery import shared_task
+import yfinance as yf
+import pandas as pd
 from binance.client import Client
 from datetime import datetime, timedelta, timezone
 import openpyxl
 import time
 import requests
+import os
 import re
 from .models import DataEntry
 from plyer import notification
@@ -701,3 +704,143 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
                 trade(symbol=entry.symbol, api_key=entry.api_key, secret_key=entry.secret_key, leverage=entry.leverage, amount_usdt=entry.amount_usdt, position=entry.position)
                 entry.is_completed = True
                 entry.save()
+
+
+def minute_shares_yfinance(symbol, timeframe, open_price, date, bound):
+    interval_mapping = {
+        '1m': 0.0166666667,
+        '2m': 0.0333333333333333,
+        '5m': 0.05,
+        '15m': 0.0833333333,
+        '30m': 0.25,
+        '90m': 1.5,
+        '1h': 1.0,
+        '1d': 24.0,
+        '5d': 120.0,
+        '1wk': 168.0,
+        '1mo': 720.0,
+        '3mo': 2160.0
+    }
+    start_date = date
+    if len(date) == 10:
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+    else:
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
+    data = yf.download(symbol, start=start_date_datetime, end=end_date_datetime, interval='1m')
+
+    csv_filename = "historical_data_1m.csv"
+
+    data.to_csv(csv_filename)
+
+    data = pd.read_csv(csv_filename)
+    data_dict = data.to_dict(orient="records")
+
+    if os.path.exists(csv_filename):
+        os.remove(csv_filename)
+        print(f"Файл {csv_filename} удален.")
+
+    for i in data_dict:
+        if float(i['High']) - open_price >= bound:
+            return '1'
+        elif open_price - float(i['Low']) >= bound:
+            return '0'
+
+
+@shared_task
+def shares_yfinance_async_task(data):
+    symbol = data['symbol'].upper()
+    start_date = data['start_data']
+    end_date = data['end_data']
+    end_date_inclusive = (datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
+    timeframe = data['interval']
+    bound = float(data['bound'])
+    bound_unit = data['bound_unit']
+
+    data = yf.download(symbol, start=start_date, end=end_date_inclusive, interval=timeframe)
+
+    csv_filename = "historical_data.csv"
+
+    data.to_csv(csv_filename)
+
+    data = pd.read_csv(csv_filename)
+    if timeframe == '1d' or timeframe == '5d' or timeframe == '1wk' or timeframe == '1mo' or timeframe == '3mo':
+        name = 'Date'
+    else:
+        data["Datetime"] = data["Datetime"].str.replace(r'(-04:00)?', '')
+        name = 'Datetime'
+    data_dict = data.to_dict(orient="records")
+
+    if os.path.exists(csv_filename):
+        os.remove(csv_filename)
+        print(f"Файл {csv_filename} удален.")
+
+    output_data = []
+    if bound_unit == '$':
+        for i in data_dict:
+            if float(i['High']) - float(i['Open']) >= bound and float(i['Open']) - float(i['Low']) >= bound:
+                time = i[name]
+                output = minute_shares_yfinance(symbol=symbol, timeframe=timeframe, open_price=float(i['Open']),
+                                                date=time,
+                                                bound=bound)
+            elif float(i['High']) - float(i['Open']) >= bound:
+                time = i[name]
+                output = '1'
+            elif float(i['Open']) - float(i['Low']) >= bound:
+                time = i[name]
+                output = '0'
+            else:
+                time = i[name]
+                output = '2'
+            output_data.append({'time': time, 'output': output})
+    elif bound_unit == '%':
+        for i in data_dict:
+            if float(i['High']) - float(i['Open']) >= (float(i['Open']) / 100 * bound) and float(i['Open']) - float(
+                    i['Low']) >= (float(i['Open']) / 100 * bound):
+                time = i[name]
+                output = minute_shares_yfinance(symbol=symbol, timeframe=timeframe, open_price=float(i['Open']),
+                                                date=time,
+                                                bound=bound)
+            elif float(i['High']) - float(i['Open']) >= (float(i['Open']) / 100 * bound):
+                time = i[name]
+                output = '1'
+            elif float(i['Open']) - float(i['Low']) >= (float(i['Open']) / 100 * bound):
+                time = i[name]
+                output = '0'
+            else:
+                time = i[name]
+                output = '2'
+            output_data.append({'time': time, 'output': output})
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    daily_data = {}
+    day_count = 1
+    for item in output_data:
+        day = item['time'][:10]
+        if day in daily_data:
+            daily_data[day].append(item)
+        else:
+            daily_data[day] = [item]
+
+    for day_data in daily_data.values():
+        for col_index, item in enumerate(day_data, 1):
+            try:
+                date_time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
+                has_time = True
+            except ValueError:
+                has_time = False
+            if has_time:
+                ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date())
+            else:
+                ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d").date())
+            ws.cell(row=day_count, column=col_index + 1, value=item['output'])
+        day_count += 1
+
+    output_buffer = io.BytesIO()
+    wb.save(output_buffer)
+    output_buffer.seek(0)
+    file_path = f"{symbol} data shares(yfinance).xlsx"
+    with open(file_path, 'wb') as file:
+        file.write(output_buffer.read())
+    return file_path
