@@ -536,6 +536,8 @@ def trade(symbol, api_key, secret_key, leverage, amount_usdt, position):
             timeInForce='GTC',
             price=round(float(price), 0))
         print(limit_order_short)
+    else:
+        print('Получин не опознаный символ')
 
 
 @shared_task
