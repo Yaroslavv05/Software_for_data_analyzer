@@ -461,16 +461,36 @@ def shares_polygon_async_task(data):
                 time = i['time']
                 output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=float(i['open']),
                                                date=i['time'], bound=(float(i['open']) / 100 * bound))
+                ope = i['open']
+                close = i['close']
+                high = i['high']
+                low = i['low']
+                trade = i['trade']
             elif float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound):
                 time = i['time']
                 output = '1'
+                ope = i['open']
+                close = i['close']
+                high = i['high']
+                low = i['low']
+                trade = i['trade']
             elif float(i['open']) - float(i['low']) >= (float(i['open']) / 100 * bound):
                 time = i['time']
                 output = '0'
+                ope = i['open']
+                close = i['close']
+                high = i['high']
+                low = i['low']
+                trade = i['trade']
             else:
                 time = i['time']
                 output = '2'
-            output_data.append({'time': time, 'output': output})
+                ope = i['open']
+                close = i['close']
+                high = i['high']
+                low = i['low']
+                trade = i['trade']
+            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'trade': trade})
     print(output_data)
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -480,39 +500,28 @@ def shares_polygon_async_task(data):
 
     row_count = 2
 
-    # Create a variable to store the current date
     current_date = None
 
-    # Create a variable to store data for the current date
     current_data = []
 
-    # Loop through the data
     for item in output_data:
         date = datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date()
 
-        # Check if the date has changed
         if date != current_date:
-            # Increment row_count only when it's not the first row
             if current_date is not None:
                 row_count += 1
 
-            # Write the date to the first cell of the row
             ws.cell(row=row_count, column=1, value=date)
             current_date = date
-
-            # Reset current data
             current_data = []
 
-        # Add data to the current data list
         current_data.extend([item['output'], item['open'], item['close'], item['high'], item['low'], item['trade']])
 
-        # Write all rows of data for the current date
         col_index = 2
         for value in current_data:
             ws.cell(row=row_count, column=col_index, value=value)
             col_index += 1
 
-    # Increment row_count one last time to move to the next row
     row_count += 1
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
