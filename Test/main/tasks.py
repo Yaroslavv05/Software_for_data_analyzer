@@ -104,6 +104,8 @@ def process_data_async(data):
             'open': kline[1],
             'high': kline[2],
             'low': kline[3],
+            'close': kline[4],
+            'volume': kline[5]
         })
     output_data = []
     total = 0
@@ -115,14 +117,34 @@ def process_data_async(data):
                     time = mass[i]['time']
                     output = minute(symbol=symbol, open_price=float(mass[i]['open']), bound=bound, date=time,
                                     time_frame=float(data['interval']))
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 elif (float(mass[i]['high']) - float(mass[i]['open'])) >= bound:
                     time = mass[i]['time']
                     output = '1'
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 elif float(mass[i]['open']) - float(mass[i]['low']) >= bound:
                     time = mass[i]['time']
                     output = '0'
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 else:
                     output = '2'
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                     time = mass[i]['time']
                 print(mass[total])
             else:
@@ -132,17 +154,38 @@ def process_data_async(data):
                     time = mass[i]['time']
                     output = minute(symbol=symbol, open_price=float(mass[i]['open']), bound=bound, date=time,
                                     time_frame=float(data['interval']))
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 elif (float(mass[i]['high']) - float(mass[i]['open'])) >= bound:
                     time = mass[i]['time']
                     output = '1'
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 elif float(mass[i]['open']) - float(mass[i]['low']) >= bound:
                     time = mass[i]['time']
                     output = '0'
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 else:
                     output = '2'
                     time = mass[i]['time']
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 print(mass[i])
-            output_data.append({'time': time, 'output': output})
+            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low,
+                                'volume': volume})
     elif bound_unit == '%':
         for i in range(hours):
             if i == 0:
@@ -153,16 +196,36 @@ def process_data_async(data):
                     output = minute(symbol=symbol, open_price=float(mass[i]['open']),
                                     bound=(float(mass[i]['open']) / 100 * bound), date=time,
                                     time_frame=float(data['interval']))
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 elif (float(mass[i]['high']) - float(mass[i]['open'])) >= (
                         float(mass[i]['open']) / 100 * bound):
                     output = '1'
                     time = mass[i]['time']
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 elif float(mass[i]['open']) - float(mass[i]['low']) >= (float(mass[i]['open']) / 100 * bound):
                     output = '0'
                     time = mass[i]['time']
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 else:
                     output = '2'
                     time = mass[i]['time']
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 print(mass[total])
             else:
                 total += int(timeframe)
@@ -173,36 +236,71 @@ def process_data_async(data):
                     output = minute(symbol=symbol, open_price=float(mass[i]['open']),
                                     bound=(float(mass[i]['open']) / 100 * bound), date=time,
                                     time_frame=float(data['interval']))
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 elif (float(mass[i]['high']) - float(mass[i]['open'])) >= (
                         float(mass[i]['open']) / 100 * bound):
                     output = '1'
                     time = mass[i]['time']
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 elif float(mass[i]['open']) - float(mass[i]['low']) >= (float(mass[i]['open']) / 100 * bound):
                     output = '0'
                     time = mass[i]['time']
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 else:
                     output = '2'
                     time = mass[i]['time']
+                    ope = mass[i]['open']
+                    close = mass[i]['close']
+                    high = mass[i]['high']
+                    low = mass[i]['low']
+                    volume = mass[i]['volume']
                 print(mass[i])
-
-            output_data.append({'time': time, 'output': output})
+            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low,
+                                'volume': volume})
     wb = openpyxl.Workbook()
     ws = wb.active
-    daily_data = {}
-    day_count = 1
+    headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Volume']
+    for col_index, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col_index, value=header)
+
+    row_count = 2
+
+    current_date = None
+
+    current_data = []
+
     for item in output_data:
-        day = item['time'][:10]
-        if day in daily_data:
-            daily_data[day].append(item)
-        else:
-            daily_data[day] = [item]
+        date = datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date()
 
-    for day_data in daily_data.values():
-        for col_index, item in enumerate(day_data, 1):
-            ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date())
-            ws.cell(row=day_count, column=col_index + 1, value=item['output'])
-        day_count += 1
+        if date != current_date:
+            if current_date is not None:
+                row_count += 1
 
+            ws.cell(row=row_count, column=1, value=date)
+            current_date = date
+            current_data = []
+
+        current_data.extend(
+            [item['output'], item['open'], item['close'], item['high'], item['low'], item['volume']])
+
+        col_index = 2
+        for value in current_data:
+            ws.cell(row=row_count, column=col_index, value=value)
+            col_index += 1
+
+    row_count += 1
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
@@ -276,17 +374,37 @@ def shared_async_task(data):
                 times = i['datetime']
                 output = controversial(symbol=symbol, timeframe=timeframe,
                                        open_price=float(i['open']), date=i['datetime'], bound=bound)
+                ope = i['open']
+                close = i['close']
+                high = i['high']
+                low = i['low']
+                volume = i['volume']
                 time.sleep(10)
             elif float(i['high']) - float(i['open']) >= bound:
                 times = i['datetime']
                 output = '1'
+                ope = i['open']
+                close = i['close']
+                high = i['high']
+                low = i['low']
+                volume = i['volume']
             elif float(i['open']) - float(i['low']) >= bound:
                 times = i['datetime']
                 output = '0'
+                ope = i['open']
+                close = i['close']
+                high = i['high']
+                low = i['low']
+                volume = i['volume']
             else:
                 times = i['datetime']
                 output = '2'
-            output_data.append({'time': times, 'output': output})
+                ope = i['open']
+                close = i['close']
+                high = i['high']
+                low = i['low']
+                volume = i['volume']
+            output_data.append({'time': times, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
     elif bound_unit == '%':
         for i in data:
             if float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound) and float(i['open']) - float(
@@ -295,41 +413,77 @@ def shared_async_task(data):
                 output = controversial(symbol=symbol, timeframe=timeframe,
                                        open_price=float(i['open']), date=i['datetime'],
                                        bound=(float(i['open']) / 100 * bound))
+                ope = i['open']
+                close = i['close']
+                high = i['high']
+                low = i['low']
+                volume = i['volume']
                 time.sleep(10)
             elif float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound):
                 times = i['datetime']
                 output = '1'
+                ope = i['open']
+                close = i['close']
+                high = i['high']
+                low = i['low']
+                volume = i['volume']
             elif float(i['open']) - float(i['low']) >= (float(i['open']) / 100 * bound):
                 times = i['datetime']
                 output = '0'
+                ope = i['open']
+                close = i['close']
+                high = i['high']
+                low = i['low']
+                volume = i['volume']
             else:
                 times = i['datetime']
                 output = '2'
-            output_data.append({'time': times, 'output': output})
+                ope = i['open']
+                close = i['close']
+                high = i['high']
+                low = i['low']
+                volume = i['volume']
+            output_data.append({'time': times, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
     wb = openpyxl.Workbook()
     ws = wb.active
-    daily_data = {}
-    day_count = 1
-    for item in output_data[::-1]:
-        day = item['time'][:10]
-        if day in daily_data:
-            daily_data[day].append(item)
-        else:
-            daily_data[day] = [item]
+    headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Volume']
+    for col_index, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col_index, value=header)
 
-    for day_data in daily_data.values():
-        for col_index, item in enumerate(day_data, 1):
-            try:
-                date_time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
-                has_time = True
-            except ValueError:
-                has_time = False
-            if has_time:
-                ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date())
-            else:
-                ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d").date())
-            ws.cell(row=day_count, column=col_index + 1, value=item['output'])
-        day_count += 1
+    row_count = 2
+
+    current_date = None
+
+    current_data = []
+
+    for item in output_data:
+        try:
+            date_time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
+            has_time = True
+        except ValueError:
+            has_time = False
+        if has_time:
+            date = datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date()
+        else:
+            date = datetime.strptime(item['time'], "%Y-%m-%d").date()
+
+        if date != current_date:
+            if current_date is not None:
+                row_count += 1
+
+            ws.cell(row=row_count, column=1, value=date)
+            current_date = date
+            current_data = []
+
+        current_data.extend(
+            [item['output'], item['open'], item['close'], item['high'], item['low'], item['volume']])
+
+        col_index = 2
+        for value in current_data:
+            ws.cell(row=row_count, column=col_index, value=value)
+            col_index += 1
+
+    row_count += 1
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
@@ -848,16 +1002,36 @@ def shares_yfinance_async_task(data):
                 output = minute_shares_yfinance(symbol=symbol, timeframe=timeframe, open_price=float(i['Open']),
                                                 date=time,
                                                 bound=bound)
+                ope = i['Open']
+                close = i['Close']
+                high = i['High']
+                low = i['Low']
+                volume = i['Volume']
             elif float(i['High']) - float(i['Open']) >= bound:
                 time = i[name]
                 output = '1'
+                ope = i['Open']
+                close = i['Close']
+                high = i['High']
+                low = i['Low']
+                volume = i['Volume']
             elif float(i['Open']) - float(i['Low']) >= bound:
                 time = i[name]
                 output = '0'
+                ope = i['Open']
+                close = i['Close']
+                high = i['High']
+                low = i['Low']
+                volume = i['Volume']
             else:
                 time = i[name]
                 output = '2'
-            output_data.append({'time': time, 'output': output})
+                ope = i['Open']
+                close = i['Close']
+                high = i['High']
+                low = i['Low']
+                volume = i['Volume']
+            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
     elif bound_unit == '%':
         for i in data_dict:
             if float(i['High']) - float(i['Open']) >= (float(i['Open']) / 100 * bound) and float(i['Open']) - float(
@@ -866,42 +1040,76 @@ def shares_yfinance_async_task(data):
                 output = minute_shares_yfinance(symbol=symbol, timeframe=timeframe, open_price=float(i['Open']),
                                                 date=time,
                                                 bound=bound)
+                ope = i['Open']
+                close = i['Close']
+                high = i['High']
+                low = i['Low']
+                volume = i['Volume']
             elif float(i['High']) - float(i['Open']) >= (float(i['Open']) / 100 * bound):
                 time = i[name]
                 output = '1'
+                ope = i['Open']
+                close = i['Close']
+                high = i['High']
+                low = i['Low']
+                volume = i['Volume']
             elif float(i['Open']) - float(i['Low']) >= (float(i['Open']) / 100 * bound):
                 time = i[name]
                 output = '0'
+                ope = i['Open']
+                close = i['Close']
+                high = i['High']
+                low = i['Low']
+                volume = i['Volume']
             else:
                 time = i[name]
                 output = '2'
-            output_data.append({'time': time, 'output': output})
+                ope = i['Open']
+                close = i['Close']
+                high = i['High']
+                low = i['Low']
+                volume = i['Volume']
+            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
 
     wb = openpyxl.Workbook()
     ws = wb.active
-    daily_data = {}
-    day_count = 1
+    headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Volume']
+    for col_index, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col_index, value=header)
+
+    row_count = 2
+
+    current_date = None
+
+    current_data = []
+
     for item in output_data:
-        day = item['time'][:10]
-        if day in daily_data:
-            daily_data[day].append(item)
+        try:
+            date_time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
+            has_time = True
+        except ValueError:
+            has_time = False
+        if has_time:
+            date = datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date()
         else:
-            daily_data[day] = [item]
+            date = datetime.strptime(item['time'], "%Y-%m-%d").date()
+        if date != current_date:
+            if current_date is not None:
+                row_count += 1
 
-    for day_data in daily_data.values():
-        for col_index, item in enumerate(day_data, 1):
-            try:
-                date_time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
-                has_time = True
-            except ValueError:
-                has_time = False
-            if has_time:
-                ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date())
-            else:
-                ws.cell(row=day_count, column=1, value=datetime.strptime(item['time'], "%Y-%m-%d").date())
-            ws.cell(row=day_count, column=col_index + 1, value=item['output'])
-        day_count += 1
+            ws.cell(row=row_count, column=1, value=date)
+            current_date = date
+            current_data = []
 
+        current_data.extend(
+            [item['output'], item['open'], item['close'], item['high'], item['low'], item['volume']])
+
+        col_index = 2
+        for value in current_data:
+            ws.cell(row=row_count, column=col_index, value=value)
+            col_index += 1
+
+    row_count += 1
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
