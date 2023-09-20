@@ -414,7 +414,8 @@ def shares_polygon_async_task(data):
             'close': i['c'],
             'high': i['h'],
             'low': i['l'],
-            'trade': i['n']
+            'trade': i['n'],
+            'volume': i['v']
         })
     output_data = []
     if bound_unit == '$':
@@ -429,6 +430,7 @@ def shares_polygon_async_task(data):
                 high = i['high']
                 low = i['low']
                 trade = i['trade']
+                volume = i['volume']
             elif float(i['high']) - float(i['open']) >= bound:
                 time = i['time']
                 output = '1'
@@ -437,6 +439,7 @@ def shares_polygon_async_task(data):
                 high = i['high']
                 low = i['low']
                 trade = i['trade']
+                volume = i['volume']
             elif float(i['open']) - float(i['low']) >= bound:
                 time = i['time']
                 output = '0'
@@ -445,6 +448,7 @@ def shares_polygon_async_task(data):
                 high = i['high']
                 low = i['low']
                 trade = i['trade']
+                volume = i['volume']
             else:
                 time = i['time']
                 output = '2'
@@ -453,7 +457,8 @@ def shares_polygon_async_task(data):
                 high = i['high']
                 low = i['low']
                 trade = i['trade']
-            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'trade': trade})
+                volume = i['volume']
+            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'trade': trade, 'volume': volume})
     elif bound_unit == '%':
         for i in mass:
             if float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound) and float(i['open']) - float(
@@ -466,6 +471,7 @@ def shares_polygon_async_task(data):
                 high = i['high']
                 low = i['low']
                 trade = i['trade']
+                volume = i['volume']
             elif float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound):
                 time = i['time']
                 output = '1'
@@ -474,6 +480,7 @@ def shares_polygon_async_task(data):
                 high = i['high']
                 low = i['low']
                 trade = i['trade']
+                volume = i['volume']
             elif float(i['open']) - float(i['low']) >= (float(i['open']) / 100 * bound):
                 time = i['time']
                 output = '0'
@@ -482,6 +489,7 @@ def shares_polygon_async_task(data):
                 high = i['high']
                 low = i['low']
                 trade = i['trade']
+                volume = i['volume']
             else:
                 time = i['time']
                 output = '2'
@@ -490,11 +498,12 @@ def shares_polygon_async_task(data):
                 high = i['high']
                 low = i['low']
                 trade = i['trade']
-            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'trade': trade})
+                volume = i['volume']
+            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'trade': trade, 'volume': volume})
     print(output_data)
     wb = openpyxl.Workbook()
     ws = wb.active
-    headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Trade']
+    headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Trade', 'Volume']
     for col_index, header in enumerate(headers, 1):
         ws.cell(row=1, column=col_index, value=header)
 
@@ -515,7 +524,7 @@ def shares_polygon_async_task(data):
             current_date = date
             current_data = []
 
-        current_data.extend([item['output'], item['open'], item['close'], item['high'], item['low'], item['trade']])
+        current_data.extend([item['output'], item['open'], item['close'], item['high'], item['low'], item['trade'], item['volume']])
 
         col_index = 2
         for value in current_data:
