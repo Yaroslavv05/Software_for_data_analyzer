@@ -274,33 +274,10 @@ def process_data_async(data):
     headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Volume']
     for col_index, header in enumerate(headers, 1):
         ws.cell(row=1, column=col_index, value=header)
-
-    row_count = 2
-
-    current_date = None
-
-    current_data = []
-
     for item in output_data:
-        date = datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date()
-
-        if date != current_date:
-            if current_date is not None:
-                row_count += 1
-
-            ws.cell(row=row_count, column=1, value=date)
-            current_date = date
-            current_data = []
-
-        current_data.extend(
-            [item['output'], item['open'], item['close'], item['high'], item['low'], item['volume']])
-
-        col_index = 2
-        for value in current_data:
-            ws.cell(row=row_count, column=col_index, value=value)
-            col_index += 1
-
-    row_count += 1
+        row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'],
+                    item['volume']]
+        ws.append(row_data)
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
@@ -444,46 +421,17 @@ def shared_async_task(data):
                 low = i['low']
                 volume = i['volume']
             output_data.append({'time': times, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
+    print(output_data)
     wb = openpyxl.Workbook()
     ws = wb.active
     headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Volume']
     for col_index, header in enumerate(headers, 1):
         ws.cell(row=1, column=col_index, value=header)
 
-    row_count = 2
-
-    current_date = None
-
-    current_data = []
-
     for item in output_data[::-1]:
-        try:
-            date_time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
-            has_time = True
-        except ValueError:
-            has_time = False
-        if has_time:
-            date = datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date()
-        else:
-            date = datetime.strptime(item['time'], "%Y-%m-%d").date()
-
-        if date != current_date:
-            if current_date is not None:
-                row_count += 1
-
-            ws.cell(row=row_count, column=1, value=date)
-            current_date = date
-            current_data = []
-
-        current_data.extend(
-            [item['output'], item['open'], item['close'], item['high'], item['low'], item['volume']])
-
-        col_index = 2
-        for value in current_data:
-            ws.cell(row=row_count, column=col_index, value=value)
-            col_index += 1
-
-    row_count += 1
+        row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'],
+                    item['volume']]
+        ws.append(row_data)
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
@@ -661,31 +609,10 @@ def shares_polygon_async_task(data):
     for col_index, header in enumerate(headers, 1):
         ws.cell(row=1, column=col_index, value=header)
 
-    row_count = 2
-
-    current_date = None
-
-    current_data = []
-
     for item in output_data:
-        date = datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date()
-
-        if date != current_date:
-            if current_date is not None:
-                row_count += 1
-
-            ws.cell(row=row_count, column=1, value=date)
-            current_date = date
-            current_data = []
-
-        current_data.extend([item['output'], item['open'], item['close'], item['high'], item['low'], item['trade'], item['volume']])
-
-        col_index = 2
-        for value in current_data:
-            ws.cell(row=row_count, column=col_index, value=value)
-            col_index += 1
-
-    row_count += 1
+        row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'], item['trade'],
+                    item['volume']]
+        ws.append(row_data)
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
@@ -1077,39 +1004,10 @@ def shares_yfinance_async_task(data):
     for col_index, header in enumerate(headers, 1):
         ws.cell(row=1, column=col_index, value=header)
 
-    row_count = 2
-
-    current_date = None
-
-    current_data = []
-
     for item in output_data:
-        try:
-            date_time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
-            has_time = True
-        except ValueError:
-            has_time = False
-        if has_time:
-            date = datetime.strptime(item['time'], "%Y-%m-%d %H:%M:%S").date()
-        else:
-            date = datetime.strptime(item['time'], "%Y-%m-%d").date()
-        if date != current_date:
-            if current_date is not None:
-                row_count += 1
-
-            ws.cell(row=row_count, column=1, value=date)
-            current_date = date
-            current_data = []
-
-        current_data.extend(
-            [item['output'], item['open'], item['close'], item['high'], item['low'], item['volume']])
-
-        col_index = 2
-        for value in current_data:
-            ws.cell(row=row_count, column=col_index, value=value)
-            col_index += 1
-
-    row_count += 1
+        row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'],
+                    item['volume']]
+        ws.append(row_data)
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
