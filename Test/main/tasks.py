@@ -456,7 +456,7 @@ def shared_async_task(data):
 
     current_data = []
 
-    for item in output_data:
+    for item in output_data[::-1]:
         try:
             date_time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
             has_time = True
