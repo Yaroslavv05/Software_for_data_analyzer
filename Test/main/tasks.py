@@ -311,7 +311,7 @@ def controversial(symbol, timeframe, open_price, date, bound):
     response = requests.get(f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval=1min&symbol={symbol}&timezone=exchange&start_date={start_date}&end_date={end_date_datetime}")
     d = response.json()['values']
 
-    for j in d:
+    for j in d[::-1]:
         if float(j['high']) - open_price >= bound:
             return '1'
         elif open_price - float(j['low']) >= bound:
