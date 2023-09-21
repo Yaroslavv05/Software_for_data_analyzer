@@ -308,7 +308,7 @@ def controversial(symbol, timeframe, open_price, date, bound):
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
     end_date_datetime = start_date_datetime + timedelta(hours=float(interval_mapping[timeframe]))
     print(symbol, timeframe, bound, start_date, end_date_datetime)
-    response = requests.get(f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval=1min&symbol={symbol}&timezone=utc&start_date={start_date}&end_date={end_date_datetime}")
+    response = requests.get(f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval=1min&symbol={symbol}&timezone=exchange&start_date={start_date}&end_date={end_date_datetime}")
     d = response.json()['values']
 
     for j in d:
