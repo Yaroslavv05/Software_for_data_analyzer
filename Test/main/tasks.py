@@ -340,7 +340,7 @@ def shared_async_task(data):
     end_date_str = end_date.strftime('%Y-%m-%d %H:%M:%S')
     print(symbol, timeframe, bound, bound_unit, start_date, end_date)
     response = requests.get(
-        f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval={timeframe}&symbol={symbol}&timezone=utc&start_date={start_date_str}&end_date={end_date_str}")
+        f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval={timeframe}&symbol={symbol}&timezone=exchange&start_date={start_date_str}&end_date={end_date_str}")
 
     data = response.json()['values']
 
