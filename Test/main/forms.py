@@ -82,6 +82,10 @@ class SharesForm(forms.Form):
 
 
 class SharesPolygonForm(forms.Form):
+    choice = forms.ChoiceField(choices=(
+        ('pre', 'PRE данные'),
+        ('in', 'IN данные'),
+    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
     api = forms.ChoiceField(choices=(
         ('EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz', 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'), ('sBQPoe39YLoEVj7m4KpfFEHNmwFxXR9F', 'sBQPoe39YLoEVj7m4KpfFEHNmwFxXR9F'), ('MVClxfjQ3zxZYyH8symJZqIW0TtV2vQP', 'MVClxfjQ3zxZYyH8symJZqIW0TtV2vQP')
     ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
@@ -142,7 +146,6 @@ class TradingForm(forms.Form):
     def __init__(self, user_id, *args, **kwargs):
         super(TradingForm, self).__init__(*args, **kwargs)
 
-        # Filter UserProfiles by user_id
         user_profiles = UserProfiles.objects.filter(user_id=user_id)
         ACCOUNT_CHOICES = [(profile.id, profile.name) for profile in user_profiles]
 

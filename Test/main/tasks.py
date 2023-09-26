@@ -505,23 +505,26 @@ def shares_polygon_async_task(data):
     bound_unit = data['bound_unit']
     start_date = data['start_data']
     end_date = data['end_data']
+    api = data['api']
     start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
     end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
+    print(start_date)
 
-    # Добавление времени к дате начала
-    start_datetime = start_datetime.replace(hour=9, minute=30, second=0)
+    if data['pre'] == 'in':
+        start_datetime = start_datetime.replace(hour=9, minute=30, second=0)
+        end_datetime = end_datetime.replace(hour=15, minute=30, second=0)
 
-    # Добавление времени к дате окончания
-    end_datetime = end_datetime.replace(hour=15, minute=30, second=0)
+        import time
+        start_unix_timestamp = int(time.mktime(start_datetime.timetuple())) * 1000
+        end_unix_timestamp = int(time.mktime(end_datetime.timetuple())) * 1000
 
-    import time
-    # Преобразование datetime в Unix-время (timestamp)
-    start_unix_timestamp = int(time.mktime(start_datetime.timetuple())) * 1000
-    end_unix_timestamp = int(time.mktime(end_datetime.timetuple())) * 1000
-    api = data['api']
-
-    response = requests.get(
-        f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_unix_timestamp}/{end_unix_timestamp}?adjusted=true&sort=asc&limit=50000&apiKey={api}')
+        response = requests.get(
+            f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_unix_timestamp}/{end_unix_timestamp}?adjusted=true&sort=asc&limit=50000&apiKey={api}')
+    elif data['pre'] == 'pre':
+        print('yes')
+        response = requests.get(
+            f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api}')
+    print(response.json())
     result = response.json()['results']
     mass = []
     for i in result:

@@ -131,6 +131,7 @@
         <h1 class="text-center" style="color: #1abc9c;">Акции(Polygon)</h1>
         <form method="post">
             {% csrf_token %}
+            {{ form.choice }}
             {{ form.api }}
             {{ form.symbol }}
             {{ form.interval }}
