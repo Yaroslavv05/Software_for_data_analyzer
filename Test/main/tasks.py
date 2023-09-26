@@ -309,7 +309,10 @@ def controversial(symbol, timeframe, open_price, date, bound):
     end_date_datetime = start_date_datetime + timedelta(hours=float(interval_mapping[timeframe]))
     print(symbol, timeframe, bound, start_date, end_date_datetime)
     response = requests.get(f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval=1min&symbol={symbol}&timezone=exchange&start_date={start_date}&end_date={end_date_datetime}")
-    d = response.json()['values']
+    try:
+        d = response.json()['values']
+    except:
+        return '3'
 
     for j in d[::-1]:
         if float(j['high']) - open_price >= bound:
@@ -509,7 +512,7 @@ def shares_polygon_async_task(data):
     start_datetime = start_datetime.replace(hour=9, minute=30, second=0)
 
     # Добавление времени к дате окончания
-    end_datetime = end_datetime.replace(hour=17, minute=0, second=0)
+    end_datetime = end_datetime.replace(hour=15, minute=30, second=0)
 
     import time
     # Преобразование datetime в Unix-время (timestamp)
