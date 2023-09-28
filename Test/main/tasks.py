@@ -446,7 +446,6 @@ def shared_async_task(data):
 
 
 def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
-    time.sleep(30)
     interval_mapping = {
         '1 minute': 0.0166666667,
         '5 minute': 0.05,
@@ -471,14 +470,13 @@ def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
         '1 year': 8760
     }
     start_date = date
-    start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S') + timedelta(hours=2)
+    start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    ny_timezone = pytz.timezone('America/New_York')
+    start_date_datetime = ny_timezone.localize(start_date_datetime)
     end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
-    start_unix_timestamp = int(start_date_datetime.timestamp())
-    end_unix_timestamp = int(end_date_datetime.timestamp())
-    start_unix_timestamp_milliseconds = start_unix_timestamp * 1000
-    end_unix_timestamp_milliseconds = end_unix_timestamp * 1000
-    print(start_unix_timestamp_milliseconds)
-    print(end_unix_timestamp_milliseconds)
+    start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+    end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+
     response = requests.get(
         f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
     print(response.json())
