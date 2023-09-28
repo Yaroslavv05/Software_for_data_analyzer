@@ -12,6 +12,7 @@ import os
 import re
 from .models import DataEntry
 from plyer import notification
+import pytz
 
 
 def minute(symbol, open_price, bound, date, time_frame):
@@ -470,18 +471,21 @@ def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
         '1 year': 8760
     }
     start_date = date
-    start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S') + timedelta(hours=2)
     end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
     start_unix_timestamp = int(start_date_datetime.timestamp())
     end_unix_timestamp = int(end_date_datetime.timestamp())
     start_unix_timestamp_milliseconds = start_unix_timestamp * 1000
     end_unix_timestamp_milliseconds = end_unix_timestamp * 1000
+    print(start_unix_timestamp_milliseconds)
+    print(end_unix_timestamp_milliseconds)
     response = requests.get(
         f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+    print(response.json())
     d = response.json()['results']
     mass = []
     for i in d:
-        dt = datetime.fromtimestamp(i['t'] / 1000) - timedelta(hours=2)
+        dt = datetime.fromtimestamp(i['t'] / 1000)
         mass.append({
             'time': dt.strftime('%Y-%m-%d %H:%M:%S'),
             'open': i['o'],
@@ -511,12 +515,14 @@ def shares_polygon_async_task(data):
     print(start_date)
 
     if data['pre'] == 'in':
-        start_datetime = start_datetime.replace(hour=9, minute=30, second=0)
-        end_datetime = end_datetime.replace(hour=15, minute=30, second=0)
+        ny_timezone = pytz.timezone('America/New_York')
+        start_time = datetime.strptime('09:30:00', '%H:%M:%S')
+        end_time = datetime.strptime('15:30:00', '%H:%M:%S')
+        start_datetime = ny_timezone.localize(datetime.combine(start_datetime.date(), start_time.time()))
+        end_datetime = ny_timezone.localize(datetime.combine(end_datetime.date(), end_time.time()))
 
-        import time
-        start_unix_timestamp = int(time.mktime(start_datetime.timetuple())) * 1000
-        end_unix_timestamp = int(time.mktime(end_datetime.timetuple())) * 1000
+        start_unix_timestamp = int(start_datetime.timestamp()) * 1000
+        end_unix_timestamp = int(end_datetime.timestamp()) * 1000
 
         response = requests.get(
             f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_unix_timestamp}/{end_unix_timestamp}?adjusted=true&sort=asc&limit=50000&apiKey={api}')
@@ -528,9 +534,12 @@ def shares_polygon_async_task(data):
     result = response.json()['results']
     mass = []
     for i in result:
-        dt = datetime.fromtimestamp(i['t'] / 1000)
+        unix_timestamp_seconds = i['t'] / 1000
+        unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
+        ny_timezone = pytz.timezone('America/New_York')
+        ny_datetime = unix_datetime.astimezone(ny_timezone)
         mass.append({
-            'time': dt.strftime('%Y-%m-%d %H:%M:%S'),
+            'time': ny_datetime.strftime("%Y-%m-%d %H:%M:%S"),
             'open': i['o'],
             'close': i['c'],
             'high': i['h'],
@@ -538,12 +547,12 @@ def shares_polygon_async_task(data):
             'trade': i['n'],
             'volume': i['v']
         })
+    print(mass)
     output_data = []
     if bound_unit == '$':
         for i in mass:
             if float(i['high']) - float(i['open']) >= bound and float(i['open']) - float(i['low']) >= bound:
                 time = i['time']
-                print(time)
                 output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=float(i['open']),
                                                date=i['time'], bound=bound)
                 ope = i['open']
