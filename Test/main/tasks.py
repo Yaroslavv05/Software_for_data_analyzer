@@ -512,22 +512,7 @@ def shares_polygon_async_task(data):
     end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
     print(start_date)
 
-    if data['pre'] == 'in':
-        ny_timezone = pytz.timezone('America/New_York')
-        start_time = datetime.strptime('09:30:00', '%H:%M:%S')
-        end_time = datetime.strptime('15:30:00', '%H:%M:%S')
-        start_datetime = ny_timezone.localize(datetime.combine(start_datetime.date(), start_time.time()))
-        end_datetime = ny_timezone.localize(datetime.combine(end_datetime.date(), end_time.time()))
-
-        start_unix_timestamp = int(start_datetime.timestamp()) * 1000
-        end_unix_timestamp = int(end_datetime.timestamp()) * 1000
-
-        response = requests.get(
-            f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_unix_timestamp}/{end_unix_timestamp}?adjusted=true&sort=asc&limit=50000&apiKey={api}')
-    elif data['pre'] == 'pre':
-        print('yes')
-        response = requests.get(
-            f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api}')
+    response = requests.get(f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api}')
     print(response.json())
     result = response.json()['results']
     mass = []
@@ -631,17 +616,29 @@ def shares_polygon_async_task(data):
     print(output_data)
     wb = openpyxl.Workbook()
     ws = wb.active
+
     headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Trade', 'Volume']
     for col_index, header in enumerate(headers, 1):
         ws.cell(row=1, column=col_index, value=header)
 
-    for item in output_data:
-        row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'], item['trade'],
-                    item['volume']]
-        ws.append(row_data)
+    if data['pre'] == 'in':
+        for item in output_data:
+            time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
+            if time.hour >= 9 and time.hour <= 15:
+                row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'],
+                            item['trade'], item['volume']]
+                ws.append(row_data)
+    elif data['pre'] == 'pre':
+        for item in output_data:
+            row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'],
+                        item['trade'],
+                        item['volume']]
+            ws.append(row_data)
+
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
+
     file_path = f"{symbol} data shares(polygon).xlsx"
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
