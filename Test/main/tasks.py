@@ -93,7 +93,8 @@ def process_data_async(data):
     start_timestamp = int(start_date.timestamp()) * 1000
     end_timestamp = int(end_date.timestamp()) * 1000
 
-    klines = client.futures_historical_klines(symbol, interval_mapping.get(float(inter), None), start_timestamp, end_timestamp)
+    klines = client.futures_historical_klines(symbol, interval_mapping.get(float(inter), None), start_timestamp,
+                                              end_timestamp)
 
     mass = []
 
@@ -309,7 +310,8 @@ def controversial(symbol, timeframe, open_price, date, bound):
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
     end_date_datetime = start_date_datetime + timedelta(hours=float(interval_mapping[timeframe]))
     print(symbol, timeframe, bound, start_date, end_date_datetime)
-    response = requests.get(f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval=1min&symbol={symbol}&timezone=exchange&start_date={start_date}&end_date={end_date_datetime}")
+    response = requests.get(
+        f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval=1min&symbol={symbol}&timezone=exchange&start_date={start_date}&end_date={end_date_datetime}")
     try:
         d = response.json()['values']
     except:
@@ -385,7 +387,8 @@ def shared_async_task(data):
                 high = i['high']
                 low = i['low']
                 volume = i['volume']
-            output_data.append({'time': times, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
+            output_data.append({'time': times, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low,
+                                'volume': volume})
     elif bound_unit == '%':
         for i in data:
             if float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound) and float(i['open']) - float(
@@ -424,7 +427,8 @@ def shared_async_task(data):
                 high = i['high']
                 low = i['low']
                 volume = i['volume']
-            output_data.append({'time': times, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
+            output_data.append({'time': times, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low,
+                                'volume': volume})
     print(output_data)
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -439,7 +443,7 @@ def shared_async_task(data):
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
-    file_path = f"{symbol} data shares(twelvedata).xlsx"
+    file_path = f"{symbol} data shares(twelvedata) {timeframe}.xlsx"
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
     return file_path
@@ -512,7 +516,8 @@ def shares_polygon_async_task(data):
     end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
     print(start_date)
 
-    response = requests.get(f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api}')
+    response = requests.get(
+        f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api}')
     print(response.json())
     result = response.json()['results']
     mass = []
@@ -571,7 +576,9 @@ def shares_polygon_async_task(data):
                 low = i['low']
                 trade = i['trade']
                 volume = i['volume']
-            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'trade': trade, 'volume': volume})
+            output_data.append(
+                {'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'trade': trade,
+                 'volume': volume})
     elif bound_unit == '%':
         for i in mass:
             if float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound) and float(i['open']) - float(
@@ -612,7 +619,7 @@ def shares_polygon_async_task(data):
                 low = i['low']
                 trade = i['trade']
                 volume = i['volume']
-            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'trade': trade, 'volume': volume})
+            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'trade': trade,'volume': volume})
     print(output_data)
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -628,6 +635,10 @@ def shares_polygon_async_task(data):
                 row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'],
                             item['trade'], item['volume']]
                 ws.append(row_data)
+            elif time.time() == time.replace(hour=0, minute=0, second=0, microsecond=0).time():
+                row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'],
+                            item['trade'], item['volume']]
+                ws.append(row_data)
     elif data['pre'] == 'pre':
         for item in output_data:
             row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'],
@@ -639,7 +650,7 @@ def shares_polygon_async_task(data):
     wb.save(output_buffer)
     output_buffer.seek(0)
 
-    file_path = f"{symbol} data shares(polygon).xlsx"
+    file_path = f"{symbol} data shares(polygon) {timeframe}.xlsx"
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
     return file_path
@@ -727,7 +738,9 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
                 position = i
 
                 formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
+                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                       secret_key=secret_key)
                 data_entry.save()
 
                 current_time += timedelta(hours=0.0166666667)
@@ -738,7 +751,9 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
                 position = i
 
                 formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
+                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                       secret_key=secret_key)
                 data_entry.save()
 
                 current_time += timedelta(hours=0.05)
@@ -749,7 +764,9 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
                 position = i
 
                 formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
+                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                       secret_key=secret_key)
                 data_entry.save()
 
                 current_time += timedelta(hours=0.0833333333)
@@ -760,7 +777,9 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
                 position = i
 
                 formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
+                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                       secret_key=secret_key)
                 data_entry.save()
 
                 current_time += timedelta(hours=0.25)
@@ -771,7 +790,9 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
                 position = i
 
                 formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
+                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                       secret_key=secret_key)
                 data_entry.save()
 
                 current_time += timedelta(hours=0.5)
@@ -782,7 +803,9 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
                 position = i
 
                 formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
+                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                       secret_key=secret_key)
                 data_entry.save()
 
                 current_time += timedelta(hours=1)
@@ -793,7 +816,9 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
                 position = i
 
                 formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
+                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                       secret_key=secret_key)
                 data_entry.save()
 
                 current_time += timedelta(hours=2)
@@ -804,7 +829,9 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
                 position = i
 
                 formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol, amount_usdt=amount_usdt, leverage=leverage, api_key=api_key, secret_key=secret_key)
+                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
+                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                       secret_key=secret_key)
                 data_entry.save()
 
                 current_time += timedelta(hours=4)
@@ -865,12 +892,14 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
     current_datetime = datetime.now()
     entries_to_process = DataEntry.objects.filter(user=user_id, is_completed=False)
     for entry in entries_to_process:
-        print(entry.date, entry.position, entry.symbol, entry.amount_usdt, entry.leverage, entry.api_key, entry.secret_key)
+        print(entry.date, entry.position, entry.symbol, entry.amount_usdt, entry.leverage, entry.api_key,
+              entry.secret_key)
         entry_datetime = datetime.strptime(entry.date, '%Y-%m-%d %H:%M')
         if entry_datetime > current_datetime:
             if send_notification_at_time(f"{entry_datetime.strftime('%Y-%m-%d %H:%M')}"):
                 print('yes')
-                trade(symbol=entry.symbol, api_key=entry.api_key, secret_key=entry.secret_key, leverage=entry.leverage, amount_usdt=entry.amount_usdt, position=entry.position)
+                trade(symbol=entry.symbol, api_key=entry.api_key, secret_key=entry.secret_key, leverage=entry.leverage,
+                      amount_usdt=entry.amount_usdt, position=entry.position)
                 entry.is_completed = True
                 entry.save()
 
@@ -981,7 +1010,8 @@ def shares_yfinance_async_task(data):
                 high = i['High']
                 low = i['Low']
                 volume = i['Volume']
-            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
+            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low,
+                                'volume': volume})
     elif bound_unit == '%':
         for i in data_dict:
             if float(i['High']) - float(i['Open']) >= (float(i['Open']) / 100 * bound) and float(i['Open']) - float(
@@ -1019,7 +1049,8 @@ def shares_yfinance_async_task(data):
                 high = i['High']
                 low = i['Low']
                 volume = i['Volume']
-            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
+            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low,
+                                'volume': volume})
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -1034,7 +1065,7 @@ def shares_yfinance_async_task(data):
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
-    file_path = f"{symbol} data shares(yfinance).xlsx"
+    file_path = f"{symbol} data shares(yfinance) {timeframe}.xlsx"
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
     return file_path
