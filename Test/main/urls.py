@@ -22,5 +22,6 @@ urlpatterns = [
     path('trade', trade, name='trade'),
     path('waiting', waiting, name='waiting'),
     path('cancel_task', cancel_task, name='cancel_task'),
-    path('shares-yfinance', shares_yfinance, name='shares_yfinance')
+    path('shares-yfinance', shares_yfinance, name='shares_yfinance'),
+    path('tradingview', tradingview, name='tradingview')
 ]

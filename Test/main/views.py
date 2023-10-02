@@ -370,3 +370,13 @@ def trade(request):
 
 def waiting(request):
     return render(request, 'waiting.html')
+
+
+def tradingview(request):
+    if request.method == 'POST':
+        form = TradingviewForm(request.POST, request.FILES)
+        if form.is_valid():
+            pass
+    else:
+        form = TradingviewForm()
+    return render(request, 'tradingview.html', {'form': form})

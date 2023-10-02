@@ -512,8 +512,6 @@ def shares_polygon_async_task(data):
     start_date = data['start_data']
     end_date = data['end_data']
     api = data['api']
-    start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
-    end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
     print(start_date)
 
     response = requests.get(

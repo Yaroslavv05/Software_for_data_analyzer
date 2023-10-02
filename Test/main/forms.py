@@ -158,3 +158,21 @@ class TradingForm(forms.Form):
     crypto_name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Название'}))
     usdt_amount = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Кол-во USDT'}))
     leverage = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Кредитное плече'}))
+
+
+class TradingviewForm(forms.Form):
+    symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Символ'}))
+    interval = forms.ChoiceField(choices=(
+        ('1m', '1м'), ('3m', '3м'), ('5m', '5м'), ('15m', '15м'), ('30m', '30м'), ('45m', '45м'), ('1h', '1ч'), ('2h', '2ч'), ('3h', '3ч'), ('4h', '4ч'),
+        ('1d', '1д'), ('1wk', '1н'), ('1mo', '1М'), ('3mo', '3М'), ('6mo', '6М'), ('12mo', '12М')
+    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    BOUND_UNIT_CHOICES = [
+        ('$', 'Доллар ($)'),
+        ('%', 'Процент (%)'),
+    ]
+    bound = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Предел'}))
+    bound_unit = forms.ChoiceField(choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    start_data = SplitDateTimeField()
+    end_data = SplitDateTimeField()
+    file_for_big_bar = forms.CharField(widget=forms.FileInput(attrs={'class': 'form-control mb-2'}))
+    file_for_small_bar = forms.CharField(widget=forms.FileInput(attrs={'class': 'form-control mb-2'}))
