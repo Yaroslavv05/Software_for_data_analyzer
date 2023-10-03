@@ -475,6 +475,10 @@ def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
     }
     start_date = date
     start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+        start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+    else:
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
     ny_timezone = pytz.timezone('America/New_York')
     start_date_datetime = ny_timezone.localize(start_date_datetime)
     end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
