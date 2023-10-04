@@ -11,6 +11,7 @@ from django.http import HttpResponse
 from django.contrib.auth import login, logout
 from django.conf import settings
 import requests
+from datetime import time
 import os
 
 
@@ -376,7 +377,44 @@ def tradingview(request):
     if request.method == 'POST':
         form = TradingviewForm(request.POST, request.FILES)
         if form.is_valid():
-            pass
+            symbol = form.cleaned_data['symbol']
+            interval = form.cleaned_data['interval']
+            bound = form.cleaned_data['bound']
+            bound_unit = form.cleaned_data['bound_unit']
+            start_data = form.cleaned_data['start_data']
+            end_data = form.cleaned_data['end_data']
+
+            start_time = time(9, 30, 0)
+            end_time = time(15, 30, 0)
+
+            start_data = start_data.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
+            end_data = end_data.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
+
+            file_path_for_big_bar = form.cleaned_data['file_for_big_bar']
+            with open(file_path_for_big_bar, 'rb') as source:
+                file_data = source.read()
+
+            file_path_for_small_bar = form.cleaned_data['file_for_small_bar']
+            with open(file_path_for_small_bar, 'wb+') as destination:
+                destination.write(file_data)
+
+            data = {
+                'symbol': symbol,
+                'interval': interval,
+                'bound': bound,
+                'bound_unit': bound_unit,
+                'start_date': str(start_data),
+                'end_date': str(end_data),
+                'file_for_big_bar': file_path_for_big_bar,
+                'file_for_small_bar': file_path_for_small_bar
+            }
+            print(data)
+            task = tradingview_async_task.delay(data)
+            request.session['task_id'] = task.id
+            print(request.session.get('task_id'))
+            return redirect('process_shares')
+        else:
+            print('gg')
     else:
         form = TradingviewForm()
     return render(request, 'tradingview.html', {'form': form})

@@ -13,6 +13,7 @@ import re
 from .models import DataEntry
 from plyer import notification
 import pytz
+import csv
 
 
 def minute(symbol, open_price, bound, date, time_frame):
@@ -452,10 +453,10 @@ def shared_async_task(data):
 def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
     interval_mapping = {
         '1 minute': 0.0166666667,
-        '5 minute': 0.05,
-        '15 minute': 0.0833333333,
-        '30 minute': 0.25,
-        '45 minute': 0.375,
+        '5 minute': 0.0833333333,
+        '15 minute': 0.25,
+        '30 minute': 0.5,
+        '45 minute': 0.75,
         '1 hour': 1.0,
         '2 hour': 2.0,
         '3 hour': 3.0,
@@ -1068,6 +1069,138 @@ def shares_yfinance_async_task(data):
     wb.save(output_buffer)
     output_buffer.seek(0)
     file_path = f"{symbol} data shares(yfinance) {timeframe}.xlsx"
+    with open(file_path, 'wb') as file:
+        file.write(output_buffer.read())
+    return file_path
+
+
+def read_csv_data(file_path):
+    data = []
+    with open(file_path, 'r') as file:
+        csv_reader = csv.reader(file)
+        next(csv_reader)
+        for row in csv_reader:
+            timestamp = int(row[0])
+            utc_datetime = datetime.utcfromtimestamp(timestamp)
+            ny_timezone = pytz.timezone('America/New_York')
+            ny_datetime = utc_datetime.replace(tzinfo=pytz.utc).astimezone(ny_timezone)
+            formatted_date_time = ny_datetime.strftime('%Y-%m-%d %H:%M:%S')
+            entry = {
+                'date_time': formatted_date_time,
+                'open': float(row[1]),
+                'high': float(row[2]),
+                'low': float(row[3]),
+                'close': float(row[4])
+            }
+            data.append(entry)
+    return data
+
+
+def get_data_for_datetime_range(start_datetime, end_datetime, data):
+    result = []
+    for entry in data:
+        entry_datetime = datetime.strptime(entry['date_time'], '%Y-%m-%d %H:%M:%S')
+        if start_datetime <= entry_datetime <= end_datetime:
+            result.append(entry)
+    return result
+
+
+def minute_TV(timeframe, open_price, bound, date, data):
+    interval_mapping = {
+        '1m': 0.0166666666666667,
+        '3m': 0.05,
+        '5m': 0.0833333333333333,
+        '15m': 0.25,
+        '30m': 0.5,
+        '45m': 0.75,
+        '1h': 1.0,
+        '2h': 2.0,
+        '3h': 3.0,
+        '4h': 4.0,
+        '1d': 24.0,
+        '1wk': 168.0,
+        '1mo': 720.0,
+        '3mo': 2160.0,
+        '6mo': 4320.0,
+        '12mo': 8640.0
+    }
+    start_date_datetime = datetime.strptime(date, '%Y-%m-%d %H:%M:%S')
+    end_date_datetime = start_date_datetime + timedelta(hours=float(interval_mapping[timeframe]))
+
+    data_for_desired_date_range = get_data_for_datetime_range(start_date_datetime, end_date_datetime, data)
+
+    if data_for_desired_date_range:
+        for i in data_for_desired_date_range:
+            print(i)
+            if float(i['high']) - open_price >= bound:
+                return '1'
+            elif open_price - float(i['low']) >= bound:
+                return '0'
+    else:
+        print(f"Data for the date range from {start_date_datetime} to {end_date_datetime} not found.")
+
+
+@shared_task
+def tradingview_async_task(datas):
+    symbol = datas['symbol']
+    interval = datas['interval']
+    bound = float(datas['bound'])
+    bound_unit = datas['bound_unit']
+    start_datetime = datas['start_date']
+    end_datetime = datas['end_date']
+    print(start_datetime)
+    print(end_datetime)
+
+    start_datetime = datetime.strptime(start_datetime, '%Y-%m-%d %H:%M:%S')
+    end_datetime = datetime.strptime(end_datetime, '%Y-%m-%d %H:%M:%S')
+    print(datas["file_for_big_bar"])
+    data = read_csv_data(datas["file_for_big_bar"])
+    data_for_desired_datetime_range = get_data_for_datetime_range(start_datetime, end_datetime, data)
+
+    output_data = []
+
+    if data_for_desired_datetime_range:
+        for i in data_for_desired_datetime_range:
+            print(i)
+            high_minus_open = float(i['high']) - float(i['open'])
+            open_minus_low = float(i['open']) - float(i['low'])
+            time = i['date_time']
+
+            if high_minus_open >= bound and open_minus_low >= bound:
+                data_for_1 = read_csv_data(datas["file_for_small_bar"])
+                output = minute_TV(open_price=float(i['open']), bound=bound, date=i['date_time'], timeframe=interval, data=data_for_1)
+                print(output)
+            elif high_minus_open >= bound:
+                output = '1'
+            elif open_minus_low >= bound:
+                output = '0'
+            else:
+                output = '2'
+
+            ope = i['open']
+            close = i['close']
+            high = i['high']
+            low = i['low']
+
+            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low})
+    else:
+        print(f"Data for the time range from {start_datetime} to {end_datetime} not found.")
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low']
+    for col_index, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col_index, value=header)
+
+    for item in output_data:
+        row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low']]
+        ws.append(row_data)
+
+    output_buffer = io.BytesIO()
+    wb.save(output_buffer)
+    output_buffer.seek(0)
+
+    file_path = f"{symbol} data shares(tradingview) {interval}.xlsx"
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
     return file_path
