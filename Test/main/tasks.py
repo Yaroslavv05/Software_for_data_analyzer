@@ -284,7 +284,8 @@ def process_data_async(data):
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
-    file_path = f"{symbol} data crypto(binance).xlsx"
+    file_path = f'{symbol}_{timeframe}_{bound}{bound_unit}_{start_date}_{end_date}(Binance).xlsx'
+    file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
     return file_path
@@ -444,7 +445,8 @@ def shared_async_task(data):
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
-    file_path = f"{symbol} data shares(twelvedata) {timeframe}.xlsx"
+    file_path = f'{symbol}_{timeframe}_{bound}{bound_unit}_{start_date}_{end_date}(Twelvedata).xlsx'
+    file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
     return file_path
@@ -653,7 +655,8 @@ def shares_polygon_async_task(data):
     wb.save(output_buffer)
     output_buffer.seek(0)
 
-    file_path = f"{symbol} data shares(polygon) {timeframe}.xlsx"
+    file_path = f'{symbol}_{timeframe}_{bound}{bound_unit}_{start_date}_{end_date}(Polygon).xlsx'
+    file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
     return file_path
@@ -1022,7 +1025,7 @@ def shares_yfinance_async_task(data):
                 time = i[name]
                 output = minute_shares_yfinance(symbol=symbol, timeframe=timeframe, open_price=float(i['Open']),
                                                 date=time,
-                                                bound=bound)
+                                                bound=(float(i['Open']) / 100 * bound))
                 ope = i['Open']
                 close = i['Close']
                 high = i['High']
@@ -1068,7 +1071,8 @@ def shares_yfinance_async_task(data):
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
-    file_path = f"{symbol} data shares(yfinance) {timeframe}.xlsx"
+    file_path = f'{symbol}_{timeframe}_{bound}{bound_unit}_{start_date}_{end_date}(YahooFinance).xlsx'
+    file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
     return file_path
@@ -1166,13 +1170,19 @@ def tradingview_async_task(datas):
             open_minus_low = float(i['open']) - float(i['low'])
             time = i['date_time']
 
-            if high_minus_open >= bound and open_minus_low >= bound:
+            if bound_unit == '$':
+                bound_value = bound
+            elif bound_unit == '%':
+                bound_value = (float(i['open']) / 100) * bound
+
+            if high_minus_open >= bound_value and open_minus_low >= bound_value:
                 data_for_1 = read_csv_data(datas["file_for_small_bar"])
-                output = minute_TV(open_price=float(i['open']), bound=bound, date=i['date_time'], timeframe=interval, data=data_for_1)
+                output = minute_TV(open_price=float(i['open']), bound=bound_value, date=i['date_time'],
+                                   timeframe=interval, data=data_for_1)
                 print(output)
-            elif high_minus_open >= bound:
+            elif high_minus_open >= bound_value:
                 output = '1'
-            elif open_minus_low >= bound:
+            elif open_minus_low >= bound_value:
                 output = '0'
             else:
                 output = '2'
@@ -1200,7 +1210,8 @@ def tradingview_async_task(datas):
     wb.save(output_buffer)
     output_buffer.seek(0)
 
-    file_path = f"{symbol} data shares(tradingview) {interval}.xlsx"
+    file_path = f'{symbol}_{interval}_{bound}{bound_unit}_{start_datetime}_{end_datetime}(Tradingview).xlsx'
+    file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
     return file_path

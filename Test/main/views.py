@@ -390,13 +390,19 @@ def tradingview(request):
             start_data = start_data.replace(hour=start_time.hour, minute=start_time.minute, second=start_time.second)
             end_data = end_data.replace(hour=end_time.hour, minute=end_time.minute, second=end_time.second)
 
-            file_path_for_big_bar = form.cleaned_data['file_for_big_bar']
-            with open(file_path_for_big_bar, 'rb') as source:
-                file_data = source.read()
+            file_for_big_bar = request.FILES['file_for_big_bar']
+            file_for_small_bar = request.FILES['file_for_small_bar']
+            # Сохраните загруженные файлы во временной папке и получите пути к ним
+            file_path_for_big_bar = os.path.join(settings.MEDIA_ROOT, file_for_big_bar.name)
+            file_path_for_small_bar = os.path.join(settings.MEDIA_ROOT, file_for_small_bar.name)
 
-            file_path_for_small_bar = form.cleaned_data['file_for_small_bar']
-            with open(file_path_for_small_bar, 'wb+') as destination:
-                destination.write(file_data)
+            with open(file_path_for_big_bar, 'wb') as f:
+                for chunk in file_for_big_bar.chunks():
+                    f.write(chunk)
+
+            with open(file_path_for_small_bar, 'wb') as f:
+                for chunk in file_for_small_bar.chunks():
+                    f.write(chunk)
 
             data = {
                 'symbol': symbol,
