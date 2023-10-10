@@ -510,6 +510,157 @@ def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
             return '0'
 
 
+class DataProcessor:
+    def __init__(self, input_file_path, output_file_path, bound, symbol, bound_init):
+        self.input_file_path = input_file_path
+        self.output_file_path = output_file_path
+        self.bound = bound
+        self.bound_init = bound_init
+        self.symbol = symbol
+        self.bound = bound
+        self.hourly_intervals = []
+
+    def load_data(self):
+        workbook = openpyxl.load_workbook(self.input_file_path)
+        sheet = workbook.active
+        headers = [cell.value for cell in sheet[1]]
+        data_list = []
+
+        for row in sheet.iter_rows(values_only=True, min_row=2):
+            row_data = dict(zip(headers, row))
+            time = datetime.strptime(row_data['Date'], '%Y-%m-%d %H:%M:%S')
+            if self.is_valid_time(time):
+                data_list.append(row_data)
+
+        data_list.sort(key=lambda x: (x['Date'][-5:] == ':30', x['Date']))
+        workbook.close()
+        self.process_intervals(data_list)
+
+    def is_valid_time(self, time):
+        return (time.hour == 9 and time.minute >= 30) or (9 < time.hour < 15) or (time.hour == 15 and time.minute <= 30)
+
+    def process_intervals(self, data_list):
+        current_interval = None
+
+        for candle in data_list:
+            candle_date = datetime.strptime(candle['Date'], '%Y-%m-%d %H:%M:%S')
+
+            if current_interval is None:
+                current_interval = {
+                    'time': candle_date.strftime('%Y-%m-%d %H:%M:%S'),
+                    'open': candle['Open'],
+                    'close': candle['Close'],
+                    'high': candle['High'],
+                    'low': candle['Low'],
+                    'trade': candle['Trade'],
+                    'volume': candle['Volume']
+                }
+            else:
+                current_interval_date = datetime.strptime(current_interval['time'], '%Y-%m-%d %H:%M:%S')
+                time_difference = (candle_date - current_interval_date).total_seconds()
+                if time_difference < 3600:
+                    current_interval['close'] = candle['Close']
+                    current_interval['high'] = max(current_interval['high'], candle['High'])
+                    current_interval['low'] = min(current_interval['low'], candle['Low'])
+                    current_interval['trade'] += candle['Trade']
+                    current_interval['volume'] += candle['Volume']
+                else:
+                    self.hourly_intervals.append(current_interval)
+                    current_interval = {
+                        'time': candle_date.strftime('%Y-%m-%d %H:%M:%S'),
+                        'open': candle['Open'],
+                        'close': candle['Close'],
+                        'high': candle['High'],
+                        'low': candle['Low'],
+                        'trade': candle['Trade'],
+                        'volume': candle['Volume']
+                    }
+
+        if current_interval:
+            self.hourly_intervals.append(current_interval)
+
+    def minte(self, date, symbol, open_price, bound):
+        start_date = date
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+        else:
+            start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        ny_timezone = pytz.timezone('America/New_York')
+        start_date_datetime = ny_timezone.localize(start_date_datetime)
+        end_date_datetime = start_date_datetime + timedelta(hours=1)
+        start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+        end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+
+        response = requests.get(
+            f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+        print(response.json())
+        d = response.json()['results']
+        mass = []
+        for i in d:
+            dt = datetime.fromtimestamp(i['t'] / 1000)
+            mass.append({
+                'time': dt.strftime('%Y-%m-%d %H:%M:%S'),
+                'open': i['o'],
+                'close': i['c'],
+                'high': i['h'],
+                'low': i['l']
+            })
+
+        for i in mass:
+            if float(i['high']) - open_price >= bound:
+                return '1'
+            elif open_price - float(i['low']) >= bound:
+                return '0'
+
+    def generate_output(self):
+        output_data = []
+
+        for i in self.hourly_intervals:
+            if self.bound_init == '$':
+                bound_value = self.bound
+            elif self.bound_init == '%':
+                bound_value = (float(i['open']) / 100) * self.bound
+
+            if float(i['high']) - float(i['open']) >= bound_value and float(i['open']) - float(i['low']) >= bound_value:
+                output = self.minte(symbol=self.symbol, date=i['time'], open_price=float(i['open']), bound=bound_value)
+            elif float(i['high']) - float(i['open']) >= bound_value:
+                output = '1'
+            elif float(i['open']) - float(i['low']) >= bound_value:
+                output = '0'
+            else:
+                output = '2'
+
+            output_data.append({
+                'time': i['time'],
+                'output': output,
+                'open': i['open'],
+                'close': i['close'],
+                'high': i['high'],
+                'low': i['low'],
+                'trade': i['trade'],
+                'volume': i['volume']
+            })
+
+        return output_data
+
+    def save_output_to_excel(self):
+        wb = openpyxl.Workbook()
+        ws = wb.active
+
+        headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Trade', 'Volume']
+        for col_index, header in enumerate(headers, 1):
+            ws.cell(row=1, column=col_index, value=header)
+
+        output_data = self.generate_output()
+        for item in output_data:
+            row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'], item['trade'], item['volume']]
+            ws.append(row_data)
+
+        with open(self.output_file_path, 'wb') as file:
+            wb.save(file)
+
+
 @shared_task
 def shares_polygon_async_task(data):
     symbol = data['symbol'].upper()
@@ -521,10 +672,16 @@ def shares_polygon_async_task(data):
     api = data['api']
     print(start_date)
 
-    response = requests.get(
-        f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{timeframe.split()[0]}/{timeframe.split()[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api}')
-    print(response.json())
-    result = response.json()['results']
+    if timeframe == '1 hour':
+        url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/30/minute/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
+    else:
+        interval_parts = timeframe.split()
+        url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
+
+    response = requests.get(url)
+    response_data = response.json()
+    result = response_data.get('results', [])
+
     mass = []
     for i in result:
         unix_timestamp_seconds = i['t'] / 1000
@@ -540,92 +697,56 @@ def shares_polygon_async_task(data):
             'trade': i['n'],
             'volume': i['v']
         })
-    print(mass)
+
     output_data = []
-    if bound_unit == '$':
-        for i in mass:
-            if float(i['high']) - float(i['open']) >= bound and float(i['open']) - float(i['low']) >= bound:
-                time = i['time']
-                output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=float(i['open']),
+    for i in mass:
+        open_price = float(i['open'])
+        high_price = float(i['high'])
+        low_price = float(i['low'])
+
+        if bound_unit == '$':
+            if (high_price - open_price >= bound) and (open_price - low_price >= bound):
+                output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
                                                date=i['time'], bound=bound)
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                trade = i['trade']
-                volume = i['volume']
-            elif float(i['high']) - float(i['open']) >= bound:
-                time = i['time']
+            elif high_price - open_price >= bound:
                 output = '1'
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                trade = i['trade']
-                volume = i['volume']
-            elif float(i['open']) - float(i['low']) >= bound:
-                time = i['time']
+            elif open_price - low_price >= bound:
                 output = '0'
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                trade = i['trade']
-                volume = i['volume']
             else:
-                time = i['time']
                 output = '2'
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                trade = i['trade']
-                volume = i['volume']
-            output_data.append(
-                {'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'trade': trade,
-                 'volume': volume})
-    elif bound_unit == '%':
-        for i in mass:
-            if float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound) and float(i['open']) - float(
-                    i['low']) >= (float(i['open']) / 100 * bound):
-                time = i['time']
-                output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=float(i['open']),
-                                               date=i['time'], bound=(float(i['open']) / 100 * bound))
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                trade = i['trade']
-                volume = i['volume']
-            elif float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound):
-                time = i['time']
+        elif bound_unit == '%':
+            if (high_price - open_price >= (open_price / 100 * bound)) and (
+                    open_price - low_price >= (open_price / 100 * bound)):
+                output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
+                                               date=i['time'], bound=(open_price / 100 * bound))
+            elif high_price - open_price >= (open_price / 100 * bound):
                 output = '1'
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                trade = i['trade']
-                volume = i['volume']
-            elif float(i['open']) - float(i['low']) >= (float(i['open']) / 100 * bound):
-                time = i['time']
+            elif open_price - low_price >= (open_price / 100 * bound):
                 output = '0'
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                trade = i['trade']
-                volume = i['volume']
             else:
-                time = i['time']
                 output = '2'
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                trade = i['trade']
-                volume = i['volume']
-            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'trade': trade,'volume': volume})
-    print(output_data)
+
+        output_data.append({
+            'time': i['time'],
+            'output': output,
+            'open': open_price,
+            'close': i['close'],
+            'high': high_price,
+            'low': low_price,
+            'trade': i['trade'],
+            'volume': i['volume']
+        })
+
+    filtered_output_data = []
+    if data['pre'] == 'in':
+        for item in output_data:
+            time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
+            if (time.hour >= 9 and time.hour <= 15) or (
+                    time.time() == time.replace(hour=0, minute=0, second=0, microsecond=0).time()):
+                filtered_output_data.append(item)
+    elif data['pre'] == 'pre':
+        filtered_output_data = output_data
+
     wb = openpyxl.Workbook()
     ws = wb.active
 
@@ -633,23 +754,11 @@ def shares_polygon_async_task(data):
     for col_index, header in enumerate(headers, 1):
         ws.cell(row=1, column=col_index, value=header)
 
-    if data['pre'] == 'in':
-        for item in output_data:
-            time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
-            if time.hour >= 9 and time.hour <= 15:
-                row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'],
-                            item['trade'], item['volume']]
-                ws.append(row_data)
-            elif time.time() == time.replace(hour=0, minute=0, second=0, microsecond=0).time():
-                row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'],
-                            item['trade'], item['volume']]
-                ws.append(row_data)
-    elif data['pre'] == 'pre':
-        for item in output_data:
-            row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'],
-                        item['trade'],
-                        item['volume']]
-            ws.append(row_data)
+    for row_index, item in enumerate(filtered_output_data, 2):
+        row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'], item['trade'],
+                    item['volume']]
+        for col_index, value in enumerate(row_data, 1):
+            ws.cell(row=row_index, column=col_index, value=value)
 
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
@@ -659,7 +768,18 @@ def shares_polygon_async_task(data):
     file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
-    return file_path
+
+    if timeframe == '1 hour':
+        input_file_path = file_path
+        output_file_path = f'{symbol}_1_hour_{bound}{bound_unit}_{start_date}_{end_date}(Polygon).xlsx'
+
+        data_processor = DataProcessor(input_file_path, output_file_path, bound=bound, symbol=symbol,
+                                       bound_init=bound_unit)
+        data_processor.load_data()
+        data_processor.save_output_to_excel()
+        return output_file_path
+    else:
+        return file_path
 
 
 def send_notification_at_time(datetime_str):
