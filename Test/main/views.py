@@ -13,6 +13,9 @@ from django.conf import settings
 import requests
 from datetime import time
 import os
+from django.views.generic.edit import FormView
+from django.urls import reverse
+from django.views import View
 
 
 def get_binance_symbols():
@@ -43,78 +46,82 @@ def main(request):
     return render(request, 'main.html')
 
 
-def index(request):
-    form = MyForm(request.POST)
-    if request.method == 'POST':
-        if form.is_valid():
-            symbol = form.cleaned_data['symbol']
-            interval = form.cleaned_data['interval']
-            bound = form.cleaned_data['bound']
-            bound_unit = form.cleaned_data['bound_unit']
-            start_data = form.cleaned_data['start_data']
-            end_data = form.cleaned_data['end_data']
-            if symbol not in get_binance_symbols():
-                messages.error(request, 'Invalid symbol!')
-            elif float(bound) < 0:
-                messages.error(request, 'Bound cannot be negative!')
-            elif end_data < start_data:
-                messages.error(request, 'The end date must be after the start date!')
-            else:
-                data = {
-                    'symbol': symbol,
-                    'interval': interval,
-                    'bound': bound,
-                    'bound_unit': bound_unit,
-                    'start_data': start_data.strftime('%Y-%m-%d'),
-                    'end_data': end_data.strftime('%Y-%m-%d')
-                }
-                print(data)
-                task = process_data_async.delay(data)
-                request.session['task_id'] = task.id
-                print(request.session.get('task_id'))
-                return redirect('process')
-    else:
-        form = MyForm()
-    return render(request, 'index.html', {'form': form})
+class MyFormView(FormView):
+    template_name = 'index.html'
+    form_class = MyForm
+
+    def form_valid(self, form):
+        symbol = form.cleaned_data['symbol']
+        interval = form.cleaned_data['interval']
+        bound = form.cleaned_data['bound']
+        bound_unit = form.cleaned_data['bound_unit']
+        start_data = form.cleaned_data['start_data']
+        end_data = form.cleaned_data['end_data']
+
+        if symbol not in get_binance_symbols():
+            messages.error(self.request, 'Invalid symbol!')
+        elif float(bound) < 0:
+            messages.error(self.request, 'Bound cannot be negative!')
+        elif end_data < start_data:
+            messages.error(self.request, 'The end date must be after the start date!')
+        else:
+            data = {
+                'symbol': symbol,
+                'interval': interval,
+                'bound': bound,
+                'bound_unit': bound_unit,
+                'start_data': start_data.strftime('%Y-%m-%d'),
+                'end_data': end_data.strftime('%Y-%m-%d')
+            }
+
+            task = process_data_async.delay(data)
+            self.request.session['task_id'] = task.id
+
+            return redirect('process')
+
+    def get_success_url(self):
+        return reverse('process')
 
 
 def process(request):
     return render(request, 'process.html')
 
 
-def shares(request):
-    form = SharesForm(request.POST)
-    if request.method == 'POST':
-        if form.is_valid():
-            symbol = form.cleaned_data['symbol']
-            interval = form.cleaned_data['interval']
-            bound = form.cleaned_data['bound']
-            bound_unit = form.cleaned_data['bound_unit']
-            start_data = form.cleaned_data['start_data']
-            end_data = form.cleaned_data['end_data']
-            symbol_validity = check_symbol_validity(symbol, start_data, end_data)
-            if symbol_validity == "invalid symbol":
-                messages.error(request, 'Invalid symbol!')
-            elif float(bound) < 0:
-                messages.error(request, 'Bound cannot be negative!')
-            elif end_data < start_data:
-                messages.error(request, 'The end date must be after the start date!')
-            else:
-                data = {
-                    'symbol': symbol,
-                    'interval': interval,
-                    'bound': bound,
-                    'bound_unit': bound_unit,
-                    'start_data': start_data.strftime('%Y-%m-%d'),
-                    'end_data': end_data.strftime('%Y-%m-%d')
-                }
-                task = shared_async_task.delay(data)
-                request.session['task_id'] = task.id
-                print(request.session.get('task_id'))
-                return redirect('process_shares')
-    else:
-        form = SharesForm()
-    return render(request, 'shares.html', {'form': form})
+class SharesView(FormView):
+    template_name = 'shares.html'
+    form_class = SharesForm
+
+    def form_valid(self, form):
+        symbol = form.cleaned_data['symbol']
+        interval = form.cleaned_data['interval']
+        bound = form.cleaned_data['bound']
+        bound_unit = form.cleaned_data['bound_unit']
+        start_data = form.cleaned_data['start_data']
+        end_data = form.cleaned_data['end_data']
+        symbol_validity = check_symbol_validity(symbol, start_data, end_data)
+
+        if symbol_validity == "invalid symbol":
+            messages.error(self.request, 'Invalid symbol!')
+        elif float(bound) < 0:
+            messages.error(self.request, 'Bound cannot be negative!')
+        elif end_data < start_data:
+            messages.error(self.request, 'The end date must be after the start date!')
+        else:
+            data = {
+                'symbol': symbol,
+                'interval': interval,
+                'bound': bound,
+                'bound_unit': bound_unit,
+                'start_data': start_data.strftime('%Y-%m-%d'),
+                'end_data': end_data.strftime('%Y-%m-%d')
+            }
+            task = shared_async_task.delay(data)
+            self.request.session['task_id'] = task.id
+            print(self.request.session.get('task_id'))
+            return redirect('process_shares')
+
+    def get_success_url(self):
+        return reverse('process_shares')
 
 
 def process_shares(request):
@@ -137,81 +144,83 @@ def cancel_task(request):
     return JsonResponse({'message': 'Метод запроса должен быть POST'})
 
 
-def shares_polygon(request):
-    form = SharesPolygonForm(request.POST)
-    if request.method == 'POST':
-        if form.is_valid():
-            symbol = form.cleaned_data['symbol']
-            interval = form.cleaned_data['interval']
-            bound = form.cleaned_data['bound']
-            bound_unit = form.cleaned_data['bound_unit']
-            start_data = form.cleaned_data['start_data']
-            end_data = form.cleaned_data['end_data']
-            api = form.cleaned_data['api']
-            pre = form.cleaned_data['choice']
-            symbol_validity = check_symbol_validity(symbol, start_data, end_data)
-            if symbol_validity == "invalid symbol":
-                messages.error(request, 'Invalid symbol!')
-            elif float(bound) < 0:
-                messages.error(request, 'Bound cannot be negative!')
-            elif end_data < start_data:
-                messages.error(request, 'The end date must be after the start date!')
-            else:
-                data = {
-                    'symbol': symbol,
-                    'interval': interval,
-                    'bound': bound,
-                    'bound_unit': bound_unit,
-                    'start_data': start_data.strftime('%Y-%m-%d'),
-                    'end_data': end_data.strftime('%Y-%m-%d'),
-                    'api': api,
-                    'pre': pre
-                }
-                task = shares_polygon_async_task.delay(data)
-                request.session['task_id'] = task.id
-                print(request.session.get('task_id'))
-                return redirect('process_shares')
+class SharesPolygonView(FormView):
+    template_name = 'shares_polygon.html'
+    form_class = SharesPolygonForm
 
-    else:
-        form = SharesPolygonForm()
-    return render(request, 'shares_polygon.html', {'form': form})
+    def form_valid(self, form):
+        symbol = form.cleaned_data['symbol']
+        interval = form.cleaned_data['interval']
+        bound = form.cleaned_data['bound']
+        bound_unit = form.cleaned_data['bound_unit']
+        start_data = form.cleaned_data['start_data']
+        end_data = form.cleaned_data['end_data']
+        api = form.cleaned_data['api']
+        pre = form.cleaned_data['choice']
+        symbol_validity = check_symbol_validity(symbol, start_data, end_data)
+
+        if symbol_validity == "invalid symbol":
+            messages.error(self.request, 'Invalid symbol!')
+        elif float(bound) < 0:
+            messages.error(self.request, 'Bound cannot be negative!')
+        elif end_data < start_data:
+            messages.error(self.request, 'The end date must be after the start date!')
+        else:
+            data = {
+                'symbol': symbol,
+                'interval': interval,
+                'bound': bound,
+                'bound_unit': bound_unit,
+                'start_data': start_data.strftime('%Y-%m-%d'),
+                'end_data': end_data.strftime('%Y-%m-%d'),
+                'api': api,
+                'pre': pre
+            }
+            task = shares_polygon_async_task.delay(data)
+            self.request.session['task_id'] = task.id
+            print(self.request.session.get('task_id'))
+            return redirect('process_shares')
+
+    def get_success_url(self):
+        return reverse('process_shares')
 
 
-def shares_yfinance(request):
-    form = SharesYFinanceForm(request.POST)
-    if request.method == 'POST':
-        if form.is_valid():
-            symbol = form.cleaned_data['symbol']
-            interval = form.cleaned_data['interval']
-            bound = form.cleaned_data['bound']
-            bound_unit = form.cleaned_data['bound_unit']
-            start_data = form.cleaned_data['start_data']
-            end_data = form.cleaned_data['end_data']
-            symbol_validity = check_symbol_validity(symbol, start_data, end_data)
-            if symbol_validity == "invalid symbol":
-                messages.error(request, 'Invalid symbol!')
-            elif float(bound) < 0:
-                messages.error(request, 'Bound cannot be negative!')
-            elif end_data < start_data:
-                messages.error(request, 'The end date must be after the start date!')
-            else:
-                data = {
-                    'symbol': symbol,
-                    'interval': interval,
-                    'bound': bound,
-                    'bound_unit': bound_unit,
-                    'start_data': start_data.strftime('%Y-%m-%d'),
-                    'end_data': end_data.strftime('%Y-%m-%d')
-                }
-                print(data)
-                task = shares_yfinance_async_task.delay(data)
-                request.session['task_id'] = task.id
-                print(request.session.get('task_id'))
-                return redirect('process_shares')
+class SharesYFinanceView(FormView):
+    template_name = 'shares_yfinance.html'
+    form_class = SharesYFinanceForm
 
-    else:
-        form = SharesYFinanceForm()
-    return render(request, 'shares_yfinance.html', {'form': form})
+    def form_valid(self, form):
+        symbol = form.cleaned_data['symbol']
+        interval = form.cleaned_data['interval']
+        bound = form.cleaned_data['bound']
+        bound_unit = form.cleaned_data['bound_unit']
+        start_data = form.cleaned_data['start_data']
+        end_data = form.cleaned_data['end_data']
+        symbol_validity = check_symbol_validity(symbol, start_data, end_data)
+
+        if symbol_validity == "invalid symbol":
+            messages.error(self.request, 'Invalid symbol!')
+        elif float(bound) < 0:
+            messages.error(self.request, 'Bound cannot be negative!')
+        elif end_data < start_data:
+            messages.error(self.request, 'The end date must be after the start date!')
+        else:
+            data = {
+                'symbol': symbol,
+                'interval': interval,
+                'bound': bound,
+                'bound_unit': bound_unit,
+                'start_data': start_data.strftime('%Y-%m-%d'),
+                'end_data': end_data.strftime('%Y-%m-%d')
+            }
+            print(data)
+            task = shares_yfinance_async_task.delay(data)
+            self.request.session['task_id'] = task.id
+            print(self.request.session.get('task_id'))
+            return redirect('process_shares')
+
+    def get_success_url(self):
+        return reverse('process_shares')
 
 
 def check_task_status(request):
@@ -247,25 +256,34 @@ def result(request):
         return HttpResponse("File not found.")
 
 
-def user_login(request):
-    if request.method == 'POST':
-        form = UserLoginForm(data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            login(request, user)
-            return redirect('profile')
-        else:
-            messages.error(request, 'Ошибка авторизации')
-    else:
-        form = UserLoginForm()
-    return render(request, 'login.html', {'form': form})
+class UserLoginView(FormView):
+    template_name = 'login.html'
+    form_class = UserLoginForm
+
+    def form_valid(self, form):
+        user = form.get_user()
+        login(self.request, user)
+        return redirect('profile')
+
+    def form_invalid(self, form):
+        messages.error(self.request, 'Ошибка авторизации')
+        return super().form_invalid(form)
+
+    def get_success_url(self):
+        return reverse('profile')
 
 
-def profile(request):
-    user_profile = None
+class ProfileView(View):
+    template_name = 'profile.html'
 
-    if request.method == 'POST':
+    def get(self, request):
+        user_profiles = UserProfiles.objects.filter(user=request.user)
+        form = AccountBinanceForm()
+        return render(request, self.template_name, {'form': form, 'user_profiles': user_profiles})
+
+    def post(self, request):
         form = AccountBinanceForm(request.POST)
+
         if form.is_valid():
             user_profile = UserProfiles(user=request.user)
             user_profile.name = form.cleaned_data['name']
@@ -273,12 +291,10 @@ def profile(request):
             user_profile.secret_key = form.cleaned_data['secret_key']
             user_profile.save()
 
-    else:
-        form = AccountBinanceForm()
+            return redirect('profile')
 
-    user_profiles = UserProfiles.objects.filter(user=request.user)
-
-    return render(request, 'profile.html', {'form': form, 'user_profiles': user_profiles})
+        user_profiles = UserProfiles.objects.filter(user=request.user)
+        return render(request, self.template_name, {'form': form, 'user_profiles': user_profiles})
 
 
 def delete_profile(request, profile_id):
@@ -288,25 +304,30 @@ def delete_profile(request, profile_id):
     return redirect('profile')
 
 
-def edit_profile(request, profile_id):
-    profile = get_object_or_404(UserProfiles, id=profile_id)
+class EditProfileView(View):
+    template_name = 'edit_profile.html'
 
-    if request.method == 'POST':
+    def get(self, request, profile_id):
+        profile = get_object_or_404(UserProfiles, id=profile_id)
+        form = AccountBinanceForm(initial={
+            'name': profile.name,
+            'api_key': profile.api_key,
+            'secret_key': profile.secret_key,
+        })
+        return render(request, self.template_name, {'form': form})
+
+    def post(self, request, profile_id):
+        profile = get_object_or_404(UserProfiles, id=profile_id)
         form = AccountBinanceForm(request.POST)
+
         if form.is_valid():
             profile.name = form.cleaned_data['name']
             profile.api_key = form.cleaned_data['api_key']
             profile.secret_key = form.cleaned_data['secret_key']
             profile.save()
             return redirect('profile')
-    else:
-        form = AccountBinanceForm(initial={
-            'name': profile.name,
-            'api_key': profile.api_key,
-            'secret_key': profile.secret_key,
-        })
 
-    return render(request, 'edit_profile.html', {'form': form})
+        return render(request, self.template_name, {'form': form})
 
 
 @login_required
@@ -363,7 +384,6 @@ def trade(request):
             api_key = user_profile.api_key
             secret_key = user_profile.secret_key
             async_parse_file_task.delay(file_path=file_path, user_id=request.user.id, symbol=form.cleaned_data['crypto_name'], amount_usdt=form.cleaned_data['usdt_amount'], leverage=form.cleaned_data['leverage'], api_key=api_key, secret_key=secret_key)
-            # return redirect('waiting')
     else:
         form = TradingForm(user_id=user_id)
     return render(request, 'trading.html', {'form': form})
@@ -373,9 +393,16 @@ def waiting(request):
     return render(request, 'waiting.html')
 
 
-def tradingview(request):
-    if request.method == 'POST':
+class TradingView(View):
+    template_name = 'tradingview.html'
+
+    def get(self, request):
+        form = TradingviewForm()
+        return render(request, self.template_name, {'form': form})
+
+    def post(self, request):
         form = TradingviewForm(request.POST, request.FILES)
+
         if form.is_valid():
             symbol = form.cleaned_data['symbol']
             interval = form.cleaned_data['interval']
@@ -392,7 +419,7 @@ def tradingview(request):
 
             file_for_big_bar = request.FILES['file_for_big_bar']
             file_for_small_bar = request.FILES['file_for_small_bar']
-            # Сохраните загруженные файлы во временной папке и получите пути к ним
+
             file_path_for_big_bar = os.path.join(settings.MEDIA_ROOT, file_for_big_bar.name)
             file_path_for_small_bar = os.path.join(settings.MEDIA_ROOT, file_for_small_bar.name)
 
@@ -414,13 +441,9 @@ def tradingview(request):
                 'file_for_big_bar': file_path_for_big_bar,
                 'file_for_small_bar': file_path_for_small_bar
             }
-            print(data)
+
             task = tradingview_async_task.delay(data)
             request.session['task_id'] = task.id
-            print(request.session.get('task_id'))
             return redirect('process_shares')
-        else:
-            print('gg')
-    else:
-        form = TradingviewForm()
-    return render(request, 'tradingview.html', {'form': form})
+
+        return render(request, self.template_name, {'form': form})
