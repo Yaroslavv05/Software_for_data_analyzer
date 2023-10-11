@@ -661,6 +661,18 @@ class DataProcessor:
             wb.save(file)
 
 
+def split_into_3_month_intervals(start_date, end_date):
+    intervals = []
+    current_date = start_date
+    while current_date < end_date:
+        next_date = current_date + timedelta(days=90)
+        if next_date > end_date:
+            next_date = end_date
+        intervals.append((current_date, next_date))
+        current_date = next_date
+    return intervals
+
+
 @shared_task
 def shares_polygon_async_task(data):
     symbol = data['symbol'].upper()
@@ -671,32 +683,35 @@ def shares_polygon_async_task(data):
     end_date = data['end_data']
     api = data['api']
     print(start_date)
+    intervals = split_into_3_month_intervals(datetime.strptime(start_date, '%Y-%m-%d').date(), datetime.strptime(end_date, '%Y-%m-%d').date())
 
-    if timeframe == '1 hour':
-        url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/30/minute/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
-    else:
-        interval_parts = timeframe.split()
-        url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
+    res = []
+    for i, interval in enumerate(intervals, start=1):
+        if timeframe == '1 hour':
+            url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/30/minute/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
+        else:
+            interval_parts = timeframe.split()
+            url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
 
-    response = requests.get(url)
-    response_data = response.json()
-    result = response_data.get('results', [])
+        response = requests.get(url)
+        res.append(response.json()['results'])
 
     mass = []
-    for i in result:
-        unix_timestamp_seconds = i['t'] / 1000
-        unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
-        ny_timezone = pytz.timezone('America/New_York')
-        ny_datetime = unix_datetime.astimezone(ny_timezone)
-        mass.append({
-            'time': ny_datetime.strftime("%Y-%m-%d %H:%M:%S"),
-            'open': i['o'],
-            'close': i['c'],
-            'high': i['h'],
-            'low': i['l'],
-            'trade': i['n'],
-            'volume': i['v']
-        })
+    for subarray in res:
+        for i in subarray:
+            unix_timestamp_seconds = i['t'] / 1000
+            unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
+            ny_timezone = pytz.timezone('America/New_York')
+            ny_datetime = unix_datetime.astimezone(ny_timezone)
+            mass.append({
+                'time': ny_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                'open': i['o'],
+                'close': i['c'],
+                'high': i['h'],
+                'low': i['l'],
+                'trade': i['n'],
+                'volume': i['v']
+            })
 
     output_data = []
     for i in mass:
