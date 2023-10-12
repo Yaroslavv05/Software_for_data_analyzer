@@ -14,6 +14,8 @@ from .models import DataEntry
 from plyer import notification
 import pytz
 import csv
+from .models import DateLog
+from django.utils import timezone
 
 
 def minute(symbol, open_price, bound, date, time_frame):
@@ -715,6 +717,9 @@ def shares_polygon_async_task(data):
 
     output_data = []
     for i in mass:
+        parsed_date = datetime.strptime(i['time'], "%Y-%m-%d %H:%M:%S")
+        aware_date = timezone.make_aware(parsed_date)
+        DateLog.objects.create(date=aware_date)
         open_price = float(i['open'])
         high_price = float(i['high'])
         low_price = float(i['low'])
@@ -751,6 +756,10 @@ def shares_polygon_async_task(data):
             'trade': i['trade'],
             'volume': i['volume']
         })
+        import time
+        time.sleep(0.01)
+        last_object = DateLog.objects.order_by('-id').first()
+        last_object.delete()
 
     filtered_output_data = []
     if data['pre'] == 'in':

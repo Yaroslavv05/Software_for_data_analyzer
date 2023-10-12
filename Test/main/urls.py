@@ -23,5 +23,6 @@ urlpatterns = [
     path('waiting', waiting, name='waiting'),
     path('cancel_task', cancel_task, name='cancel_task'),
     path('shares-yfinance', SharesYFinanceView.as_view(), name='shares_yfinance'),
-    path('tradingview', TradingView.as_view(), name='tradingview')
+    path('tradingview', TradingView.as_view(), name='tradingview'),
+    path('ajax', ajax, name='ajax')
 ]

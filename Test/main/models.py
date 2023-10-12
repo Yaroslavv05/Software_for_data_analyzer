@@ -24,3 +24,7 @@ class DataEntry(models.Model):
     api_key = models.CharField(max_length=255)
     secret_key = models.CharField(max_length=255)
     is_completed = models.BooleanField(default=False)
+
+
+class DateLog(models.Model):
+    date = models.DateTimeField()
