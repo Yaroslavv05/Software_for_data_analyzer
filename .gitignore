@@ -3,3 +3,4 @@ venv
 main.py
 test.py
 db.sqlite3
+__pycache__
