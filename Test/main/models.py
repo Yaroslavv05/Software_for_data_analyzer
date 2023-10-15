@@ -27,4 +27,4 @@ class DataEntry(models.Model):
 
 
 class DateLog(models.Model):
-    date = models.DateTimeField()
+    date = models.DateField()

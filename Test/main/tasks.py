@@ -719,7 +719,7 @@ def shares_polygon_async_task(data):
     for i in mass:
         parsed_date = datetime.strptime(i['time'], "%Y-%m-%d %H:%M:%S")
         aware_date = timezone.make_aware(parsed_date)
-        DateLog.objects.create(date=aware_date)
+        DateLog.objects.create(date=aware_date.date())
         open_price = float(i['open'])
         high_price = float(i['high'])
         low_price = float(i['low'])

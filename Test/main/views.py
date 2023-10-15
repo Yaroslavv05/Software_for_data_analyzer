@@ -126,7 +126,7 @@ class SharesView(FormView):
 
 def ajax(request):
     latest_dates = DateLog.objects.order_by('-date')[:10]
-    dates_list = [date.date.strftime("%Y-%m-%d %H:%M:%S") for date in latest_dates]
+    dates_list = [date.date.strftime("%Y-%m-%d") for date in latest_dates]
     return JsonResponse({'dates_list': dates_list})
 
 
