@@ -57,6 +57,7 @@ def process_data_async(data):
     bound_unit = data['bound_unit']
     inter = data['interval']
     print(symbol, timeframe, bound, bound_unit, inter)
+    
     interval_mapping = {
         0.0166666667: Client.KLINE_INTERVAL_1MINUTE,
         0.05: Client.KLINE_INTERVAL_3MINUTE,
@@ -76,204 +77,82 @@ def process_data_async(data):
     }
 
     start_date_str = data['start_data']
-    if 'T' in start_date_str:
-        start_date = datetime.fromisoformat(start_date_str)
-    else:
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+    start_date = datetime.fromisoformat(start_date_str) if 'T' in start_date_str else datetime.strptime(start_date_str, '%Y-%m-%d')
 
     end_date_str = data['end_data']
-    if 'T' in end_date_str:
-        end_date = datetime.fromisoformat(end_date_str)
-    else:
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-        end_date = end_date + timedelta(days=1)
+    end_date = datetime.fromisoformat(end_date_str) if 'T' in end_date_str else datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
 
     difference = end_date - start_date
-    num_days = int(difference.days)
-    minutes = num_days * 24 * 60
+    minutes = difference.days * 24 * 60
     hours = int(minutes / timeframe)
 
     start_timestamp = int(start_date.timestamp()) * 1000
     end_timestamp = int(end_date.timestamp()) * 1000
 
-    klines = client.futures_historical_klines(symbol, interval_mapping.get(float(inter), None), start_timestamp,
-                                              end_timestamp)
+    klines = client.futures_historical_klines(symbol, interval_mapping.get(float(inter), None), start_timestamp, end_timestamp)
 
     mass = []
-
     for kline in klines:
-        time = datetime.fromtimestamp(kline[0] / 1000)
-        formatted_time = time.strftime('%Y-%m-%d %H:%M:%S')
+        time = datetime.fromtimestamp(kline[0] / 1000).strftime('%Y-%m-%d %H:%M:%S')
         mass.append({
-            'time': formatted_time,
+            'time': time,
             'open': kline[1],
             'high': kline[2],
             'low': kline[3],
             'close': kline[4],
             'volume': kline[5]
         })
+        
     output_data = []
     total = 0
-    if bound_unit == '$':
-        for i in range(hours):
-            if i == 0:
-                if (float(mass[i]['high']) - float(mass[i]['open'])) >= bound and float(
-                        mass[i]['open']) - float(mass[i]['low']) >= bound:
-                    time = mass[i]['time']
-                    output = minute(symbol=symbol, open_price=float(mass[i]['open']), bound=bound, date=time,
-                                    time_frame=float(data['interval']))
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                elif (float(mass[i]['high']) - float(mass[i]['open'])) >= bound:
-                    time = mass[i]['time']
-                    output = '1'
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                elif float(mass[i]['open']) - float(mass[i]['low']) >= bound:
-                    time = mass[i]['time']
-                    output = '0'
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                else:
-                    output = '2'
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                    time = mass[i]['time']
-                print(mass[total])
+    for i in range(hours):
+        time = mass[i]['time']
+        high = float(mass[i]['high'])
+        ope = float(mass[i]['open'])
+        low = float(mass[i]['low'])
+        volume = mass[i]['volume']
+        parsed_date = datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
+        aware_date = timezone.make_aware(parsed_date)
+        DateLog.objects.create(date=aware_date.date(), task_id=process_data_async.request.id)
+
+        if bound_unit == '$':
+            if (i == 0 and (high - ope) >= bound and (ope - low) >= bound) or \
+                    (i > 0 and (high - ope) >= bound and (ope - low) >= bound):
+                output = minute(symbol=symbol, open_price=ope, bound=bound, date=time, time_frame=float(data['interval']))
+            elif (i == 0 and (high - ope) >= bound) or (i > 0 and (high - ope) >= bound):
+                output = '1'
+            elif (i == 0 and (ope - low) >= bound) or (i > 0 and (ope - low) >= bound):
+                output = '0'
             else:
-                total += int(timeframe)
-                if (float(mass[i]['high']) - float(mass[i]['open'])) >= bound and float(
-                        mass[i]['open']) - float(mass[i]['low']) >= bound:
-                    time = mass[i]['time']
-                    output = minute(symbol=symbol, open_price=float(mass[i]['open']), bound=bound, date=time,
-                                    time_frame=float(data['interval']))
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                elif (float(mass[i]['high']) - float(mass[i]['open'])) >= bound:
-                    time = mass[i]['time']
-                    output = '1'
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                elif float(mass[i]['open']) - float(mass[i]['low']) >= bound:
-                    time = mass[i]['time']
-                    output = '0'
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                else:
-                    output = '2'
-                    time = mass[i]['time']
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                print(mass[i])
-            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low,
-                                'volume': volume})
-    elif bound_unit == '%':
-        for i in range(hours):
-            if i == 0:
-                if (float(mass[i]['high']) - float(mass[i]['open'])) >= (
-                        float(mass[total]['open']) / 100 * bound) and float(mass[i]['open']) - float(
-                    mass[i]['low']) >= (float(mass[total]['open']) / 100 * bound):
-                    time = mass[i]['time']
-                    output = minute(symbol=symbol, open_price=float(mass[i]['open']),
-                                    bound=(float(mass[i]['open']) / 100 * bound), date=time,
-                                    time_frame=float(data['interval']))
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                elif (float(mass[i]['high']) - float(mass[i]['open'])) >= (
-                        float(mass[i]['open']) / 100 * bound):
-                    output = '1'
-                    time = mass[i]['time']
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                elif float(mass[i]['open']) - float(mass[i]['low']) >= (float(mass[i]['open']) / 100 * bound):
-                    output = '0'
-                    time = mass[i]['time']
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                else:
-                    output = '2'
-                    time = mass[i]['time']
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                print(mass[total])
+                output = '2'
+        elif bound_unit == '%':
+            bound_percent = ope / 100 * bound
+            if (i == 0 and (high - ope) >= bound_percent and (ope - low) >= bound_percent) or \
+                    (i > 0 and (high - ope) >= bound_percent and (ope - low) >= bound_percent):
+                output = minute(symbol=symbol, open_price=ope, bound=bound_percent, date=time, time_frame=float(data['interval']))
+            elif (i == 0 and (high - ope) >= bound_percent) or (i > 0 and (high - ope) >= bound_percent):
+                output = '1'
+            elif (i == 0 and (ope - low) >= bound_percent) or (i > 0 and (ope - low) >= bound_percent):
+                output = '0'
             else:
-                total += int(timeframe)
-                if (float(mass[i]['high']) - float(mass[i]['open'])) >= (
-                        float(mass[i]['open']) / 100 * bound) and float(mass[i]['open']) - float(
-                    mass[i]['low']) >= (float(mass[i]['open']) / 100 * bound):
-                    time = mass[i]['time']
-                    output = minute(symbol=symbol, open_price=float(mass[i]['open']),
-                                    bound=(float(mass[i]['open']) / 100 * bound), date=time,
-                                    time_frame=float(data['interval']))
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                elif (float(mass[i]['high']) - float(mass[i]['open'])) >= (
-                        float(mass[i]['open']) / 100 * bound):
-                    output = '1'
-                    time = mass[i]['time']
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                elif float(mass[i]['open']) - float(mass[i]['low']) >= (float(mass[i]['open']) / 100 * bound):
-                    output = '0'
-                    time = mass[i]['time']
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                else:
-                    output = '2'
-                    time = mass[i]['time']
-                    ope = mass[i]['open']
-                    close = mass[i]['close']
-                    high = mass[i]['high']
-                    low = mass[i]['low']
-                    volume = mass[i]['volume']
-                print(mass[i])
-            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low,
-                                'volume': volume})
+                output = '2'
+
+        close = float(mass[i]['close'])
+        output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
+
+        if i > 0:
+            total += int(timeframe)
+
+        if i == 0 or (bound_unit == '$' and (high - ope) >= bound) or (bound_unit == '%' and (high - ope) >= bound_percent):
+            print(mass[i])
+        import time
+        time.sleep(0.01)
+        try:
+            date_log = DateLog.objects.get(task_id=process_data_async.request.id)
+            date_log.delete()
+        except:
+            print('Nothing found for this ID')
+            
     wb = openpyxl.Workbook()
     ws = wb.active
     headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Volume']
@@ -1085,83 +964,57 @@ def shares_yfinance_async_task(data):
         print(f"Файл {csv_filename} удален.")
 
     output_data = []
-    if bound_unit == '$':
-        for i in data_dict:
-            if float(i['High']) - float(i['Open']) >= bound and float(i['Open']) - float(i['Low']) >= bound:
-                time = i[name]
-                output = minute_shares_yfinance(symbol=symbol, timeframe=timeframe, open_price=float(i['Open']),
-                                                date=time,
-                                                bound=bound)
-                ope = i['Open']
-                close = i['Close']
-                high = i['High']
-                low = i['Low']
-                volume = i['Volume']
-            elif float(i['High']) - float(i['Open']) >= bound:
-                time = i[name]
-                output = '1'
-                ope = i['Open']
-                close = i['Close']
-                high = i['High']
-                low = i['Low']
-                volume = i['Volume']
-            elif float(i['Open']) - float(i['Low']) >= bound:
-                time = i[name]
-                output = '0'
-                ope = i['Open']
-                close = i['Close']
-                high = i['High']
-                low = i['Low']
-                volume = i['Volume']
-            else:
-                time = i[name]
-                output = '2'
-                ope = i['Open']
-                close = i['Close']
-                high = i['High']
-                low = i['Low']
-                volume = i['Volume']
-            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low,
-                                'volume': volume})
-    elif bound_unit == '%':
-        for i in data_dict:
-            if float(i['High']) - float(i['Open']) >= (float(i['Open']) / 100 * bound) and float(i['Open']) - float(
-                    i['Low']) >= (float(i['Open']) / 100 * bound):
-                time = i[name]
-                output = minute_shares_yfinance(symbol=symbol, timeframe=timeframe, open_price=float(i['Open']),
-                                                date=time,
-                                                bound=(float(i['Open']) / 100 * bound))
-                ope = i['Open']
-                close = i['Close']
-                high = i['High']
-                low = i['Low']
-                volume = i['Volume']
-            elif float(i['High']) - float(i['Open']) >= (float(i['Open']) / 100 * bound):
-                time = i[name]
-                output = '1'
-                ope = i['Open']
-                close = i['Close']
-                high = i['High']
-                low = i['Low']
-                volume = i['Volume']
-            elif float(i['Open']) - float(i['Low']) >= (float(i['Open']) / 100 * bound):
-                time = i[name]
-                output = '0'
-                ope = i['Open']
-                close = i['Close']
-                high = i['High']
-                low = i['Low']
-                volume = i['Volume']
-            else:
-                time = i[name]
-                output = '2'
-                ope = i['Open']
-                close = i['Close']
-                high = i['High']
-                low = i['Low']
-                volume = i['Volume']
-            output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low,
-                                'volume': volume})
+    for i in data_dict:
+        parsed_date = datetime.strptime(i[name], "%Y-%m-%d %H:%M:%S")
+        aware_date = timezone.make_aware(parsed_date)
+        DateLog.objects.create(date=aware_date.date(), task_id=shares_yfinance_async_task.request.id)
+
+        high_minus_open = float(i['High']) - float(i['Open'])
+        open_minus_low = float(i['Open']) - float(i['Low'])
+
+        if bound_unit == '%' and float(i['Open']) != 0:
+            bound = (float(i['Open']) / 100) * bound
+
+        time = i[name]
+
+        if high_minus_open >= bound and open_minus_low >= bound:
+            output = minute_shares_yfinance(
+                symbol=symbol,
+                timeframe=timeframe,
+                open_price=float(i['Open']),
+                date=time,
+                bound=bound
+            )
+        elif high_minus_open >= bound:
+            output = '1'
+        elif open_minus_low >= bound:
+            output = '0'
+        else:
+            output = '2'
+
+        ope = i['Open']
+        close = i['Close']
+        high = i['High']
+        low = i['Low']
+        volume = i['Volume']
+
+        output_data.append({
+            'time': time,
+            'output': output,
+            'open': ope,
+            'close': close,
+            'high': high,
+            'low': low,
+            'volume': volume
+        })
+
+        import time
+        time.sleep(0.01)
+        try:
+            date_log = DateLog.objects.get(task_id=shares_yfinance_async_task.request.id)
+            date_log.delete()
+        except:
+            print('Nothing found for this ID')
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -1270,7 +1123,9 @@ def tradingview_async_task(datas):
 
     if data_for_desired_datetime_range:
         for i in data_for_desired_datetime_range:
-            print(i)
+            parsed_date = datetime.strptime(i['date_time'], "%Y-%m-%d %H:%M:%S")
+            aware_date = timezone.make_aware(parsed_date)
+            DateLog.objects.create(date=aware_date.date(), task_id=tradingview_async_task.request.id)
             high_minus_open = float(i['high']) - float(i['open'])
             open_minus_low = float(i['open']) - float(i['low'])
             time = i['date_time']
@@ -1298,6 +1153,13 @@ def tradingview_async_task(datas):
             low = i['low']
 
             output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low})
+            import time
+            time.sleep(0.01)
+            try:
+                date_log = DateLog.objects.get(task_id=tradingview_async_task.request.id)
+                date_log.delete()
+            except:
+                print('Ничего не найденно по такому ID')
     else:
         print(f"Data for the time range from {start_datetime} to {end_datetime} not found.")
 
