@@ -9,19 +9,19 @@
             fetch("{% url 'check_task_status' %}")
                 .then(response => response.text())
                 .then(data => {
-                    const parsedData = JSON.parse(data); // Преобразование текста в объект
+                    const parsedData = JSON.parse(data);
                     console.log(parsedData.status);
 
                     document.getElementById("status").innerHTML = parsedData.status;
                     if (parsedData.status === "completed") {
-                        window.location.href = "{% url 'result' %}"; // Перенаправление на страницу с результатами
+                        window.location.href = "{% url 'result' %}";
                         setTimeout(function() {
                           window.location.href = "{% url 'main' %}";
                         }, 3000);
                     } else if (parsedData.status === "Task failed.") {
                         document.getElementById("status").innerHTML = "Task failed.";
                     } else if (parsedData.status === "running") {
-                        setTimeout(checkTaskStatus, 1000);  // Повторное обновление через 1 секунду
+                        setTimeout(checkTaskStatus, 1000); 
                     } else {
                         console.log(parsedData);
                         document.getElementById("status").innerHTML = "Task not found.";
@@ -153,8 +153,8 @@
           position: absolute;
           top: 0;
           left: 0;
-          margin-top: 100px;
-          margin-left: 165px;
+          margin-top: 120px;
+          margin-left: 100px;
         }
 
 
@@ -166,6 +166,14 @@
           margin-left: 50px;
         }
 
+        #for-date {
+          position: absolute;
+          top: 0;
+          left: 0;
+          margin-top: 120px;
+          margin-left: 50px;
+        }
+
         .red-button {
           background-color: red;
           color: white;
@@ -174,7 +182,7 @@
           position: absolute;
           top: 0;
           left: 0;
-          margin-top: 135px;
+          margin-top: 145px;
           margin-left: 35px;
           border-radius: 6px;
         }
@@ -223,7 +231,8 @@
     </div>
     {% endif %}
 </div>
-<p id="for-status">Статус задачи: </p><div id="dates-container"></div>
+<p id="for-status">Статус задачи: </p><div id="status"></div>
+<p id="for-date">Дата:</p><div id="dates-container"></div>
 <form method="POST" action="{% url 'cancel_task' %}" id="cancel-task-form">
     {% csrf_token %}
     <button type="submit" class="red-button">Отменить задачу</button>

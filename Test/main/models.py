@@ -28,3 +28,4 @@ class DataEntry(models.Model):
 
 class DateLog(models.Model):
     date = models.DateField()
+    task_id = models.CharField(max_length=30)

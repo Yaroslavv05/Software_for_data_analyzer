@@ -125,8 +125,8 @@ class SharesView(FormView):
 
 
 def ajax(request):
-    latest_dates = DateLog.objects.order_by('-date')[:10]
-    dates_list = [date.date.strftime("%Y-%m-%d") for date in latest_dates]
+    date_log = DateLog.objects.get(task_id=request.session.get('task_id'))
+    dates_list = [date_log.date]
     return JsonResponse({'dates_list': dates_list})
 
 
@@ -180,7 +180,8 @@ class SharesPolygonView(FormView):
                 'start_data': start_data.strftime('%Y-%m-%d'),
                 'end_data': end_data.strftime('%Y-%m-%d'),
                 'api': api,
-                'pre': pre
+                'pre': pre,
+                'task_id': self.request.session.get('task_id')
             }
             task = shares_polygon_async_task.delay(data)
             self.request.session['task_id'] = task.id

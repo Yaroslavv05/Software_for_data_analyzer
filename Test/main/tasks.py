@@ -355,84 +355,42 @@ def shared_async_task(data):
     data = response.json()['values']
 
     output_data = []
-    if bound_unit == '$':
-        for i in data:
-            if float(i['high']) - float(i['open']) >= bound and float(i['open']) - float(i['low']) >= bound:
-                times = i['datetime']
-                output = controversial(symbol=symbol, timeframe=timeframe,
-                                       open_price=float(i['open']), date=i['datetime'], bound=bound)
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                volume = i['volume']
-                time.sleep(10)
-            elif float(i['high']) - float(i['open']) >= bound:
-                times = i['datetime']
-                output = '1'
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                volume = i['volume']
-            elif float(i['open']) - float(i['low']) >= bound:
-                times = i['datetime']
-                output = '0'
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                volume = i['volume']
-            else:
-                times = i['datetime']
-                output = '2'
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                volume = i['volume']
-            output_data.append({'time': times, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low,
-                                'volume': volume})
-    elif bound_unit == '%':
-        for i in data:
-            if float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound) and float(i['open']) - float(
-                    i['low']) >= (float(i['open']) / 100 * bound):
-                times = i['datetime']
-                output = controversial(symbol=symbol, timeframe=timeframe,
-                                       open_price=float(i['open']), date=i['datetime'],
-                                       bound=(float(i['open']) / 100 * bound))
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                volume = i['volume']
-                time.sleep(10)
-            elif float(i['high']) - float(i['open']) >= (float(i['open']) / 100 * bound):
-                times = i['datetime']
-                output = '1'
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                volume = i['volume']
-            elif float(i['open']) - float(i['low']) >= (float(i['open']) / 100 * bound):
-                times = i['datetime']
-                output = '0'
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                volume = i['volume']
-            else:
-                times = i['datetime']
-                output = '2'
-                ope = i['open']
-                close = i['close']
-                high = i['high']
-                low = i['low']
-                volume = i['volume']
-            output_data.append({'time': times, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low,
-                                'volume': volume})
+    for i in data:
+        parsed_date = datetime.strptime(i['datetime'], "%Y-%m-%d %H:%M:%S")
+        aware_date = timezone.make_aware(parsed_date)
+        DateLog.objects.create(date=aware_date.date(), task_id=shared_async_task.request.id)
+
+        times = i['datetime']
+        ope = i['open']
+        close = i['close']
+        high = i['high']
+        low = i['low']
+        volume = i['volume']
+
+        if bound_unit == '$':
+            bound_check = bound
+        elif bound_unit == '%':
+            bound_check = float(i['open']) / 100 * bound
+
+        if float(i['high']) - float(i['open']) >= bound_check and float(i['open']) - float(i['low']) >= bound_check:
+            output = controversial(symbol=symbol, timeframe=timeframe, open_price=float(i['open']), date=i['datetime'], bound=bound_check)
+            time.sleep(10)
+        elif float(i['high']) - float(i['open']) >= bound_check:
+            output = '1'
+        elif float(i['open']) - float(i['low']) >= bound_check:
+            output = '0'
+        else:
+            output = '2'
+
+        output_data.append({'time': times, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
+        import time
+        time.sleep(0.01)
+        try:
+            date_log = DateLog.objects.get(task_id=shared_async_task.request.id)
+            date_log.delete()
+        except:
+            print('Ничего не найденно по такому ID')
+
     print(output_data)
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -719,7 +677,7 @@ def shares_polygon_async_task(data):
     for i in mass:
         parsed_date = datetime.strptime(i['time'], "%Y-%m-%d %H:%M:%S")
         aware_date = timezone.make_aware(parsed_date)
-        DateLog.objects.create(date=aware_date.date())
+        DateLog.objects.create(date=aware_date.date(), task_id=shares_polygon_async_task.request.id)
         open_price = float(i['open'])
         high_price = float(i['high'])
         low_price = float(i['low'])
@@ -758,8 +716,11 @@ def shares_polygon_async_task(data):
         })
         import time
         time.sleep(0.01)
-        last_object = DateLog.objects.order_by('-id').first()
-        last_object.delete()
+        try:
+            date_log = DateLog.objects.get(task_id=shares_polygon_async_task.request.id)
+            date_log.delete()
+        except:
+            print('Ничего не найденно по такому ID')
 
     filtered_output_data = []
     if data['pre'] == 'in':
