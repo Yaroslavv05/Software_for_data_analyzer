@@ -232,10 +232,13 @@ def shared_async_task(data):
         f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval={timeframe}&symbol={symbol}&timezone=exchange&start_date={start_date_str}&end_date={end_date_str}")
 
     data = response.json()['values']
-
+    import time
     output_data = []
     for i in data:
-        parsed_date = datetime.strptime(i['datetime'], "%Y-%m-%d %H:%M:%S")
+        if timeframe == '1day' or timeframe == '1week' or timeframe == '1month':
+            parsed_date = datetime.strptime(i['datetime'], "%Y-%m-%d")
+        else:
+            parsed_date = datetime.strptime(i['datetime'], "%Y-%m-%d %H:%M:%S")
         aware_date = timezone.make_aware(parsed_date)
         DateLog.objects.create(date=aware_date.date(), task_id=shared_async_task.request.id)
 
@@ -262,7 +265,6 @@ def shared_async_task(data):
             output = '2'
 
         output_data.append({'time': times, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
-        import time
         time.sleep(0.01)
         try:
             date_log = DateLog.objects.get(task_id=shared_async_task.request.id)
@@ -965,7 +967,10 @@ def shares_yfinance_async_task(data):
 
     output_data = []
     for i in data_dict:
-        parsed_date = datetime.strptime(i[name], "%Y-%m-%d %H:%M:%S")
+        if timeframe == '1d' or timeframe == '5d' or timeframe == '1wk' or timeframe == '1mo' or timeframe == '3mo':
+            parsed_date = datetime.strptime(i[name], "%Y-%m-%d")
+        else:
+            parsed_date = datetime.strptime(i[name], "%Y-%m-%d %H:%M:%S")
         aware_date = timezone.make_aware(parsed_date)
         DateLog.objects.create(date=aware_date.date(), task_id=shares_yfinance_async_task.request.id)
 
