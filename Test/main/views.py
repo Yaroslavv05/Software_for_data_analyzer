@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .forms import *
 from .tasks import *
-from .models import UserProfiles, TradingData
+from .models import *
 from celery.result import AsyncResult
 from django.contrib.auth.decorators import login_required
 from binance.client import Client
@@ -172,21 +172,26 @@ class SharesPolygonView(FormView):
         elif end_data < start_data:
             messages.error(self.request, 'The end date must be after the start date!')
         else:
-            data = {
-                'symbol': symbol,
-                'interval': interval,
-                'bound': bound,
-                'bound_unit': bound_unit,
-                'start_data': start_data.strftime('%Y-%m-%d'),
-                'end_data': end_data.strftime('%Y-%m-%d'),
-                'api': api,
-                'pre': pre,
-                'task_id': self.request.session.get('task_id')
-            }
-            task = shares_polygon_async_task.delay(data)
-            self.request.session['task_id'] = task.id
-            print(self.request.session.get('task_id'))
-            return redirect('process_shares')
+            if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                return redirect('shares_polygon')
+            else:
+                task = Task.objects.create(user=self.request.user, is_running=True)
+                data = {
+                    'symbol': symbol,
+                    'interval': interval,
+                    'bound': bound,
+                    'bound_unit': bound_unit,
+                    'start_data': start_data.strftime('%Y-%m-%d'),
+                    'end_data': end_data.strftime('%Y-%m-%d'),
+                    'api': api,
+                    'pre': pre,
+                    'task_id': self.request.session.get('task_id')
+                }
+                task = shares_polygon_async_task.delay(data)
+                self.request.session['task_id'] = task.id
+                print(self.request.session.get('task_id'))
+                return redirect('process_shares')
 
     def get_success_url(self):
         return reverse('process_shares')

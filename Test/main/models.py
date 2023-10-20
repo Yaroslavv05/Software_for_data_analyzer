@@ -29,3 +29,8 @@ class DataEntry(models.Model):
 class DateLog(models.Model):
     date = models.DateField()
     task_id = models.CharField(max_length=30)
+
+
+class Task(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    is_running = models.BooleanField(default=False)
