@@ -14,7 +14,7 @@ from .models import DataEntry
 from plyer import notification
 import pytz
 import csv
-from .models import DateLog
+from .models import *
 from django.utils import timezone
 
 
@@ -643,8 +643,14 @@ def shares_polygon_async_task(data):
                                        bound_init=bound_unit)
         data_processor.load_data()
         data_processor.save_output_to_excel()
+        task = Task.objects.get(user=data['us'], is_running=True)
+        task.is_running = False
+        task.save()
         return output_file_path
     else:
+        task = Task.objects.get(user=data['us'], is_running=True)
+        task.is_running = False
+        task.save()
         return file_path
 
 

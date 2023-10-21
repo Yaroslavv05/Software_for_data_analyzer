@@ -141,6 +141,9 @@ def cancel_task(request):
             result = AsyncResult(task_id)
             if result.state == 'PENDING':
                 result.revoke(terminate=True)
+                task = Task.objects.get(user=request.user, is_running=True)
+                task.is_running = False
+                task.save()
                 return redirect('main')
             else:
                 return JsonResponse({'message': 'Задача уже выполнена или в процессе выполнения'})
@@ -177,6 +180,7 @@ class SharesPolygonView(FormView):
                 return redirect('shares_polygon')
             else:
                 task = Task.objects.create(user=self.request.user, is_running=True)
+                print(self.request.user.id)
                 data = {
                     'symbol': symbol,
                     'interval': interval,
@@ -186,7 +190,8 @@ class SharesPolygonView(FormView):
                     'end_data': end_data.strftime('%Y-%m-%d'),
                     'api': api,
                     'pre': pre,
-                    'task_id': self.request.session.get('task_id')
+                    'task_id': self.request.session.get('task_id'),
+                    'us': self.request.user.id
                 }
                 task = shares_polygon_async_task.delay(data)
                 self.request.session['task_id'] = task.id
