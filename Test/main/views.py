@@ -60,14 +60,17 @@ class MyFormView(FormView):
 
         if symbol not in get_binance_symbols():
             messages.error(self.request, 'Invalid symbol!')
+            return redirect('crypto')
         elif float(bound) < 0:
             messages.error(self.request, 'Bound cannot be negative!')
+            return redirect('crypto')
         elif end_data < start_data:
             messages.error(self.request, 'The end date must be after the start date!')
+            return redirect('crypto')
         else:
             if Task.objects.filter(user=self.request.user, is_running=True).exists():
                 messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
-                return redirect('shares_polygon')
+                return redirect('crypto')
             else:
                 task = Task.objects.create(user=self.request.user, is_running=True)
                 data = {
@@ -108,14 +111,17 @@ class SharesView(FormView):
 
         if symbol_validity == "invalid symbol":
             messages.error(self.request, 'Invalid symbol!')
+            return redirect('shares')
         elif float(bound) < 0:
             messages.error(self.request, 'Bound cannot be negative!')
+            return redirect('shares')
         elif end_data < start_data:
             messages.error(self.request, 'The end date must be after the start date!')
+            return redirect('shares')
         else:
             if Task.objects.filter(user=self.request.user, is_running=True).exists():
                 messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
-                return redirect('shares_polygon')
+                return redirect('shares')
             else:
                 task = Task.objects.create(user=self.request.user, is_running=True)
                 data = {
@@ -182,10 +188,13 @@ class SharesPolygonView(FormView):
 
         if symbol_validity == "invalid symbol":
             messages.error(self.request, 'Invalid symbol!')
+            return redirect('shares_polygon')
         elif float(bound) < 0:
             messages.error(self.request, 'Bound cannot be negative!')
+            return redirect('shares_polygon')
         elif end_data < start_data:
             messages.error(self.request, 'The end date must be after the start date!')
+            return redirect('shares_polygon')
         else:
             if Task.objects.filter(user=self.request.user, is_running=True).exists():
                 messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
@@ -229,14 +238,17 @@ class SharesYFinanceView(FormView):
 
         if symbol_validity == "invalid symbol":
             messages.error(self.request, 'Invalid symbol!')
+            return redirect('shares_yfinance')
         elif float(bound) < 0:
             messages.error(self.request, 'Bound cannot be negative!')
+            return redirect('shares_yfinance')
         elif end_data < start_data:
             messages.error(self.request, 'The end date must be after the start date!')
+            return redirect('shares_yfinance')
         else:
             if Task.objects.filter(user=self.request.user, is_running=True).exists():
                 messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
-                return redirect('shares_polygon')
+                return redirect('shares_yfinance')
             else:
                 task = Task.objects.create(user=self.request.user, is_running=True)
                 data = {
