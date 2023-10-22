@@ -65,19 +65,25 @@ class MyFormView(FormView):
         elif end_data < start_data:
             messages.error(self.request, 'The end date must be after the start date!')
         else:
-            data = {
-                'symbol': symbol,
-                'interval': interval,
-                'bound': bound,
-                'bound_unit': bound_unit,
-                'start_data': start_data.strftime('%Y-%m-%d'),
-                'end_data': end_data.strftime('%Y-%m-%d')
-            }
+            if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                return redirect('shares_polygon')
+            else:
+                task = Task.objects.create(user=self.request.user, is_running=True)
+                data = {
+                    'symbol': symbol,
+                    'interval': interval,
+                    'bound': bound,
+                    'bound_unit': bound_unit,
+                    'start_data': start_data.strftime('%Y-%m-%d'),
+                    'end_data': end_data.strftime('%Y-%m-%d'),
+                    'us': self.request.user.id
+                }
 
-            task = process_data_async.delay(data)
-            self.request.session['task_id'] = task.id
+                task = process_data_async.delay(data)
+                self.request.session['task_id'] = task.id
 
-            return redirect('process')
+                return redirect('process')
 
     def get_success_url(self):
         return reverse('process')
@@ -107,18 +113,24 @@ class SharesView(FormView):
         elif end_data < start_data:
             messages.error(self.request, 'The end date must be after the start date!')
         else:
-            data = {
-                'symbol': symbol,
-                'interval': interval,
-                'bound': bound,
-                'bound_unit': bound_unit,
-                'start_data': start_data.strftime('%Y-%m-%d'),
-                'end_data': end_data.strftime('%Y-%m-%d')
-            }
-            task = shared_async_task.delay(data)
-            self.request.session['task_id'] = task.id
-            print(self.request.session.get('task_id'))
-            return redirect('process_shares')
+            if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                return redirect('shares_polygon')
+            else:
+                task = Task.objects.create(user=self.request.user, is_running=True)
+                data = {
+                    'symbol': symbol,
+                    'interval': interval,
+                    'bound': bound,
+                    'bound_unit': bound_unit,
+                    'start_data': start_data.strftime('%Y-%m-%d'),
+                    'end_data': end_data.strftime('%Y-%m-%d'),
+                    'us': self.request.user.id
+                }
+                task = shared_async_task.delay(data)
+                self.request.session['task_id'] = task.id
+                print(self.request.session.get('task_id'))
+                return redirect('process_shares')
 
     def get_success_url(self):
         return reverse('process_shares')
@@ -222,19 +234,25 @@ class SharesYFinanceView(FormView):
         elif end_data < start_data:
             messages.error(self.request, 'The end date must be after the start date!')
         else:
-            data = {
-                'symbol': symbol,
-                'interval': interval,
-                'bound': bound,
-                'bound_unit': bound_unit,
-                'start_data': start_data.strftime('%Y-%m-%d'),
-                'end_data': end_data.strftime('%Y-%m-%d')
-            }
-            print(data)
-            task = shares_yfinance_async_task.delay(data)
-            self.request.session['task_id'] = task.id
-            print(self.request.session.get('task_id'))
-            return redirect('process_shares')
+            if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                return redirect('shares_polygon')
+            else:
+                task = Task.objects.create(user=self.request.user, is_running=True)
+                data = {
+                    'symbol': symbol,
+                    'interval': interval,
+                    'bound': bound,
+                    'bound_unit': bound_unit,
+                    'start_data': start_data.strftime('%Y-%m-%d'),
+                    'end_data': end_data.strftime('%Y-%m-%d'),
+                    'us': self.request.user.id
+                }
+                print(data)
+                task = shares_yfinance_async_task.delay(data)
+                self.request.session['task_id'] = task.id
+                print(self.request.session.get('task_id'))
+                return redirect('process_shares')
 
     def get_success_url(self):
         return reverse('process_shares')
@@ -447,20 +465,25 @@ class TradingView(View):
             with open(file_path_for_small_bar, 'wb') as f:
                 for chunk in file_for_small_bar.chunks():
                     f.write(chunk)
+            if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                return redirect('shares_polygon')
+            else:
+                task = Task.objects.create(user=self.request.user, is_running=True)
+                data = {
+                    'symbol': symbol,
+                    'interval': interval,
+                    'bound': bound,
+                    'bound_unit': bound_unit,
+                    'start_date': str(start_data),
+                    'end_date': str(end_data),
+                    'file_for_big_bar': file_path_for_big_bar,
+                    'file_for_small_bar': file_path_for_small_bar,
+                    'us': self.request.user.id
+                }
 
-            data = {
-                'symbol': symbol,
-                'interval': interval,
-                'bound': bound,
-                'bound_unit': bound_unit,
-                'start_date': str(start_data),
-                'end_date': str(end_data),
-                'file_for_big_bar': file_path_for_big_bar,
-                'file_for_small_bar': file_path_for_small_bar
-            }
-
-            task = tradingview_async_task.delay(data)
-            request.session['task_id'] = task.id
-            return redirect('process_shares')
+                task = tradingview_async_task.delay(data)
+                request.session['task_id'] = task.id
+                return redirect('process_shares')
 
         return render(request, self.template_name, {'form': form})
