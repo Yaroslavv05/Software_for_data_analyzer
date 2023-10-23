@@ -293,7 +293,7 @@ def shared_async_task(data):
     file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
-    task = Task.objects.get(user=data['us'], is_running=True)
+    task = Task.objects.get(user=data.get('us'), is_running=True)
     task.is_running = False
     task.save()
     return file_path
