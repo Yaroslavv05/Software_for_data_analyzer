@@ -218,6 +218,7 @@ def shared_async_task(data):
     bound_unit = data['bound_unit']
     start_date_input = data['start_data']
     end_date_input = data['end_data']
+    user_id = data['us']
 
     if len(start_date_input) == 10:
         start_date_input += ' 00:00:00'
@@ -293,7 +294,7 @@ def shared_async_task(data):
     file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
-    task = Task.objects.get(user=data.get('us'), is_running=True)
+    task = Task.objects.get(user=user_id, is_running=True)
     task.is_running = False
     task.save()
     return file_path
