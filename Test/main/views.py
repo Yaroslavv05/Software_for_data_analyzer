@@ -164,9 +164,12 @@ def cancel_task(request):
                 task.save()
                 return redirect('main')
             else:
-                return JsonResponse({'message': 'Задача уже выполнена или в процессе выполнения'})
+                task = Task.objects.get(user=request.user, is_running=True)
+                task.is_running = False
+                task.save()
+                return redirect('main')
         except Exception as e:
-            return JsonResponse({'message': f'Ошибка при отмене задачи: {str(e)}'})
+            return redirect('main')
 
     return JsonResponse({'message': 'Метод запроса должен быть POST'})
 
@@ -281,6 +284,9 @@ def check_task_status(request):
                 request.session['file_path'] = file_path
                 return JsonResponse({'status': 'completed', 'file_path': file_path})
             else:
+                task = Task.objects.get(user=request.user, is_running=True)
+                task.is_running = False
+                task.save()
                 print('failed')
                 return JsonResponse({'status': 'Task failed.'})
         else:

@@ -20,7 +20,9 @@
                         }, 3000);
                     } else if (parsedData.status === "Task failed.") {
                         document.getElementById("status").innerHTML = "Task failed.";
+                        document.getElementById("succses").innerHTML = "Упс, что то пошло не так, попробуйте еще раз!";
                     } else if (parsedData.status === "running") {
+                        document.getElementById("succses").innerHTML = "Пожалуйста, подождите, скоро будет загружен файл!";
                         setTimeout(checkTaskStatus, 1000); 
                     } else {
                         console.log(parsedData);
@@ -238,7 +240,7 @@
     <button type="submit" class="red-button">Отменить задачу</button>
 </form>
 <div class="container">
-    <h1>Пожалуйста, подождите, скоро будет загружен файл!</h1>
+    <h1 id='succses'></h1>
 </div>
 </body>
 </html>
