@@ -191,47 +191,7 @@
     </style>
 </head>
 <body>
-<div class="navbar">
-    {% if request.user.is_authenticated %}
-    <div class="nav-left">
-        <a href="{% url 'main' %}">Главная</a>
-        <div class="dropdown crypto">
-            <a href="#" class="dropbtn">Крипта</a>
-            <div class="dropdown-content">
-                <a href="{% url 'crypto' %}">Binance</a>
-            </div>
-        </div>
-        <div class="dropdown crypto">
-            <a href="#" class="dropbtn">Акции</a>
-            <div class="dropdown-content">
-                <a href="{% url 'shares' %}">Twelve Data</a>
-                <a href="{% url 'shares_polygon' %}">Polygon</a>
-                <a href="{% url 'shares_yfinance' %}">Yahoo Finance</a>
-            </div>
-        </div>
-        <a href="{% url 'trade' %}">Торговать</a>
-        <a href="{% url 'tradingview' %}">Tradingview</a>
-    </div>
-    <div class="nav-right">
-        <div class="dropdown stocks">
-            <a href="#" class="dropbtn">{{ request.user.first_name }}</a>
-            <div class="dropdown-content">
-                <a href="{% url 'profile' %}">Профиль</a>
-                <a href="{% url 'change_nickname' %}">Изменить имя</a>
-                <a href="{% url 'change_password' %}">Изменить пароль</a>
-                <a href="{% url 'logout' %}">Выйти</a>
-            </div>
-        </div>
-    </div>
-    {% else %}
-    <div class="nav-left">
-        <a href="{% url 'main' %}">Главная</a>
-    </div>
-    <div class="nav-right">
-        <a href="{% url 'login' %}">Войти</a>
-    </div>
-    {% endif %}
-</div>
+{% include 'navbar.html' %}
 <p id="for-status">Статус задачи: </p><div id="status"></div>
 <p id="for-date">Дата:</p><div id="dates-container"></div>
 <form method="POST" action="{% url 'cancel_task' %}" id="cancel-task-form">
