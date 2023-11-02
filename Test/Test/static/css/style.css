@@ -100,7 +100,7 @@ p {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
     padding: 40px;
     position: relative;
-    width: 300px; /* Задайте желаемую ширину контейнера */
+    width: 300px;
 }
 
 /* Стили для формы входа */

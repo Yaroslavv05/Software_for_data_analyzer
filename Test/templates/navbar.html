@@ -18,6 +18,15 @@
         </div>
         <a href="{% url 'trade' %}">Торговать</a>
         <a href="{% url 'tradingview' %}">Tradingview</a>
+        <div class="dropdown crypto">
+            <a href="#" class="dropbtn">Шаблоны</a>
+            <div class="dropdown-content">
+                <a href="{% url 'shares' %}">Binance</a>
+                <a href="{% url 'shares' %}">Twelve Data</a>
+                <a href="{% url 'template_polygon' %}">Polygon</a>
+                <a href="{% url 'shares_yfinance' %}">Yahoo Finance</a>
+            </div>
+        </div>
     </div>
     <div class="nav-right">
         <div class="dropdown stocks">

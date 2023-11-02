@@ -24,5 +24,8 @@ urlpatterns = [
     path('cancel_task', cancel_task, name='cancel_task'),
     path('shares-yfinance', SharesYFinanceView.as_view(), name='shares_yfinance'),
     path('tradingview', TradingView.as_view(), name='tradingview'),
-    path('ajax', ajax, name='ajax')
+    path('ajax', ajax, name='ajax'),
+    path('template-polygon', template_polygon, name='template_polygon'),
+    path('template-polygon/delete/<int:profile_id>/', delete_template_polygon, name='delete_template_polygon'),
+    path('edit-template-polygon/<int:profile_id>/', EditTemplatePolygonView.as_view(), name='edit_template_polygon'),
 ]

@@ -6,12 +6,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Главная страница</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        .container {
+            position: relative;
+        }
+        
+        .messages {
+            position: fixed;
+            top: 65px;
+            right: 20px;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+              
+    </style>
 </head>
 <body>
 {% include 'navbar.html' %}
 <div class="container">
-    <h1>Добро пожаловать в Центр анализа данных</h1>
-    <p>Мы здесь, чтобы исследовать и анализировать данные для выявления понимания и принятия обоснованных решений.</p>
+    <div class="welcome-content">
+        <h1>Добро пожаловать в Центр анализа данных</h1>
+        <p>Мы здесь, чтобы исследовать и анализировать данные для выявления понимания и принятия обоснованных решений.</p>
+    </div>
+    <div class="messages" id="messagesContainer">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
 </div>
+<script>
+    window.onload = function() {
+        showMessages();
+        hideMessages();
+    };
+    
+    function showMessages() {
+        document.getElementById('messagesContainer').style.opacity = '1';
+    }
+    
+    function hideMessages() {
+        setTimeout(function() {
+            document.getElementById('messagesContainer').style.opacity = '0';
+            setTimeout(function() {
+                document.getElementById('messagesContainer').style.display = 'none';
+            }, 1000); // После плавного затухания, скрыть блок
+        }, 5000); // Затухать через 5 секунд (можно изменить время)
+    }
+    
+</script>
 </body>
 </html>

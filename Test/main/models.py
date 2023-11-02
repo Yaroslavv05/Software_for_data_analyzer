@@ -34,3 +34,17 @@ class DateLog(models.Model):
 class Task(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_running = models.BooleanField(default=False)
+
+
+class Template(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name_exchange = models.CharField(max_length=100)
+    name = models.CharField(max_length=100)
+    choice = models.CharField(max_length=20)
+    api = models.CharField(max_length=100)
+    symbol = models.CharField(max_length=100)
+    interval = models.CharField(max_length=20)
+    bound = models.CharField(max_length=100)
+    bound_unit = models.CharField(max_length=10)
+    start_date = models.CharField(max_length=100)
+    end_date = models.CharField(max_length=100)

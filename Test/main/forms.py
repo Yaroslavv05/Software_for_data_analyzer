@@ -1,5 +1,5 @@
 from django import forms
-from .models import UserProfiles
+from .models import UserProfiles, Template
 from django.forms.widgets import MultiWidget, TextInput
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
@@ -82,14 +82,26 @@ class SharesForm(forms.Form):
 
 
 class SharesPolygonForm(forms.Form):
+    def __init__(self, user, *args, **kwargs):
+        super(SharesPolygonForm, self).__init__(*args, **kwargs)
+        
+        templates = Template.objects.filter(user=user)
+        ACCOUNT_CHOICES = [(template.id, template.name) for template in templates]
+        
+        self.fields['selected_template'] = forms.ChoiceField(
+            required=False,
+            choices=ACCOUNT_CHOICES,
+            widget=forms.Select(attrs={'class': 'form-select mb-2'})
+        )
+        
     choice = forms.ChoiceField(choices=(
         ('pre', 'PRE данные'),
         ('in', 'IN данные'),
     ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
-    api = forms.ChoiceField(choices=(
+    api = forms.ChoiceField(required=False, choices=(
         ('EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz', 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'), ('sBQPoe39YLoEVj7m4KpfFEHNmwFxXR9F', 'sBQPoe39YLoEVj7m4KpfFEHNmwFxXR9F'), ('MVClxfjQ3zxZYyH8symJZqIW0TtV2vQP', 'MVClxfjQ3zxZYyH8symJZqIW0TtV2vQP')
     ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
-    symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
+    symbol = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
     interval = forms.ChoiceField(choices=(
         ('1 minute', '1м'), ('5 minute', '5м'), ('15 minute', '15м'), ('30 minute', '30м'), ('45 minute', '45м'), ('1 hour', '1ч'), ('2 hour', '2ч'), ('3 hour', '3ч'), ('4 hour', '4ч'),
         ('5 hour', '5ч'), ('6 hour', '6ч'), ('7 hour', '7ч'), ('8 hour', '8ч'), ('9 hour', '9ч'), ('10 hour', '10ч'), ('11 hour', '11ч'), ('12 hour', '12ч'), ('1 day', '1д'), ('1 week', '1н'),
@@ -99,10 +111,14 @@ class SharesPolygonForm(forms.Form):
         ('$', 'Доллар ($)'),
         ('%', 'Процент (%)'),
     ]
-    bound = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Предел'}))
-    bound_unit = forms.ChoiceField(choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
-    start_data = SplitDateTimeField()
-    end_data = SplitDateTimeField()
+    bound = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Предел'}))
+    bound_unit = forms.ChoiceField(required=False, choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    start_data = SplitDateTimeField(required=False)
+    end_data = SplitDateTimeField(required=False )
+    save_tamplates = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    use_template = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'type': "checkbox", "id": "use-template", 'name': "use_template"}))
 
 
 class SharesYFinanceForm(forms.Form):
@@ -176,3 +192,25 @@ class TradingviewForm(forms.Form):
     end_data = SplitDateTimeField()
     file_for_big_bar = forms.CharField(widget=forms.FileInput(attrs={'class': 'form-control mb-2'}))
     file_for_small_bar = forms.CharField(widget=forms.FileInput(attrs={'class': 'form-control mb-2'}))
+
+
+class EditTemplatePolygonForm(forms.Form):
+    name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Название'}))
+    choice = forms.ChoiceField(choices=(
+        ('pre', 'PRE данные'),
+        ('in', 'IN данные'),
+    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
+    interval = forms.ChoiceField(choices=(
+        ('1 minute', '1м'), ('5 minute', '5м'), ('15 minute', '15м'), ('30 minute', '30м'), ('45 minute', '45м'), ('1 hour', '1ч'), ('2 hour', '2ч'), ('3 hour', '3ч'), ('4 hour', '4ч'),
+        ('5 hour', '5ч'), ('6 hour', '6ч'), ('7 hour', '7ч'), ('8 hour', '8ч'), ('9 hour', '9ч'), ('10 hour', '10ч'), ('11 hour', '11ч'), ('12 hour', '12ч'), ('1 day', '1д'), ('1 week', '1н'),
+        ('1 month', '1М'), ('1 year', '1г')
+    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    BOUND_UNIT_CHOICES = [
+        ('$', 'Доллар ($)'),
+        ('%', 'Процент (%)'),
+    ]
+    bound = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Предел'}))
+    bound_unit = forms.ChoiceField(choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    start_data = SplitDateTimeField()
+    end_data = SplitDateTimeField()
