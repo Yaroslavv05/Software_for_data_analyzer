@@ -99,6 +99,11 @@ def process(request):
 class SharesView(FormView):
     template_name = 'shares.html'
     form_class = SharesForm
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         symbol = form.cleaned_data['symbol']
@@ -108,36 +113,68 @@ class SharesView(FormView):
         start_data = form.cleaned_data['start_data']
         end_data = form.cleaned_data['end_data']
         symbol_validity = check_symbol_validity(symbol, start_data, end_data)
-
-        if symbol_validity == "invalid symbol":
-            messages.error(self.request, 'Invalid symbol!')
-            return redirect('shares')
-        elif float(bound) < 0:
-            messages.error(self.request, 'Bound cannot be negative!')
-            return redirect('shares')
-        elif end_data < start_data:
-            messages.error(self.request, 'The end date must be after the start date!')
-            return redirect('shares')
+        
+        if form.cleaned_data['use_template'] == True:
+                if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                        messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                        return redirect('shares')
+                else:
+                    task = Task.objects.create(user=self.request.user, is_running=True)
+                    start_date = Template.objects.get(id=form.cleaned_data['selected_template']).start_date
+                    end_date = Template.objects.get(id=form.cleaned_data['selected_template']).end_date
+                    data = {
+                        'symbol': Template.objects.get(id=form.cleaned_data['selected_template']).symbol,
+                        'interval': Template.objects.get(id=form.cleaned_data['selected_template']).interval,
+                        'bound': Template.objects.get(id=form.cleaned_data['selected_template']).bound,
+                        'bound_unit': Template.objects.get(id=form.cleaned_data['selected_template']).bound_unit,
+                        'start_data': datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
+                        'end_data': datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
+                        'task_id': self.request.session.get('task_id'),
+                        'us': self.request.user.id
+                        }
+                    task = shared_async_task.delay(data)
+                    self.request.session['task_id'] = task.id
+                    print(self.request.session.get('task_id'))
+                    return redirect('process_shares')
         else:
-            if Task.objects.filter(user=self.request.user, is_running=True).exists():
-                messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
-                return redirect('shares')
+            if form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data']:
+                if symbol_validity == "invalid symbol":
+                    messages.error(self.request, 'Invalid symbol!')
+                    return redirect('shares')
+                elif float(bound) < 0:
+                    messages.error(self.request, 'Bound cannot be negative!')
+                    return redirect('shares')
+                elif end_data < start_data:
+                    messages.error(self.request, 'The end date must be after the start date!')
+                    return redirect('shares')
+                else:
+                    if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                        messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                        return redirect('shares')
+                    else:
+                        if form.cleaned_data['save_tamplates'] == True:
+                                Template.objects.create(user=self.request.user, name_exchange='TwelveData', name=f'TwelveData/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data)
+                                messages.success(self.request, 'Шаблон был сохранен!')
+                                return redirect('main')
+                        else:
+                            task = Task.objects.create(user=self.request.user, is_running=True)
+                            data = {
+                                'symbol': symbol,
+                                'interval': interval,
+                                'bound': bound,
+                                'bound_unit': bound_unit,
+                                'start_data': start_data.strftime('%Y-%m-%d'),
+                                'end_data': end_data.strftime('%Y-%m-%d'),
+                                'us': self.request.user.id
+                            }
+                            task = shared_async_task.delay(data)
+                            self.request.session['task_id'] = task.id
+                            print(self.request.session.get('task_id'))
+                            return redirect('process_shares')
             else:
-                task = Task.objects.create(user=self.request.user, is_running=True)
-                data = {
-                    'symbol': symbol,
-                    'interval': interval,
-                    'bound': bound,
-                    'bound_unit': bound_unit,
-                    'start_data': start_data.strftime('%Y-%m-%d'),
-                    'end_data': end_data.strftime('%Y-%m-%d'),
-                    'us': self.request.user.id
-                }
-                task = shared_async_task.delay(data)
-                self.request.session['task_id'] = task.id
-                print(self.request.session.get('task_id'))
-                return redirect('process_shares')
-
+                messages.error(self.request, 'Пожалуйста, заполните все поля.')
+                return redirect('shares')
+        
     def get_success_url(self):
         return reverse('process_shares')
 
@@ -219,42 +256,46 @@ class SharesPolygonView(FormView):
                 print(self.request.session.get('task_id'))
                 return redirect('process_shares')
         else:
-            if symbol_validity == "invalid symbol":
-                messages.error(self.request, 'Неверный символ!')
-                return redirect('shares_polygon')
-            elif float(bound) < 0:
-                messages.error(self.request, 'Связка не может быть отрицательной!')
-                return redirect('shares_polygon')
-            elif end_data < start_data:
-                messages.error(self.request, 'Дата окончания должна быть позже даты начала!')
-                return redirect('shares_polygon')
-            else:
-                if Task.objects.filter(user=self.request.user, is_running=True).exists():
-                    messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+            if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['api'] and form.cleaned_data['choice']):
+                if symbol_validity == "invalid symbol":
+                    messages.error(self.request, 'Неверный символ!')
+                    return redirect('shares_polygon')
+                elif float(bound) < 0:
+                    messages.error(self.request, 'Связка не может быть отрицательной!')
+                    return redirect('shares_polygon')
+                elif end_data < start_data:
+                    messages.error(self.request, 'Дата окончания должна быть позже даты начала!')
                     return redirect('shares_polygon')
                 else:
-                    if form.cleaned_data['save_tamplates'] == True:
-                        Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', choice=pre, api=api, symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data)
-                        messages.success(self.request, 'Шаблон был сохранен!')
-                        return redirect('main')
+                    if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                        messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                        return redirect('shares_polygon')
                     else:
-                        task = Task.objects.create(user=self.request.user, is_running=True)
-                        data = {
-                            'symbol': symbol,
-                            'interval': interval,
-                            'bound': bound,
-                            'bound_unit': bound_unit,
-                            'start_data': start_data.strftime('%Y-%m-%d'),
-                            'end_data': end_data.strftime('%Y-%m-%d'),
-                            'api': api,
-                            'pre': pre,
-                            'task_id': self.request.session.get('task_id'),
-                            'us': self.request.user.id
-                        }
-                        task = shares_polygon_async_task.delay(data)
-                        self.request.session['task_id'] = task.id
-                        print(self.request.session.get('task_id'))
-                        return redirect('process_shares')
+                        if form.cleaned_data['save_tamplates'] == True:
+                            Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', choice=pre, api=api, symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data)
+                            messages.success(self.request, 'Шаблон был сохранен!')
+                            return redirect('main')
+                        else:
+                            task = Task.objects.create(user=self.request.user, is_running=True)
+                            data = {
+                                'symbol': symbol,
+                                'interval': interval,
+                                'bound': bound,
+                                'bound_unit': bound_unit,
+                                'start_data': start_data.strftime('%Y-%m-%d'),
+                                'end_data': end_data.strftime('%Y-%m-%d'),
+                                'api': api,
+                                'pre': pre,
+                                'task_id': self.request.session.get('task_id'),
+                                'us': self.request.user.id
+                            }
+                            task = shares_polygon_async_task.delay(data)
+                            self.request.session['task_id'] = task.id
+                            print(self.request.session.get('task_id'))
+                            return redirect('process_shares')
+            else:
+                messages.error(self.request, 'Пожалуйста, заполните все поля.')
+                return redirect('shares_polygon')            
 
     def get_success_url(self):
         return reverse('process_shares')
@@ -542,7 +583,7 @@ class TradingView(View):
 
 
 def template_polygon(request):
-    templates = Template.objects.all()
+    templates = Template.objects.filter(name_exchange='Polygon')
     return render(request, 'template_polygon.html', {'templates': templates})
 
 
@@ -596,5 +637,62 @@ class EditTemplatePolygonView(View):
                 template.end_data = form.cleaned_data['end_data']
                 template.save()
                 return redirect('template_polygon')
+
+        return render(request, self.template_name, {'form': form})
+    
+    
+def template_twelvedata(request):
+    templates = Template.objects.filter(name_exchange='TwelveData')
+    return render(request, 'template_twelvedata.html', {'templates': templates})
+
+
+def delete_template_twelvedata(request, profile_id):
+    teplate = Template.objects.get(pk=profile_id)
+    if teplate.user == request.user:
+        teplate.delete()
+    return redirect('template_twelvedata')
+
+
+class EditTemplateTwelveDataView(View):
+    template_name = 'edit_template_twelvedata.html'
+
+    def get(self, request, profile_id):
+        template = get_object_or_404(Template, id=profile_id)
+        form = EditTemplateTwelveDataForm(initial={
+            'name': template.name,
+            'symbol': template.symbol,
+            'interval': template.interval,
+            'bound': template.bound,
+            'bound_unit': template.bound_unit,
+            'start_date': template.start_date,
+            'end_date': template.end_date,
+        })
+        return render(request, self.template_name, {'form': form})
+
+    def post(self, request, profile_id):
+        template = get_object_or_404(Template, id=profile_id)
+        form = EditTemplateTwelveDataForm(request.POST)
+
+        if form.is_valid():
+            symbol_validity = check_symbol_validity(form.cleaned_data['symbol'], form.cleaned_data['start_data'], form.cleaned_data['end_data'])
+            if symbol_validity == "invalid symbol":
+                messages.error(self.request, 'Неверный символ!')
+                return redirect('shares')
+            elif float(form.cleaned_data['bound']) < 0:
+                messages.error(self.request, 'Связка не может быть отрицательной!')
+                return redirect('shares')
+            elif form.cleaned_data['end_data'] < form.cleaned_data['start_data']:
+                messages.error(self.request, 'Дата окончания должна быть позже даты начала!')
+                return redirect('shares')
+            else:
+                template.name = form.cleaned_data['name']
+                template.symbol = form.cleaned_data['symbol']
+                template.interval = form.cleaned_data['interval']
+                template.bound = form.cleaned_data['bound']
+                template.bound_unit = form.cleaned_data['bound_unit']
+                template.start_data = form.cleaned_data['start_data']
+                template.end_data = form.cleaned_data['end_data']
+                template.save()
+                return redirect('template_twelvedata')
 
         return render(request, self.template_name, {'form': form})

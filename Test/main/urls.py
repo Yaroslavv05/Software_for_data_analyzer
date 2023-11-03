@@ -26,6 +26,9 @@ urlpatterns = [
     path('tradingview', TradingView.as_view(), name='tradingview'),
     path('ajax', ajax, name='ajax'),
     path('template-polygon', template_polygon, name='template_polygon'),
+    path('template-twelvedata', template_twelvedata, name='template_twelvedata'),
     path('template-polygon/delete/<int:profile_id>/', delete_template_polygon, name='delete_template_polygon'),
     path('edit-template-polygon/<int:profile_id>/', EditTemplatePolygonView.as_view(), name='edit_template_polygon'),
+    path('template-twelvedata/delete/<int:profile_id>/', delete_template_twelvedata, name='delete_template_twelvedata'),
+    path('edit-template-twelvedata/<int:profile_id>/', EditTemplateTwelveDataView.as_view(), name='edit_template_twelvedata'),
 ]
