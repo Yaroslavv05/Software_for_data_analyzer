@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Шаблоны TwelveData</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+            background-color: #1e2733;
+        }
+        button {
+            background-color: #1abc9c;
+            color: #1e2733;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+{% include 'navbar.html' %}
+<table>
+    <tr>
+        <th>Название</th>
+        <th>Символ</th>
+        <th>Интервал</th>
+        <th>Граница</th>
+        <th>Единица</th>
+        <th>Начало даты</th>
+        <th>Конец даты</th>
+        <th>Actions</th>
+    </tr>
+    {% for template in templates %}
+    <tr>
+        <td>{{ template.name }}</td>
+        <td>{{ template.symbol }}</td>
+        <td>{{ template.interval }}</td>
+        <td>{{ template.bound }}</td>
+        <td>{{ template.bound_unit }}</td>
+        <td>{{ template.start_date }}</td>
+        <td>{{ template.end_date }}</td>
+        <td>
+            <form method="post" action="{% url 'edit_template_binance' template.id %}">
+                {% csrf_token %}
+                <button>Edit</button>
+            </form>
+            <form method="post" action="{% url 'delete_template_binance' template.id %}">
+                {% csrf_token %}
+                <button>Delete</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+</body>
+</html>

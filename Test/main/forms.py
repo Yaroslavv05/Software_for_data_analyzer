@@ -50,7 +50,18 @@ sorted_symbols = sorted(futures_symbols, key=lambda x: x[0])
 
 
 class MyForm(forms.Form):
-    symbol = forms.ChoiceField(choices=sorted_symbols, widget=forms.Select(attrs={'class': 'form-control mb-2'}))
+    def __init__(self, user, *args, **kwargs):
+        super(MyForm, self).__init__(*args, **kwargs)
+        
+        templates = Template.objects.filter(Q(user=user) & Q(name_exchange='Binance'))
+        ACCOUNT_CHOICES = [(template.id, template.name) for template in templates]
+        
+        self.fields['selected_template'] = forms.ChoiceField(
+            required=False,
+            choices=ACCOUNT_CHOICES,
+            widget=forms.Select(attrs={'class': 'form-select mb-2'})
+        )
+    symbol = forms.ChoiceField(required=False, choices=sorted_symbols, widget=forms.Select(attrs={'class': 'form-control mb-2'}))
     interval = forms.ChoiceField(choices=(
         (0.0166666667, '1м'), (0.05, '3м'), (0.0833333333, '5м'), (0.25, '15м'), (0.5, '30м'), (1, '1ч'), (2, '2ч'),
         (4, '4ч'),
@@ -60,10 +71,15 @@ class MyForm(forms.Form):
         ('$', 'Доллар ($)'),
         ('%', 'Процент (%)'),
     ]
-    bound = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Предел'}))
-    bound_unit = forms.ChoiceField(choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
-    start_data = SplitDateTimeField()
-    end_data = SplitDateTimeField()
+    bound = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Предел'}))
+    bound_unit = forms.ChoiceField(required=False, choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    start_data = SplitDateTimeField(required=False)
+    end_data = SplitDateTimeField(required=False)
+    save_tamplates = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    use_template = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'type': "checkbox", "id": "use-template", 'name': "use_template"}))
+
 
 
 class SharesForm(forms.Form):
@@ -235,6 +251,23 @@ class EditTemplatePolygonForm(forms.Form):
 
 
 class EditTemplateTwelveDataForm(forms.Form):
+    name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Название'}))
+    symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
+    interval = forms.ChoiceField(choices=(
+        ('1min', '1м'), ('5min', '5м'), ('15min', '15м'), ('30min', '30м'), ('45min', '45м'), ('1h', '1ч'), ('2h', '2ч'), ('4h', '4ч'),
+        ('1day', '1д'), ('1week', '1н'), ('1month', '1М')
+    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    BOUND_UNIT_CHOICES = [
+        ('$', 'Доллар ($)'),
+        ('%', 'Процент (%)'),
+    ]
+    bound = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Предел'}))
+    bound_unit = forms.ChoiceField(choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    start_data = SplitDateTimeField()
+    end_data = SplitDateTimeField()
+
+
+class EditTemplateBinancesForm(forms.Form):
     name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Название'}))
     symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
     interval = forms.ChoiceField(choices=(

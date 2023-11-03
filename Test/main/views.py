@@ -50,6 +50,11 @@ class MyFormView(FormView):
     template_name = 'index.html'
     form_class = MyForm
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
     def form_valid(self, form):
         symbol = form.cleaned_data['symbol']
         interval = form.cleaned_data['interval']
@@ -57,36 +62,63 @@ class MyFormView(FormView):
         bound_unit = form.cleaned_data['bound_unit']
         start_data = form.cleaned_data['start_data']
         end_data = form.cleaned_data['end_data']
-
-        if symbol not in get_binance_symbols():
-            messages.error(self.request, 'Invalid symbol!')
-            return redirect('crypto')
-        elif float(bound) < 0:
-            messages.error(self.request, 'Bound cannot be negative!')
-            return redirect('crypto')
-        elif end_data < start_data:
-            messages.error(self.request, 'The end date must be after the start date!')
-            return redirect('crypto')
+        
+        if form.cleaned_data['use_template'] == True:
+                if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                        messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                        return redirect('shares')
+                else:
+                    task = Task.objects.create(user=self.request.user, is_running=True)
+                    start_date = Template.objects.get(id=form.cleaned_data['selected_template']).start_date
+                    end_date = Template.objects.get(id=form.cleaned_data['selected_template']).end_date
+                    data = {
+                        'symbol': Template.objects.get(id=form.cleaned_data['selected_template']).symbol,
+                        'interval': Template.objects.get(id=form.cleaned_data['selected_template']).interval,
+                        'bound': Template.objects.get(id=form.cleaned_data['selected_template']).bound,
+                        'bound_unit': Template.objects.get(id=form.cleaned_data['selected_template']).bound_unit,
+                        'start_data': datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
+                        'end_data': datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
+                        'us': self.request.user.id
+                        }
+                    task = process_data_async.delay(data)
+                    self.request.session['task_id'] = task.id
+                    print(self.request.session.get('task_id'))
+                    return redirect('process')
         else:
-            if Task.objects.filter(user=self.request.user, is_running=True).exists():
-                messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+            if symbol not in get_binance_symbols():
+                messages.error(self.request, 'Invalid symbol!')
+                return redirect('crypto')
+            elif float(bound) < 0:
+                messages.error(self.request, 'Bound cannot be negative!')
+                return redirect('crypto')
+            elif end_data < start_data:
+                messages.error(self.request, 'The end date must be after the start date!')
                 return redirect('crypto')
             else:
-                task = Task.objects.create(user=self.request.user, is_running=True)
-                data = {
-                    'symbol': symbol,
-                    'interval': interval,
-                    'bound': bound,
-                    'bound_unit': bound_unit,
-                    'start_data': start_data.strftime('%Y-%m-%d'),
-                    'end_data': end_data.strftime('%Y-%m-%d'),
-                    'us': self.request.user.id
-                }
+                if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                    messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                    return redirect('crypto')
+                else:
+                    if form.cleaned_data['save_tamplates'] == True:
+                        Template.objects.create(user=self.request.user, name_exchange='Binance', name=f'Binance/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data)
+                        messages.success(self.request, 'Шаблон был сохранен!')
+                        return redirect('main')
+                    else:
+                        task = Task.objects.create(user=self.request.user, is_running=True)
+                        data = {
+                            'symbol': symbol,
+                            'interval': interval,
+                            'bound': bound,
+                            'bound_unit': bound_unit,
+                            'start_data': start_data.strftime('%Y-%m-%d'),
+                            'end_data': end_data.strftime('%Y-%m-%d'),
+                            'us': self.request.user.id
+                        }
 
-                task = process_data_async.delay(data)
-                self.request.session['task_id'] = task.id
+                        task = process_data_async.delay(data)
+                        self.request.session['task_id'] = task.id
 
-                return redirect('process')
+                        return redirect('process')
 
     def get_success_url(self):
         return reverse('process')
@@ -684,6 +716,63 @@ class EditTemplateTwelveDataView(View):
             elif form.cleaned_data['end_data'] < form.cleaned_data['start_data']:
                 messages.error(self.request, 'Дата окончания должна быть позже даты начала!')
                 return redirect('shares')
+            else:
+                template.name = form.cleaned_data['name']
+                template.symbol = form.cleaned_data['symbol']
+                template.interval = form.cleaned_data['interval']
+                template.bound = form.cleaned_data['bound']
+                template.bound_unit = form.cleaned_data['bound_unit']
+                template.start_data = form.cleaned_data['start_data']
+                template.end_data = form.cleaned_data['end_data']
+                template.save()
+                return redirect('template_twelvedata')
+
+        return render(request, self.template_name, {'form': form})
+    
+
+def template_binance(request):
+    templates = Template.objects.filter(name_exchange='Binance')
+    return render(request, 'template_binance.html', {'templates': templates})
+
+
+def delete_template_binance(request, profile_id):
+    teplate = Template.objects.get(pk=profile_id)
+    if teplate.user == request.user:
+        teplate.delete()
+    return redirect('template_binance')
+
+
+class EditTemplateBinanceView(View):
+    template_name = 'edit_template_binance.html'
+
+    def get(self, request, profile_id):
+        template = get_object_or_404(Template, id=profile_id)
+        form = EditTemplateBinancesForm(initial={
+            'name': template.name,
+            'symbol': template.symbol,
+            'interval': template.interval,
+            'bound': template.bound,
+            'bound_unit': template.bound_unit,
+            'start_date': template.start_date,
+            'end_date': template.end_date,
+        })
+        return render(request, self.template_name, {'form': form})
+
+    def post(self, request, profile_id):
+        template = get_object_or_404(Template, id=profile_id)
+        form = EditTemplateBinancesForm(request.POST)
+
+        if form.is_valid():
+            symbol_validity = check_symbol_validity(form.cleaned_data['symbol'], form.cleaned_data['start_data'], form.cleaned_data['end_data'])
+            if symbol_validity == "invalid symbol":
+                messages.error(self.request, 'Неверный символ!')
+                return redirect('crypto')
+            elif float(form.cleaned_data['bound']) < 0:
+                messages.error(self.request, 'Связка не может быть отрицательной!')
+                return redirect('crypto')
+            elif form.cleaned_data['end_data'] < form.cleaned_data['start_data']:
+                messages.error(self.request, 'Дата окончания должна быть позже даты начала!')
+                return redirect('crypto')
             else:
                 template.name = form.cleaned_data['name']
                 template.symbol = form.cleaned_data['symbol']
