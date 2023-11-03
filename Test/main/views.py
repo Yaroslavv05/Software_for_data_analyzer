@@ -85,41 +85,44 @@ class MyFormView(FormView):
                     print(self.request.session.get('task_id'))
                     return redirect('process')
         else:
-            if symbol not in get_binance_symbols():
-                messages.error(self.request, 'Invalid symbol!')
-                return redirect('crypto')
-            elif float(bound) < 0:
-                messages.error(self.request, 'Bound cannot be negative!')
-                return redirect('crypto')
-            elif end_data < start_data:
-                messages.error(self.request, 'The end date must be after the start date!')
-                return redirect('crypto')
-            else:
-                if Task.objects.filter(user=self.request.user, is_running=True).exists():
-                    messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+            if form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data']:
+                if symbol not in get_binance_symbols():
+                    messages.error(self.request, 'Invalid symbol!')
+                    return redirect('crypto')
+                elif float(bound) < 0:
+                    messages.error(self.request, 'Bound cannot be negative!')
+                    return redirect('crypto')
+                elif end_data < start_data:
+                    messages.error(self.request, 'The end date must be after the start date!')
                     return redirect('crypto')
                 else:
-                    if form.cleaned_data['save_tamplates'] == True:
-                        Template.objects.create(user=self.request.user, name_exchange='Binance', name=f'Binance/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data)
-                        messages.success(self.request, 'Шаблон был сохранен!')
-                        return redirect('main')
+                    if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                        messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                        return redirect('crypto')
                     else:
-                        task = Task.objects.create(user=self.request.user, is_running=True)
-                        data = {
-                            'symbol': symbol,
-                            'interval': interval,
-                            'bound': bound,
-                            'bound_unit': bound_unit,
-                            'start_data': start_data.strftime('%Y-%m-%d'),
-                            'end_data': end_data.strftime('%Y-%m-%d'),
-                            'us': self.request.user.id
-                        }
+                        if form.cleaned_data['save_tamplates'] == True:
+                            Template.objects.create(user=self.request.user, name_exchange='Binance', name=f'Binance/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data)
+                            messages.success(self.request, 'Шаблон был сохранен!')
+                            return redirect('main')
+                        else:
+                            task = Task.objects.create(user=self.request.user, is_running=True)
+                            data = {
+                                'symbol': symbol,
+                                'interval': interval,
+                                'bound': bound,
+                                'bound_unit': bound_unit,
+                                'start_data': start_data.strftime('%Y-%m-%d'),
+                                'end_data': end_data.strftime('%Y-%m-%d'),
+                                'us': self.request.user.id
+                            }
 
-                        task = process_data_async.delay(data)
-                        self.request.session['task_id'] = task.id
+                            task = process_data_async.delay(data)
+                            self.request.session['task_id'] = task.id
 
-                        return redirect('process')
-
+                            return redirect('process')
+            else:
+                messages.error(self.request, 'Пожалуйста, заполните все поля.')
+                return redirect('shares')
     def get_success_url(self):
         return reverse('process')
 
@@ -763,9 +766,8 @@ class EditTemplateBinanceView(View):
         form = EditTemplateBinancesForm(request.POST)
 
         if form.is_valid():
-            symbol_validity = check_symbol_validity(form.cleaned_data['symbol'], form.cleaned_data['start_data'], form.cleaned_data['end_data'])
-            if symbol_validity == "invalid symbol":
-                messages.error(self.request, 'Неверный символ!')
+            if form.cleaned_data['symbol'] not in get_binance_symbols():
+                messages.error(self.request, 'Invalid symbol!')
                 return redirect('crypto')
             elif float(form.cleaned_data['bound']) < 0:
                 messages.error(self.request, 'Связка не может быть отрицательной!')
@@ -782,6 +784,6 @@ class EditTemplateBinanceView(View):
                 template.start_data = form.cleaned_data['start_data']
                 template.end_data = form.cleaned_data['end_data']
                 template.save()
-                return redirect('template_twelvedata')
+                return redirect('template_binance')
 
         return render(request, self.template_name, {'form': form})
