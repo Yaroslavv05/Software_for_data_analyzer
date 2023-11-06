@@ -22,7 +22,7 @@ def minute(symbol, open_price, bound, date, time_frame):
     client = Client()
     interval = Client.KLINE_INTERVAL_1MINUTE
     start_date = date
-    start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S') - timedelta(hours=2)
+    start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
     end_date_datetime = start_date_datetime + timedelta(hours=time_frame)
 
     klines = client.futures_historical_klines(symbol, interval, start_date_datetime.strftime('%Y-%m-%d %H:%M:%S'),
@@ -80,14 +80,16 @@ def process_data_async(data):
     start_date = datetime.fromisoformat(start_date_str) if 'T' in start_date_str else datetime.strptime(start_date_str, '%Y-%m-%d')
 
     end_date_str = data['end_data']
-    end_date = datetime.fromisoformat(end_date_str) if 'T' in end_date_str else datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1)
+    end_date = datetime.fromisoformat(end_date_str) if 'T' in end_date_str else datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1) 
 
     difference = end_date - start_date
     minutes = difference.days * 24 * 60
     hours = int(minutes / timeframe)
-
+    
     start_timestamp = int(start_date.timestamp()) * 1000
     end_timestamp = int(end_date.timestamp()) * 1000
+    print(start_timestamp)
+    print(end_timestamp)
 
     klines = client.futures_historical_klines(symbol, interval_mapping.get(float(inter), None), start_timestamp, end_timestamp)
 
@@ -152,7 +154,7 @@ def process_data_async(data):
             date_log.delete()
         except:
             print('Nothing found for this ID')
-            
+                    
     wb = openpyxl.Workbook()
     ws = wb.active
     headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Volume']
