@@ -302,8 +302,62 @@ def shared_async_task(data):
     return file_path
 
 
-def second_shares_polygon(symbol, timeframe, opnen_price, date, bound):
-    pass
+def second_shares_polygon(symbol, timeframe, open_price, date, bound):
+    interval_mapping = {
+        '1 minute': 0.0166666667,
+        '5 minute': 0.0833333333,
+        '15 minute': 0.25,
+        '30 minute': 0.5,
+        '45 minute': 0.75,
+        '1 hour': 1.0,
+        '2 hour': 2.0,
+        '3 hour': 3.0,
+        '4 hour': 4.0,
+        '5 hour': 5.0,
+        '6 hour': 6.0,
+        '7 hour': 7.0,
+        '8 hour': 8.0,
+        '9 hour': 9.0,
+        '10 hour': 10.0,
+        '11 hour': 11.0,
+        '12 hour': 12.0,
+        '1 day': 24.0,
+        '1 week': 168.0,
+        '1 month': 720.0,
+        '1 year': 8760
+    }
+    start_date = date
+    start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+        start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+    else:
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+    ny_timezone = pytz.timezone('America/New_York')
+    start_date_datetime = ny_timezone.localize(start_date_datetime)
+    end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
+    start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+    end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+
+    response = requests.get(
+        f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/second/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+    print(response.json())
+    d = response.json()['results']
+    mass = []
+    for i in d:
+        dt = datetime.fromtimestamp(i['t'] / 1000)
+        mass.append({
+            'time': dt.strftime('%Y-%m-%d %H:%M:%S'),
+            'open': i['o'],
+            'close': i['c'],
+            'high': i['h'],
+            'low': i['l']
+        })
+
+    for i in mass:
+        if float(i['high']) - open_price >= bound:
+            return '1'
+        elif open_price - float(i['low']) >= bound:
+            return '0'
 
 
 def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
@@ -341,7 +395,7 @@ def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
     end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
     start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
     end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
-
+    
     response = requests.get(
         f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
     print(response.json())
@@ -578,8 +632,12 @@ def shares_polygon_async_task(data):
 
         if bound_unit == '$':
             if (high_price - open_price >= bound) and (open_price - low_price >= bound):
-                output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
-                                               date=i['time'], bound=bound)
+                if data['min_interval'] == 60:
+                    output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
+                                                date=i['time'], bound=bound)
+                elif data['min_interval'] == 1:
+                    output = second_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
+                                                date=i['time'], bound=bound)
             elif high_price - open_price >= bound:
                 output = '1'
             elif open_price - low_price >= bound:
@@ -587,10 +645,13 @@ def shares_polygon_async_task(data):
             else:
                 output = '2'
         elif bound_unit == '%':
-            if (high_price - open_price >= (open_price / 100 * bound)) and (
-                    open_price - low_price >= (open_price / 100 * bound)):
-                output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
-                                               date=i['time'], bound=(open_price / 100 * bound))
+            if (high_price - open_price >= (open_price / 100 * bound)) and (open_price - low_price >= (open_price / 100 * bound)):
+                if data['min_interval'] == 60:
+                    output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
+                                                date=i['time'], bound=(open_price / 100 * bound))
+                elif data['min_interval'] == 1:
+                    output = second_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
+                                                date=i['time'], bound=(open_price / 100 * bound))
             elif high_price - open_price >= (open_price / 100 * bound):
                 output = '1'
             elif open_price - low_price >= (open_price / 100 * bound):

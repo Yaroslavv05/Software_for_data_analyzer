@@ -79,6 +79,12 @@ class MyForm(forms.Form):
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
     use_template = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'type': "checkbox", "id": "use-template", 'name': "use_template"}))
+    custom_radio_field = forms.ChoiceField(
+        choices=(
+            ('60', '1 минута'),
+        ), 
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+    )
 
 
 
@@ -112,6 +118,12 @@ class SharesForm(forms.Form):
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
     use_template = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'type': "checkbox", "id": "use-template", 'name': "use_template"}))
+    custom_radio_field = forms.ChoiceField(
+        choices=(
+            ('60', '1 минута'),
+        ), 
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+    )
 
 
 
@@ -153,13 +165,13 @@ class SharesPolygonForm(forms.Form):
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
     use_template = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'type': "checkbox", "id": "use-template", 'name': "use_template"}))
-    # custom_radio_field = forms.ChoiceField(
-    #     choices=(
-    #         ('1', '1 секунда'),
-    #         ('60', '1 минута'),
-    #     ), 
-    #     widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
-    # )
+    custom_radio_field = forms.ChoiceField(
+        choices=(
+            ('1', '1 секунда'),
+            ('60', '1 минута'),
+        ), 
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+    )
 
 class SharesYFinanceForm(forms.Form):
     symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
@@ -167,7 +179,7 @@ class SharesYFinanceForm(forms.Form):
         ('1m', '1м'), ('2m', '2м'), ('5m', '5м'), ('15m', '15м'), ('30m', '30м'), ('1h', '1ч'), ('90m', '1.5ч'), ('1d', '1д'), ('5d', '5д'),
         ('1wk', '1н'), ('1mo', '1М'), ('3mo', '3М')
     ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
-    BOUND_UNIT_CHOICES = [
+    BOUND_UNIT_CHOICES = [ 
         ('$', 'Доллар ($)'),
         ('%', 'Процент (%)'),
     ]
@@ -175,6 +187,12 @@ class SharesYFinanceForm(forms.Form):
     bound_unit = forms.ChoiceField(choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
     start_data = SplitDateTimeField()
     end_data = SplitDateTimeField()
+    custom_radio_field = forms.ChoiceField(
+        choices=(
+            ('60', '1 минута'),
+        ), 
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+    )
 
 
 class UserLoginForm(AuthenticationForm):

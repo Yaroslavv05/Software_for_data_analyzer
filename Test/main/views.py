@@ -105,7 +105,7 @@ class MyFormView(FormView):
                         return redirect('crypto')
                     else:
                         if form.cleaned_data['save_tamplates'] == True:
-                            Template.objects.create(user=self.request.user, name_exchange='Binance', name=f'Binance/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data)
+                            Template.objects.create(user=self.request.user, name_exchange='Binance', name=f'Binance/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
                             messages.success(self.request, 'Шаблон был сохранен!')
                             return redirect('main')
                         else:
@@ -196,7 +196,7 @@ class SharesView(FormView):
                         return redirect('shares')
                     else:
                         if form.cleaned_data['save_tamplates'] == True:
-                                Template.objects.create(user=self.request.user, name_exchange='TwelveData', name=f'TwelveData/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data)
+                                Template.objects.create(user=self.request.user, name_exchange='TwelveData', name=f'TwelveData/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
                                 messages.success(self.request, 'Шаблон был сохранен!')
                                 return redirect('main')
                         else:
@@ -296,7 +296,8 @@ class SharesPolygonView(FormView):
                         'api': Template.objects.get(id=form.cleaned_data['selected_template']).api,
                         'pre': Template.objects.get(id=form.cleaned_data['selected_template']).choice,
                         'task_id': self.request.session.get('task_id'),
-                        'us': self.request.user.id
+                        'us': self.request.user.id,
+                        'min_interval': form.cleaned_data['custom_radio_field']
                         }
                     task = shares_polygon_async_task.delay(data)
                     self.request.session['task_id'] = task.id
@@ -319,7 +320,7 @@ class SharesPolygonView(FormView):
                         return redirect('shares_polygon')
                     else:
                         if form.cleaned_data['save_tamplates'] == True:
-                            Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', choice=pre, api=api, symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data)
+                            Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}/{form.cleaned_data["custom_radio_field"]}с', choice=pre, api=api, symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
                             messages.success(self.request, 'Шаблон был сохранен!')
                             return redirect('main')
                         else:
@@ -334,7 +335,8 @@ class SharesPolygonView(FormView):
                                 'api': api,
                                 'pre': pre,
                                 'task_id': self.request.session.get('task_id'),
-                                'us': self.request.user.id
+                                'us': self.request.user.id,
+                                'min_interval': form.cleaned_data['custom_radio_field']
                             }
                             task = shares_polygon_async_task.delay(data)
                             self.request.session['task_id'] = task.id

@@ -48,3 +48,4 @@ class Template(models.Model):
     bound_unit = models.CharField(max_length=10)
     start_date = models.CharField(max_length=100)
     end_date = models.CharField(max_length=100)
+    min_interval = models.CharField(max_length=100)

@@ -89,6 +89,15 @@
             margin-right: 10px;
             margin-top: 5px;
         }
+        .radio-group {
+            display: flex;
+            flex-direction: row;
+        }
+
+        .radio-group .radio-item{
+            margin-right: 30px;
+            color: #1abc9c;
+        }
 
     </style>
 </head>
@@ -105,6 +114,13 @@
         <form method="post">
             {% csrf_token %}
             <div id="manual-form">
+                <div id="tooltip" style='color: #1abc9c;'></div>
+                <div class="radio-group">
+                    <div class="radio-item">
+                        <label for="id_custom_radio_field_1">1 минута</label>
+                        <input type="radio" id="id_custom_radio_field_1" name="custom_radio_field" value="60" class="form-check-input" checked>
+                    </div>
+                </div>
                 <input type="text" id="symbol-search" class="form-control mb-2" placeholder="Поиск...">
                 {{ form.symbol }}
                 {{ form.interval }}
@@ -130,6 +146,23 @@
         </form>
     </div>
 </div>
+<script>
+    const labels = document.querySelectorAll('.radio-item label');
+
+    function displayTooltip(event) {
+        const textToShow = 'Выбрать наименьший временной интервал, который будет использоваться для анализа движения цены актива на спорных интервалах большей продолжительности';
+        tooltip.textContent = textToShow;
+    }
+
+    function hideTooltip() {
+        tooltip.textContent = '';
+    }
+
+    labels.forEach(label => {
+        label.addEventListener('mouseover', displayTooltip);
+        label.addEventListener('mouseout', hideTooltip);
+    });
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const useTemplateCheckbox = document.getElementById('use-template');

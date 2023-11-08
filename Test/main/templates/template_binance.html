@@ -40,6 +40,7 @@
         <th>Единица</th>
         <th>Начало даты</th>
         <th>Конец даты</th>
+        <th>Минимильй интервал</th>
         <th>Actions</th>
     </tr>
     {% for template in templates %}
@@ -51,6 +52,7 @@
         <td>{{ template.bound_unit }}</td>
         <td>{{ template.start_date }}</td>
         <td>{{ template.end_date }}</td>
+        <td>{{ template.min_interval }}с</td>
         <td>
             <form method="post" action="{% url 'edit_template_binance' template.id %}">
                 {% csrf_token %}
