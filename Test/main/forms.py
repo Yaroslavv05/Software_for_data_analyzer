@@ -153,7 +153,13 @@ class SharesPolygonForm(forms.Form):
         required=False,
         widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
     use_template = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'type': "checkbox", "id": "use-template", 'name': "use_template"}))
-
+    # custom_radio_field = forms.ChoiceField(
+    #     choices=(
+    #         ('1', '1 секунда'),
+    #         ('60', '1 минута'),
+    #     ), 
+    #     widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+    # )
 
 class SharesYFinanceForm(forms.Form):
     symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))

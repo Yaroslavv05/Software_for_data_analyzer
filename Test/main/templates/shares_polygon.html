@@ -89,6 +89,16 @@
             margin-right: 10px;
             margin-top: 5px;
         }
+        .radio-group {
+            display: flex;
+            flex-direction: row;
+        }
+
+        .radio-group .radio-item{
+            margin-right: 30px;
+            color: #1abc9c;
+        }
+
     </style>
 </head>
 <body>
@@ -104,6 +114,16 @@
         <form method="post">
             {% csrf_token %}
             <div id="manual-form">
+                {% comment %} <div class="radio-group">
+                    <div class="radio-item">
+                        <label for="id_custom_radio_field_0">1 секунда</label>
+                        <input type="radio" id="id_custom_radio_field_0" name="custom_radio_field" value="1" class="form-check-input">
+                    </div>
+                    <div class="radio-item">
+                        <label for="id_custom_radio_field_1">1 минута</label>
+                        <input type="radio" id="id_custom_radio_field_1" name="custom_radio_field" value="60" class="form-check-input">
+                    </div>
+                </div> {% endcomment %}
                 {{ form.choice }}
                 {{ form.api }}
                 {{ form.symbol }}

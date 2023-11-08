@@ -302,6 +302,10 @@ def shared_async_task(data):
     return file_path
 
 
+def second_shares_polygon(symbol, timeframe, opnen_price, date, bound):
+    pass
+
+
 def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
     interval_mapping = {
         '1 minute': 0.0166666667,
