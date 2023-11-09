@@ -338,6 +338,7 @@ def second_shares_polygon(symbol, timeframe, open_price, date, bound):
     start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
     end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
 
+    print('1 секунда')
     response = requests.get(
         f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/second/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
     print(response.json())
@@ -396,6 +397,7 @@ def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
     start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
     end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
     
+    print('1 минута')
     response = requests.get(
         f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
     print(response.json())
