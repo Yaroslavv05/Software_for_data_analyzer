@@ -38,25 +38,5 @@
         {% endif %}
     </div>
 </div>
-<script>
-    window.onload = function() {
-        showMessages();
-        hideMessages();
-    };
-    
-    function showMessages() {
-        document.getElementById('messagesContainer').style.opacity = '1';
-    }
-    
-    function hideMessages() {
-        setTimeout(function() {
-            document.getElementById('messagesContainer').style.opacity = '0';
-            setTimeout(function() {
-                document.getElementById('messagesContainer').style.display = 'none';
-            }, 1000); // После плавного затухания, скрыть блок
-        }, 5000); // Затухать через 5 секунд (можно изменить время)
-    }
-    
-</script>
 </body>
 </html>

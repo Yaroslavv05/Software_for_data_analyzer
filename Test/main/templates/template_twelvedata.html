@@ -40,7 +40,7 @@
         <th>Единица</th>
         <th>Начало даты</th>
         <th>Конец даты</th>
-        <th>Минимильй интервал</th>
+        <th>Минимальй интервал</th>
         <th>Actions</th>
     </tr>
     {% for template in templates %}
@@ -58,13 +58,21 @@
                 {% csrf_token %}
                 <button>Edit</button>
             </form>
-            <form method="post" action="{% url 'delete_template_twelvedata' template.id %}">
+            <form id="deleteForm" method="post" action="{% url 'delete_template_twelvedata' template.id %}">
                 {% csrf_token %}
-                <button>Delete</button>
+                <button type="button" onclick="confirmDelete()">Delete</button>
             </form>
         </td>
     </tr>
     {% endfor %}
 </table>
+<script>
+    function confirmDelete() {
+        var confirmDelete = confirm("Действительно хотите удалить?");
+        if (confirmDelete) {
+            document.getElementById('deleteForm').submit();
+        }
+    }
+</script>
 </body>
 </html>

@@ -188,6 +188,22 @@
             margin-left: 35px;
             border-radius: 6px;
           }
+
+          .messages {
+            position: fixed;
+            top: 65px;
+            right: 20px;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        .messages .success {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -200,6 +216,34 @@
 </form>
 <div class="container">
     <h1 id='succses'></h1>
+    <div class="messages" id="messagesContainer">
+        {% if messages %}
+        {% for message in messages %}
+        <div class="{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
 </div>
+<script>
+    window.onload = function() {
+        showMessages();
+        hideMessages();
+    };
+    
+    function showMessages() {
+        document.getElementById('messagesContainer').style.opacity = '1';
+    }
+    
+    function hideMessages() {
+        setTimeout(function() {
+            document.getElementById('messagesContainer').style.opacity = '0';
+            setTimeout(function() {
+                document.getElementById('messagesContainer').style.display = 'none';
+            }, 1000);
+        }, 5000);
+    }
+</script>
 </body>
 </html>

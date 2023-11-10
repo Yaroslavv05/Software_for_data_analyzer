@@ -66,7 +66,7 @@ class MyFormView(FormView):
         if form.cleaned_data['use_template'] == True:
                 if Task.objects.filter(user=self.request.user, is_running=True).exists():
                         messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
-                        return redirect('shares')
+                        return redirect('crypto')
                 else:
                     if not form.cleaned_data['selected_template']:
                         messages.error(self.request, 'Нужно сначала создать шаблон прежде чем его использовать!')
@@ -107,26 +107,24 @@ class MyFormView(FormView):
                         if form.cleaned_data['save_tamplates'] == True:
                             Template.objects.create(user=self.request.user, name_exchange='Binance', name=f'Binance/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
                             messages.success(self.request, 'Шаблон был сохранен!')
-                            return redirect('main')
-                        else:
-                            task = Task.objects.create(user=self.request.user, is_running=True)
-                            data = {
-                                'symbol': symbol,
-                                'interval': interval,
-                                'bound': bound,
-                                'bound_unit': bound_unit,
-                                'start_data': start_data.strftime('%Y-%m-%d'),
-                                'end_data': end_data.strftime('%Y-%m-%d'),
-                                'us': self.request.user.id
-                            }
+                        task = Task.objects.create(user=self.request.user, is_running=True)
+                        data = {
+                            'symbol': symbol,
+                            'interval': interval,
+                            'bound': bound,
+                            'bound_unit': bound_unit,
+                            'start_data': start_data.strftime('%Y-%m-%d'),
+                            'end_data': end_data.strftime('%Y-%m-%d'),
+                            'us': self.request.user.id
+                        }
 
-                            task = process_data_async.delay(data)
-                            self.request.session['task_id'] = task.id
+                        task = process_data_async.delay(data)
+                        self.request.session['task_id'] = task.id
 
-                            return redirect('process')
+                        return redirect('process')
             else:
                 messages.error(self.request, 'Пожалуйста, заполните все поля.')
-                return redirect('shares')
+                return redirect('crypto')
     def get_success_url(self):
         return reverse('process')
 
@@ -198,22 +196,20 @@ class SharesView(FormView):
                         if form.cleaned_data['save_tamplates'] == True:
                                 Template.objects.create(user=self.request.user, name_exchange='TwelveData', name=f'TwelveData/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
                                 messages.success(self.request, 'Шаблон был сохранен!')
-                                return redirect('main')
-                        else:
-                            task = Task.objects.create(user=self.request.user, is_running=True)
-                            data = {
-                                'symbol': symbol,
-                                'interval': interval,
-                                'bound': bound,
-                                'bound_unit': bound_unit,
-                                'start_data': start_data.strftime('%Y-%m-%d'),
-                                'end_data': end_data.strftime('%Y-%m-%d'),
-                                'us': self.request.user.id
-                            }
-                            task = shared_async_task.delay(data)
-                            self.request.session['task_id'] = task.id
-                            print(self.request.session.get('task_id'))
-                            return redirect('process_shares')
+                        task = Task.objects.create(user=self.request.user, is_running=True)
+                        data = {
+                            'symbol': symbol,
+                            'interval': interval,
+                            'bound': bound,
+                            'bound_unit': bound_unit,
+                            'start_data': start_data.strftime('%Y-%m-%d'),
+                            'end_data': end_data.strftime('%Y-%m-%d'),
+                            'us': self.request.user.id
+                        }
+                        task = shared_async_task.delay(data)
+                        self.request.session['task_id'] = task.id
+                        print(self.request.session.get('task_id'))
+                        return redirect('process_shares')
             else:
                 messages.error(self.request, 'Пожалуйста, заполните все поля.')
                 return redirect('shares')
@@ -322,26 +318,24 @@ class SharesPolygonView(FormView):
                         if form.cleaned_data['save_tamplates'] == True:
                             Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}/{form.cleaned_data["custom_radio_field"]}с', choice=pre, api=api, symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
                             messages.success(self.request, 'Шаблон был сохранен!')
-                            return redirect('main')
-                        else:
-                            task = Task.objects.create(user=self.request.user, is_running=True)
-                            data = {
-                                'symbol': symbol,
-                                'interval': interval,
-                                'bound': bound,
-                                'bound_unit': bound_unit,
-                                'start_data': start_data.strftime('%Y-%m-%d'),
-                                'end_data': end_data.strftime('%Y-%m-%d'),
-                                'api': api,
-                                'pre': pre,
-                                'task_id': self.request.session.get('task_id'),
-                                'us': self.request.user.id,
-                                'min_interval': form.cleaned_data['custom_radio_field']
-                            }
-                            task = shares_polygon_async_task.delay(data)
-                            self.request.session['task_id'] = task.id
-                            print(self.request.session.get('task_id'))
-                            return redirect('process_shares')
+                        task = Task.objects.create(user=self.request.user, is_running=True)
+                        data = {
+                            'symbol': symbol,
+                            'interval': interval,
+                            'bound': bound,
+                            'bound_unit': bound_unit,
+                            'start_data': start_data.strftime('%Y-%m-%d'),
+                            'end_data': end_data.strftime('%Y-%m-%d'),
+                            'api': api,
+                            'pre': pre,
+                            'task_id': self.request.session.get('task_id'),
+                            'us': self.request.user.id,
+                            'min_interval': form.cleaned_data['custom_radio_field']
+                        }
+                        task = shares_polygon_async_task.delay(data)
+                        self.request.session['task_id'] = task.id
+                        print(self.request.session.get('task_id'))
+                        return redirect('process_shares')
             else:
                 messages.error(self.request, 'Пожалуйста, заполните все поля.')
                 return redirect('shares_polygon')            
