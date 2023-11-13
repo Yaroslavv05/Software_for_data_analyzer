@@ -306,11 +306,17 @@ class EditTemplateTwelveDataForm(forms.Form):
     bound_unit = forms.ChoiceField(choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
     start_data = SplitDateTimeField()
     end_data = SplitDateTimeField()
+    custom_radio_field = forms.ChoiceField(
+        choices=(
+            ('60', '1 минута'),
+        ), 
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+    )
 
 
 class EditTemplateBinancesForm(forms.Form):
     name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Название'}))
-    symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
+    symbol = forms.ChoiceField(choices=sorted_symbols, widget=forms.Select(attrs={'class': 'form-control mb-2'}))
     interval = forms.ChoiceField(choices=(
         (0.0166666667, '1м'), (0.05, '3м'), (0.0833333333, '5м'), (0.25, '15м'), (0.5, '30м'), (1, '1ч'), (2, '2ч'),
         (4, '4ч'),
@@ -324,3 +330,9 @@ class EditTemplateBinancesForm(forms.Form):
     bound_unit = forms.ChoiceField(choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
     start_data = SplitDateTimeField()
     end_data = SplitDateTimeField()
+    custom_radio_field = forms.ChoiceField(
+        choices=(
+            ('60', '1 минута'),
+        ), 
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+    )

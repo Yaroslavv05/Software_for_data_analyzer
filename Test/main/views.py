@@ -703,8 +703,8 @@ class EditTemplateTwelveDataView(View):
             'interval': template.interval,
             'bound': template.bound,
             'bound_unit': template.bound_unit,
-            'start_date': template.start_date,
-            'end_date': template.end_date,
+            'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
+            'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
         })
         return render(request, self.template_name, {'form': form})
 
@@ -729,8 +729,9 @@ class EditTemplateTwelveDataView(View):
                 template.interval = form.cleaned_data['interval']
                 template.bound = form.cleaned_data['bound']
                 template.bound_unit = form.cleaned_data['bound_unit']
-                template.start_data = form.cleaned_data['start_data']
-                template.end_data = form.cleaned_data['end_data']
+                template.start_date = form.cleaned_data['start_data']
+                template.end_date = form.cleaned_data['end_data']
+                template.min_interval = form.cleaned_data['custom_radio_field']
                 template.save()
                 return redirect('template_twelvedata')
 
@@ -760,8 +761,8 @@ class EditTemplateBinanceView(View):
             'interval': template.interval,
             'bound': template.bound,
             'bound_unit': template.bound_unit,
-            'start_date': template.start_date,
-            'end_date': template.end_date,
+            'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
+            'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S'),
         })
         return render(request, self.template_name, {'form': form})
 
@@ -785,8 +786,9 @@ class EditTemplateBinanceView(View):
                 template.interval = form.cleaned_data['interval']
                 template.bound = form.cleaned_data['bound']
                 template.bound_unit = form.cleaned_data['bound_unit']
-                template.start_data = form.cleaned_data['start_data']
-                template.end_data = form.cleaned_data['end_data']
+                template.start_date = form.cleaned_data['start_data']
+                template.end_date = form.cleaned_data['end_data']
+                template.min_interval = form.cleaned_data['custom_radio_field']
                 template.save()
                 return redirect('template_binance')
 
