@@ -54,7 +54,7 @@ class MyFormView(FormView):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
         return kwargs
-    
+            
     def form_valid(self, form):
         symbol = form.cleaned_data['symbol']
         interval = form.cleaned_data['interval']
@@ -64,30 +64,16 @@ class MyFormView(FormView):
         end_data = form.cleaned_data['end_data']
         
         if form.cleaned_data['use_template'] == True:
-                if Task.objects.filter(user=self.request.user, is_running=True).exists():
-                        messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
-                        return redirect('crypto')
-                else:
-                    if not form.cleaned_data['selected_template']:
-                        messages.error(self.request, 'Нужно сначала создать шаблон прежде чем его использовать!')
-                        return redirect('crypto')
-                    else:
-                        task = Task.objects.create(user=self.request.user, is_running=True)
-                        start_date = Template.objects.get(id=form.cleaned_data['selected_template']).start_date
-                        end_date = Template.objects.get(id=form.cleaned_data['selected_template']).end_date
-                        data = {
-                            'symbol': Template.objects.get(id=form.cleaned_data['selected_template']).symbol,
-                            'interval': Template.objects.get(id=form.cleaned_data['selected_template']).interval,
-                            'bound': Template.objects.get(id=form.cleaned_data['selected_template']).bound,
-                            'bound_unit': Template.objects.get(id=form.cleaned_data['selected_template']).bound_unit,
-                            'start_data': datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
-                            'end_data': datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
-                            'us': self.request.user.id
-                            }
-                        task = process_data_async.delay(data)
-                        self.request.session['task_id'] = task.id
-                        print(self.request.session.get('task_id'))
-                        return redirect('process')
+            template = get_object_or_404(Template, id=form.cleaned_data['selected_template'])
+            form = MyForm(user=self.request.user.id, initial={
+                'symbol': template.symbol,
+                'interval': template.interval,
+                'bound': template.bound,
+                'bound_unit': template.bound_unit,
+                'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
+                'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
+            })
+            return render(self.request, self.template_name, {'form': form})
         else:
             if form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data']:
                 if symbol not in get_binance_symbols():
