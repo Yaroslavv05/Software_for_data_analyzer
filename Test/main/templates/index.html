@@ -164,21 +164,27 @@
     });
 </script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const useTemplateCheckbox = document.getElementById('use-template');
-    const manualForm = document.getElementById('manual-form');
-    const templateForm = document.getElementById('template-form');
+    document.addEventListener('DOMContentLoaded', function() {
+        const useTemplateCheckbox = document.getElementById('use-template');
+        const manualForm = document.getElementById('manual-form');
+        const templateForm = document.getElementById('template-form');
+        const hasTemplates = {{ form.has_templates|yesno:"true,false" }};
 
-    useTemplateCheckbox.addEventListener('change', function() {
-        if (useTemplateCheckbox.checked) {
-            manualForm.style.display = 'none';
-            templateForm.style.display = 'block';
-        } else {
-            manualForm.style.display = 'block';
-            templateForm.style.display = 'none';
-        }
+        useTemplateCheckbox.addEventListener('change', function() {
+            if (useTemplateCheckbox.checked) {
+                if (hasTemplates) {
+                    manualForm.style.display = 'none';
+                    templateForm.style.display = 'block';
+                } else {
+                    alert('Нет доступных шаблонов. Пожалуйста, создайте шаблон.');
+                    useTemplateCheckbox.checked = false; // отменяем выбор, так как нет доступных шаблонов
+                }
+            } else {
+                manualForm.style.display = 'block';
+                templateForm.style.display = 'none';
+            }
+        });
     });
-});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"

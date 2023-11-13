@@ -61,6 +61,9 @@ class MyForm(forms.Form):
             choices=ACCOUNT_CHOICES,
             widget=forms.Select(attrs={'class': 'form-select mb-2'})
         )
+        
+        self.has_templates = bool(ACCOUNT_CHOICES)
+        
     symbol = forms.ChoiceField(required=False, choices=sorted_symbols, widget=forms.Select(attrs={'class': 'form-control mb-2'}))
     interval = forms.ChoiceField(choices=(
         (0.0166666667, '1м'), (0.05, '3м'), (0.0833333333, '5м'), (0.25, '15м'), (0.5, '30м'), (1, '1ч'), (2, '2ч'),
@@ -100,6 +103,8 @@ class SharesForm(forms.Form):
             choices=ACCOUNT_CHOICES,
             widget=forms.Select(attrs={'class': 'form-select mb-2'})
         )
+        
+        self.has_templates = bool(ACCOUNT_CHOICES)
 
     symbol = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
     interval = forms.ChoiceField(choices=(
@@ -139,6 +144,8 @@ class SharesPolygonForm(forms.Form):
             choices=ACCOUNT_CHOICES,
             widget=forms.Select(attrs={'class': 'form-select mb-2'})
         )
+
+        self.has_templates = bool(ACCOUNT_CHOICES)
           
     choice = forms.ChoiceField(choices=(
         ('pre', 'PRE данные'),
@@ -258,6 +265,9 @@ class EditTemplatePolygonForm(forms.Form):
         ('pre', 'PRE данные'),
         ('in', 'IN данные'),
     ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    api = forms.ChoiceField(required=False, choices=(
+        ('EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz', 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'), ('sBQPoe39YLoEVj7m4KpfFEHNmwFxXR9F', 'sBQPoe39YLoEVj7m4KpfFEHNmwFxXR9F'), ('MVClxfjQ3zxZYyH8symJZqIW0TtV2vQP', 'MVClxfjQ3zxZYyH8symJZqIW0TtV2vQP')
+    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
     symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
     interval = forms.ChoiceField(choices=(
         ('1 minute', '1м'), ('5 minute', '5м'), ('15 minute', '15м'), ('30 minute', '30м'), ('45 minute', '45м'), ('1 hour', '1ч'), ('2 hour', '2ч'), ('3 hour', '3ч'), ('4 hour', '4ч'),
@@ -272,6 +282,13 @@ class EditTemplatePolygonForm(forms.Form):
     bound_unit = forms.ChoiceField(choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
     start_data = SplitDateTimeField()
     end_data = SplitDateTimeField()
+    custom_radio_field = forms.ChoiceField(
+        choices=(
+            ('1', '1 секунда'),
+            ('60', '1 минута'),
+        ), 
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+    )
 
 
 class EditTemplateTwelveDataForm(forms.Form):

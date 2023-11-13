@@ -275,30 +275,26 @@ class SharesPolygonView(FormView):
                     messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
                     return redirect('shares_polygon')
             else:
-                if not form.cleaned_data['selected_template']:
-                    messages.error(self.request, 'Нужно сначала создать шаблон прежде чем его использовать!')
-                    return redirect('shares_polygon')
-                else:
-                    task = Task.objects.create(user=self.request.user, is_running=True)
-                    start_date = Template.objects.get(id=form.cleaned_data['selected_template']).start_date
-                    end_date = Template.objects.get(id=form.cleaned_data['selected_template']).end_date
-                    data = {
-                        'symbol': Template.objects.get(id=form.cleaned_data['selected_template']).symbol,
-                        'interval': Template.objects.get(id=form.cleaned_data['selected_template']).interval,
-                        'bound': Template.objects.get(id=form.cleaned_data['selected_template']).bound,
-                        'bound_unit': Template.objects.get(id=form.cleaned_data['selected_template']).bound_unit,
-                        'start_data': datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
-                        'end_data': datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
-                        'api': Template.objects.get(id=form.cleaned_data['selected_template']).api,
-                        'pre': Template.objects.get(id=form.cleaned_data['selected_template']).choice,
-                        'task_id': self.request.session.get('task_id'),
-                        'us': self.request.user.id,
-                        'min_interval': form.cleaned_data['custom_radio_field']
-                        }
-                    task = shares_polygon_async_task.delay(data)
-                    self.request.session['task_id'] = task.id
-                    print(self.request.session.get('task_id'))
-                    return redirect('process_shares')
+                task = Task.objects.create(user=self.request.user, is_running=True)
+                start_date = Template.objects.get(id=form.cleaned_data['selected_template']).start_date
+                end_date = Template.objects.get(id=form.cleaned_data['selected_template']).end_date
+                data = {
+                    'symbol': Template.objects.get(id=form.cleaned_data['selected_template']).symbol,
+                    'interval': Template.objects.get(id=form.cleaned_data['selected_template']).interval,
+                    'bound': Template.objects.get(id=form.cleaned_data['selected_template']).bound,
+                    'bound_unit': Template.objects.get(id=form.cleaned_data['selected_template']).bound_unit,
+                    'start_data': datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
+                    'end_data': datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
+                    'api': Template.objects.get(id=form.cleaned_data['selected_template']).api,
+                    'pre': Template.objects.get(id=form.cleaned_data['selected_template']).choice,
+                    'task_id': self.request.session.get('task_id'),
+                    'us': self.request.user.id,
+                    'min_interval': form.cleaned_data['custom_radio_field']
+                    }
+                task = shares_polygon_async_task.delay(data)
+                self.request.session['task_id'] = task.id
+                print(self.request.session.get('task_id'))
+                return redirect('process_shares')
         else:
             if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['api'] and form.cleaned_data['choice']):
                 if symbol_validity == "invalid symbol":
@@ -637,11 +633,13 @@ def delete_template_polygon(request, profile_id):
     return redirect('template_polygon')
 
 
-class EditTemplatePolygonView(View):
+def edit_template_polygon_view(request, profile_id):
     template_name = 'edit_template_polygon.html'
+    template = get_object_or_404(Template, id=profile_id)
 
-    def get(self, request, profile_id):
-        template = get_object_or_404(Template, id=profile_id)
+    if request.method == 'GET':
+        print("GET method is executed")
+        print(template.start_date)
         form = EditTemplatePolygonForm(initial={
             'name': template.name,
             'choice': template.choice,
@@ -649,26 +647,23 @@ class EditTemplatePolygonView(View):
             'interval': template.interval,
             'bound': template.bound,
             'bound_unit': template.bound_unit,
-            'start_date': template.start_date,
-            'end_date': template.end_date,
+            'custom_radio_field': template.min_interval,
+            'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
+            'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
         })
-        return render(request, self.template_name, {'form': form})
+        return render(request, template_name, {'form': form})
 
-    def post(self, request, profile_id):
-        template = get_object_or_404(Template, id=profile_id)
+    elif request.method == 'POST':
         form = EditTemplatePolygonForm(request.POST)
 
         if form.is_valid():
             symbol_validity = check_symbol_validity(form.cleaned_data['symbol'], form.cleaned_data['start_data'], form.cleaned_data['end_data'])
             if symbol_validity == "invalid symbol":
-                messages.error(self.request, 'Неверный символ!')
-                return redirect('shares_polygon')
+                messages.error(request, 'Неверный символ!')
             elif float(form.cleaned_data['bound']) < 0:
-                messages.error(self.request, 'Связка не может быть отрицательной!')
-                return redirect('shares_polygon')
+                messages.error(request, 'Связка не может быть отрицательной!')
             elif form.cleaned_data['end_data'] < form.cleaned_data['start_data']:
-                messages.error(self.request, 'Дата окончания должна быть позже даты начала!')
-                return redirect('shares_polygon')
+                messages.error(request, 'Дата окончания должна быть позже даты начала!')
             else:
                 template.name = form.cleaned_data['name']
                 template.choice = form.cleaned_data['choice']
@@ -676,12 +671,13 @@ class EditTemplatePolygonView(View):
                 template.interval = form.cleaned_data['interval']
                 template.bound = form.cleaned_data['bound']
                 template.bound_unit = form.cleaned_data['bound_unit']
-                template.start_data = form.cleaned_data['start_data']
-                template.end_data = form.cleaned_data['end_data']
+                template.start_date = form.cleaned_data['start_data']
+                template.end_date = form.cleaned_data['end_data']
+                template.min_interval = form.cleaned_data['custom_radio_field']
                 template.save()
                 return redirect('template_polygon')
 
-        return render(request, self.template_name, {'form': form})
+        return render(request, template_name, {'form': form})
     
     
 def template_twelvedata(request):

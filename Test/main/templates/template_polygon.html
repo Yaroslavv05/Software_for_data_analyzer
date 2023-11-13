@@ -56,10 +56,10 @@
         <td>{{ template.end_date }}</td>
         <td>{{ template.min_interval }}с</td>
         <td>
-            <form method="post" action="{% url 'edit_template_polygon' template.id %}">
+            <form method="get" action="{% url 'edit_template_polygon' profile_id=template.id %}">
                 {% csrf_token %}
                 <button>Edit</button>
-            </form>
+            </form>            
             <form id="deleteForm" method="post" action="{% url 'delete_template_polygon' template.id %}">
                 {% csrf_token %}
                 <button type="button" onclick="confirmDelete()">Delete</button>
