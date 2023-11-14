@@ -138,31 +138,16 @@ class SharesView(FormView):
         symbol_validity = check_symbol_validity(symbol, start_data, end_data)
         
         if form.cleaned_data['use_template'] == True:
-                if Task.objects.filter(user=self.request.user, is_running=True).exists():
-                        messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
-                        return redirect('shares')
-                else:
-                    if not form.cleaned_data['selected_template']:
-                        messages.error(self.request, 'Нужно сначала создать шаблон прежде чем его использовать!')
-                        return redirect('shares')
-                    else:
-                        task = Task.objects.create(user=self.request.user, is_running=True)
-                        start_date = Template.objects.get(id=form.cleaned_data['selected_template']).start_date
-                        end_date = Template.objects.get(id=form.cleaned_data['selected_template']).end_date
-                        data = {
-                            'symbol': Template.objects.get(id=form.cleaned_data['selected_template']).symbol,
-                            'interval': Template.objects.get(id=form.cleaned_data['selected_template']).interval,
-                            'bound': Template.objects.get(id=form.cleaned_data['selected_template']).bound,
-                            'bound_unit': Template.objects.get(id=form.cleaned_data['selected_template']).bound_unit,
-                            'start_data': datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
-                            'end_data': datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
-                            'task_id': self.request.session.get('task_id'),
-                            'us': self.request.user.id
-                            }
-                        task = shared_async_task.delay(data)
-                        self.request.session['task_id'] = task.id
-                        print(self.request.session.get('task_id'))
-                        return redirect('process_shares')
+            template = get_object_or_404(Template, id=form.cleaned_data['selected_template'])
+            form = SharesForm(user=self.request.user.id, initial={
+                'symbol': template.symbol,
+                'interval': template.interval,
+                'bound': template.bound,
+                'bound_unit': template.bound_unit,
+                'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
+                'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
+            })
+            return render(self.request, self.template_name, {'form': form})
         else:
             if form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data']:
                 if symbol_validity == "invalid symbol":
@@ -257,30 +242,18 @@ class SharesPolygonView(FormView):
         symbol_validity = check_symbol_validity(symbol, start_data, end_data)
         
         if form.cleaned_data['use_template'] == True:
-            if Task.objects.filter(user=self.request.user, is_running=True).exists():
-                    messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
-                    return redirect('shares_polygon')
-            else:
-                task = Task.objects.create(user=self.request.user, is_running=True)
-                start_date = Template.objects.get(id=form.cleaned_data['selected_template']).start_date
-                end_date = Template.objects.get(id=form.cleaned_data['selected_template']).end_date
-                data = {
-                    'symbol': Template.objects.get(id=form.cleaned_data['selected_template']).symbol,
-                    'interval': Template.objects.get(id=form.cleaned_data['selected_template']).interval,
-                    'bound': Template.objects.get(id=form.cleaned_data['selected_template']).bound,
-                    'bound_unit': Template.objects.get(id=form.cleaned_data['selected_template']).bound_unit,
-                    'start_data': datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
-                    'end_data': datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S").strftime('%Y-%m-%d'),
-                    'api': Template.objects.get(id=form.cleaned_data['selected_template']).api,
-                    'pre': Template.objects.get(id=form.cleaned_data['selected_template']).choice,
-                    'task_id': self.request.session.get('task_id'),
-                    'us': self.request.user.id,
-                    'min_interval': form.cleaned_data['custom_radio_field']
-                    }
-                task = shares_polygon_async_task.delay(data)
-                self.request.session['task_id'] = task.id
-                print(self.request.session.get('task_id'))
-                return redirect('process_shares')
+            template = get_object_or_404(Template, id=form.cleaned_data['selected_template'])
+            form = SharesPolygonForm(user=self.request.user.id, initial={
+                'choice': template.choice,
+                'symbol': template.symbol,
+                'interval': template.interval,
+                'bound': template.bound,
+                'bound_unit': template.bound_unit,
+                'custom_radio_field': template.min_interval,
+                'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
+                'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
+            })
+            return render(self.request, self.template_name, {'form': form})
         else:
             if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['api'] and form.cleaned_data['choice']):
                 if symbol_validity == "invalid symbol":
