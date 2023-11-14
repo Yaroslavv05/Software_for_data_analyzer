@@ -141,7 +141,7 @@ def process_data_async(data):
                 output = '2'
 
         close = float(i['close'])
-        output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
+        output_data.append({'time': time, 'output': output, 'open': str(ope), 'close': str(close), 'high': str(high), 'low': str(low), 'volume': str(volume)})
 
         import time
         time.sleep(0.01)
@@ -157,8 +157,8 @@ def process_data_async(data):
     for col_index, header in enumerate(headers, 1):
         ws.cell(row=1, column=col_index, value=header)
     for item in output_data:
-        row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'],
-                    item['volume']]
+        row_data = [item['time'], item['output'], item['open'].replace(',', '.'), item['close'].replace(',', '.'), item['high'].replace(',', '.'), item['low'].replace(',', '.'),
+                    item['volume'].replace(',', '.')]
         ws.append(row_data)
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
@@ -660,10 +660,10 @@ def shares_polygon_async_task(data):
         output_data.append({
             'time': i['time'],
             'output': output,
-            'open': open_price,
-            'close': i['close'],
-            'high': high_price,
-            'low': low_price,
+            'open': str(open_price),
+            'close': str(i['close']),
+            'high': str(high_price),
+            'low': str(low_price),
             'trade': i['trade'],
             'volume': i['volume']
         })
@@ -693,7 +693,7 @@ def shares_polygon_async_task(data):
         ws.cell(row=1, column=col_index, value=header)
 
     for row_index, item in enumerate(filtered_output_data, 2):
-        row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'], item['trade'],
+        row_data = [item['time'], item['output'], item['open'].replace(',', '.'), item['close'].replace(',', '.'), item['high'].replace(',', '.'), item['low'].replace(',', '.'), item['trade'],
                     item['volume']]
         for col_index, value in enumerate(row_data, 1):
             ws.cell(row=row_index, column=col_index, value=value)
