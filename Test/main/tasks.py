@@ -105,48 +105,44 @@ def process_data_async(data):
             'volume': kline[5]
         })
         
+    print(mass)
     output_data = []
     total = 0
-    for i in range(hours):
-        time = mass[i]['time']
-        high = float(mass[i]['high'])
-        ope = float(mass[i]['open'])
-        low = float(mass[i]['low'])
-        volume = mass[i]['volume']
+    for i in mass:
+        time = i['time']
+        high = float(i['high'])
+        ope = float(i['open'])
+        low = float(i['low'])
+        volume = i['volume']
         parsed_date = datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
         aware_date = timezone.make_aware(parsed_date)
         DateLog.objects.create(date=aware_date.date(), task_id=process_data_async.request.id)
 
         if bound_unit == '$':
-            if (i == 0 and (high - ope) >= bound and (ope - low) >= bound) or \
-                    (i > 0 and (high - ope) >= bound and (ope - low) >= bound):
+            if ((high - ope) >= bound and (ope - low) >= bound) or \
+                    ((high - ope) >= bound and (ope - low) >= bound):
                 output = minute(symbol=symbol, open_price=ope, bound=bound, date=time, time_frame=float(data['interval']))
-            elif (i == 0 and (high - ope) >= bound) or (i > 0 and (high - ope) >= bound):
+            elif ((high - ope) >= bound) or ((high - ope) >= bound):
                 output = '1'
-            elif (i == 0 and (ope - low) >= bound) or (i > 0 and (ope - low) >= bound):
+            elif ((ope - low) >= bound) or ((ope - low) >= bound):
                 output = '0'
             else:
                 output = '2'
         elif bound_unit == '%':
             bound_percent = ope / 100 * bound
-            if (i == 0 and (high - ope) >= bound_percent and (ope - low) >= bound_percent) or \
-                    (i > 0 and (high - ope) >= bound_percent and (ope - low) >= bound_percent):
+            if ((high - ope) >= bound_percent and (ope - low) >= bound_percent) or \
+                    ((high - ope) >= bound_percent and (ope - low) >= bound_percent):
                 output = minute(symbol=symbol, open_price=ope, bound=bound_percent, date=time, time_frame=float(data['interval']))
-            elif (i == 0 and (high - ope) >= bound_percent) or (i > 0 and (high - ope) >= bound_percent):
+            elif ((high - ope) >= bound_percent) or ((high - ope) >= bound_percent):
                 output = '1'
-            elif (i == 0 and (ope - low) >= bound_percent) or (i > 0 and (ope - low) >= bound_percent):
+            elif ((ope - low) >= bound_percent) or ((ope - low) >= bound_percent):
                 output = '0'
             else:
                 output = '2'
 
-        close = float(mass[i]['close'])
+        close = float(i['close'])
         output_data.append({'time': time, 'output': output, 'open': ope, 'close': close, 'high': high, 'low': low, 'volume': volume})
 
-        if i > 0:
-            total += int(timeframe)
-
-        if i == 0 or (bound_unit == '$' and (high - ope) >= bound) or (bound_unit == '%' and (high - ope) >= bound_percent):
-            print(mass[i])
         import time
         time.sleep(0.01)
         try:
