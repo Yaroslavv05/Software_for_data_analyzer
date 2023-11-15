@@ -177,7 +177,8 @@ class SharesPolygonForm(forms.Form):
             ('1', '1 секунда'),
             ('60', '1 минута'),
         ), 
-        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        required=False
     )
 
 class SharesYFinanceForm(forms.Form):

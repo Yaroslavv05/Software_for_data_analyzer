@@ -316,7 +316,7 @@ class SharesPolygonView(FormView):
             })
             return render(self.request, self.template_name, {'form': form})
         else:
-            if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['api'] and form.cleaned_data['choice']):
+            if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['api'] and form.cleaned_data['choice'] and form.cleaned_data['custom_radio_field']):
                 if symbol_validity == "invalid symbol":
                     messages.error(self.request, 'Неверный символ!')
                     return redirect('shares_polygon')

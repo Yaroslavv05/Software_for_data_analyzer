@@ -120,16 +120,12 @@
             <div id="manual-form">
                 <div id="tooltip" style='color: #1abc9c;'></div>
                 <div class="radio-group">
+                    {% for radio in form.custom_radio_field %}
                     <div class="radio-item">
-                        <label for="id_custom_radio_field_0">1 секунда</label>
-                        <input type="radio" id="id_custom_radio_field_0" name="custom_radio_field" value="1" class="form-check-input">
+                        <label for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                        {{ radio.tag }}
                     </div>
-                    <div class="radio-item">
-                        <label for="id_custom_radio_field_1">1 минута</label>
-                        <input type="radio" id="id_custom_radio_field_1" name="custom_radio_field" value="60" class="form-check-input" checked>
-                    </div>
-                </div>
-                
+                    {% endfor %}
                 </div>
                 {{ form.name }}
                 {{ form.choice }}
