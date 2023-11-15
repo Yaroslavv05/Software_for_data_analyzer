@@ -40,7 +40,7 @@
         <th>Единица</th>
         <th>Начало даты</th>
         <th>Конец даты</th>
-        <th>Минимальй интервал</th>
+        <th>Минимальный интервал</th>
         <th>Actions</th>
     </tr>
     {% for template in templates %}
@@ -58,19 +58,26 @@
                 {% csrf_token %}
                 <button>Edit</button>
             </form>
-            <form id="deleteForm" method="post" action="{% url 'delete_template_twelvedata' template.id %}">
+            <form class="deleteForm" data-id="{{ template.id }}" method="post" action="{% url 'delete_template_twelvedata' profile_id=template.id %}">
                 {% csrf_token %}
-                <button type="button" onclick="confirmDelete()">Delete</button>
+                <button type="button" onclick="confirmDelete(this)">Delete</button>
             </form>
         </td>
     </tr>
     {% endfor %}
 </table>
 <script>
-    function confirmDelete() {
+    function confirmDelete(button) {
         var confirmDelete = confirm("Действительно хотите удалить?");
         if (confirmDelete) {
-            document.getElementById('deleteForm').submit();
+            var form = button.parentNode; // Получаем родительскую форму кнопки
+            while (form && form.tagName !== 'FORM') {
+                form = form.parentNode; // Ищем форму вверх по дереву DOM
+            }
+            if (form) {
+                var templateId = form.getAttribute('data-id'); // Получаем уникальный ID из атрибута data-id
+                document.querySelector('.deleteForm[data-id="' + templateId + '"]').submit();
+            }
         }
     }
 </script>
