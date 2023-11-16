@@ -96,17 +96,49 @@ class MyFormView(FormView):
             if form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data']:
                 if symbol not in get_binance_symbols():
                     messages.error(self.request, 'Invalid symbol!')
-                    return redirect('crypto')
+                    form = MyForm(user=self.request.user.id,initial={
+                        'symbol': '',
+                        'interval': form.cleaned_data['interval'],
+                        'bound': form.cleaned_data['bound'],
+                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data'],
+                    })
+                    return render(self.request, self.template_name, {'form': form})
                 elif float(bound) < 0:
                     messages.error(self.request, 'Bound cannot be negative!')
-                    return redirect('crypto')
+                    form = MyForm(user=self.request.user.id,initial={
+                        'symbol': form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'bound': '',
+                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data'],
+                    })
+                    return render(self.request, self.template_name, {'form': form})
                 elif end_data < start_data:
                     messages.error(self.request, 'The end date must be after the start date!')
-                    return redirect('crypto')
+                    form = MyForm(user=self.request.user.id,initial={
+                        'symbol':  form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'bound': form.cleaned_data['bound'],
+                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': '',
+                    })
+                    return render(self.request, self.template_name, {'form': form})
                 else:
                     if Task.objects.filter(user=self.request.user, is_running=True).exists():
                         messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
-                        return redirect('crypto')
+                        form = MyForm(user=self.request.user.id,initial={
+                            'symbol':  form.cleaned_data['symbol'],
+                            'interval': form.cleaned_data['interval'],
+                            'bound': form.cleaned_data['bound'],
+                            'bound_unit': form.cleaned_data['bound_unit'],
+                            'start_data': form.cleaned_data['start_data'],
+                            'end_data': form.cleaned_data['end_data'],
+                        })
+                        return render(self.request, self.template_name, {'form': form})
                     else:
                         if form.cleaned_data['save_tamplates'] == True:
                             interval_mapping = {
@@ -200,17 +232,49 @@ class SharesView(FormView):
             if form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data']:
                 if symbol_validity == "invalid symbol":
                     messages.error(self.request, 'Invalid symbol!')
-                    return redirect('shares')
+                    form = SharesForm(user=self.request.user.id, initial={
+                        'symbol': '',
+                        'interval': form.cleaned_data['interval'],
+                        'bound': form.cleaned_data['bound'],
+                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data'],
+                    })
+                    return render(self.request, self.template_name, {'form': form})
                 elif float(bound) < 0:
                     messages.error(self.request, 'Bound cannot be negative!')
-                    return redirect('shares')
+                    form = SharesForm(user=self.request.user.id, initial={
+                        'symbol':  form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'bound': '',
+                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data'],
+                    })
+                    return render(self.request, self.template_name, {'form': form})
                 elif end_data < start_data:
                     messages.error(self.request, 'The end date must be after the start date!')
-                    return redirect('shares')
+                    form = SharesForm(user=self.request.user.id,initial={
+                        'symbol':  form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'bound': form.cleaned_data['bound'],
+                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': '',
+                    })
+                    return render(self.request, self.template_name, {'form': form})
                 else:
                     if Task.objects.filter(user=self.request.user, is_running=True).exists():
                         messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
-                        return redirect('shares')
+                        form = SharesForm(user=self.request.user.id,initial={
+                            'symbol':  form.cleaned_data['symbol'],
+                            'interval': form.cleaned_data['interval'],
+                            'bound': form.cleaned_data['bound'],
+                            'bound_unit': form.cleaned_data['bound_unit'],
+                            'start_data': form.cleaned_data['start_data'],
+                            'end_data': form.cleaned_data['end_data'],
+                        })
+                        return render(self.request, self.template_name, {'form': form})
                     else:
                         if form.cleaned_data['save_tamplates'] == True:
                             interval_mapping = {
@@ -319,17 +383,57 @@ class SharesPolygonView(FormView):
             if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['api'] and form.cleaned_data['choice'] and form.cleaned_data['custom_radio_field']):
                 if symbol_validity == "invalid symbol":
                     messages.error(self.request, 'Неверный символ!')
-                    return redirect('shares_polygon')
+                    form = SharesPolygonForm(user=self.request.user.id,initial={
+                        'choice': form.cleaned_data['choice'],
+                        'symbol': '',
+                        'interval': form.cleaned_data['interval'],
+                        'bound': form.cleaned_data['bound'],
+                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data']
+                    })
+                    return render(self.request, self.template_name, {'form': form})
                 elif float(bound) < 0:
                     messages.error(self.request, 'Связка не может быть отрицательной!')
-                    return redirect('shares_polygon')
+                    form = SharesPolygonForm(user=self.request.user.id,initial={
+                        'choice': form.cleaned_data['choice'],
+                        'symbol': form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'bound': '',
+                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data']
+                    })
+                    return render(self.request, self.template_name, {'form': form})
                 elif end_data < start_data:
                     messages.error(self.request, 'Дата окончания должна быть позже даты начала!')
-                    return redirect('shares_polygon')
+                    form = SharesPolygonForm(user=self.request.user.id,initial={
+                        'choice': form.cleaned_data['choice'],
+                        'symbol': form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'bound': form.cleaned_data['bound'],
+                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': ''
+                    })
+                    return render(self.request, self.template_name, {'form': form})
                 else:
                     if Task.objects.filter(user=self.request.user, is_running=True).exists():
                         messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
-                        return redirect('shares_polygon')
+                        form = SharesPolygonForm(user=self.request.user.id,initial={
+                            'choice': form.cleaned_data['choice'],
+                            'symbol': form.cleaned_data['symbol'],
+                            'interval': form.cleaned_data['interval'],
+                            'bound': form.cleaned_data['bound'],
+                            'bound_unit': form.cleaned_data['bound_unit'],
+                            'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                            'start_data': form.cleaned_data['start_data'],
+                            'end_data': form.cleaned_data['end_data']
+                        })
+                        return render(self.request, self.template_name, {'form': form})
                     else:
                         if form.cleaned_data['save_tamplates'] == True:
                             Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}/{form.cleaned_data["custom_radio_field"]}с', choice=pre, api=api, symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
@@ -375,17 +479,49 @@ class SharesYFinanceView(FormView):
 
         if symbol_validity == "invalid symbol":
             messages.error(self.request, 'Invalid symbol!')
-            return redirect('shares_yfinance')
+            form = SharesYFinanceForm(initial={
+                'symbol':  '',
+                'interval': form.cleaned_data['interval'],
+                'bound': form.cleaned_data['bound'],
+                'bound_unit': form.cleaned_data['bound_unit'],
+                'start_data': form.cleaned_data['start_data'],
+                'end_data': form.cleaned_data['end_data'],
+            })
+            return render(self.request, self.template_name, {'form': form})
         elif float(bound) < 0:
             messages.error(self.request, 'Bound cannot be negative!')
-            return redirect('shares_yfinance')
+            form = SharesYFinanceForm(initial={
+                'symbol':  form.cleaned_data['symbol'],
+                'interval': form.cleaned_data['interval'],
+                'bound': '',
+                'bound_unit': form.cleaned_data['bound_unit'],
+                'start_data': form.cleaned_data['start_data'],
+                'end_data': form.cleaned_data['end_data'],
+            })
+            return render(self.request, self.template_name, {'form': form})
         elif end_data < start_data:
             messages.error(self.request, 'The end date must be after the start date!')
-            return redirect('shares_yfinance')
+            form = SharesYFinanceForm(initial={
+                'symbol':  form.cleaned_data['symbol'],
+                'interval': form.cleaned_data['interval'],
+                'bound': form.cleaned_data['bound'],
+                'bound_unit': form.cleaned_data['bound_unit'],
+                'start_data': form.cleaned_data['start_data'],
+                'end_data': '',
+            })
+            return render(self.request, self.template_name, {'form': form})
         else:
             if Task.objects.filter(user=self.request.user, is_running=True).exists():
                 messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
-                return redirect('shares_yfinance')
+                form = SharesYFinanceForm(initial={
+                    'symbol':  form.cleaned_data['symbol'],
+                    'interval': form.cleaned_data['interval'],
+                    'bound': form.cleaned_data['bound'],
+                    'bound_unit': form.cleaned_data['bound_unit'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': form.cleaned_data['end_data'],
+                })
+                return render(self.request, self.template_name, {'form': form})
             else:
                 task = Task.objects.create(user=self.request.user, is_running=True)
                 data = {
