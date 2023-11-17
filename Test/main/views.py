@@ -177,7 +177,15 @@ class MyFormView(FormView):
                         return redirect('process')
             else:
                 messages.error(self.request, 'Пожалуйста, заполните все поля.')
-                return redirect('crypto')
+                form = MyForm(user=self.request.user.id,initial={
+                    'symbol':  form.cleaned_data['symbol'],
+                    'interval': form.cleaned_data['interval'],
+                    'bound': form.cleaned_data['bound'],
+                    'bound_unit': form.cleaned_data['bound_unit'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': form.cleaned_data['end_data'],
+                })
+                return render(self.request, self.template_name, {'form': form})
     def get_success_url(self):
         return reverse('process')
 
@@ -308,7 +316,15 @@ class SharesView(FormView):
                         return redirect('process_shares')
             else:
                 messages.error(self.request, 'Пожалуйста, заполните все поля.')
-                return redirect('shares')
+                form = SharesForm(user=self.request.user.id,initial={
+                    'symbol':  form.cleaned_data['symbol'],
+                    'interval': form.cleaned_data['interval'],
+                    'bound': form.cleaned_data['bound'],
+                    'bound_unit': form.cleaned_data['bound_unit'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': form.cleaned_data['end_data'],
+                })
+                return render(self.request, self.template_name, {'form': form})
         
     def get_success_url(self):
         return reverse('process_shares')
@@ -458,7 +474,17 @@ class SharesPolygonView(FormView):
                         return redirect('process_shares')
             else:
                 messages.error(self.request, 'Пожалуйста, заполните все поля.')
-                return redirect('shares_polygon')            
+                form = SharesPolygonForm(user=self.request.user.id,initial={
+                    'choice': form.cleaned_data['choice'],
+                    'symbol': form.cleaned_data['symbol'],
+                    'interval': form.cleaned_data['interval'],
+                    'bound': form.cleaned_data['bound'],
+                    'bound_unit': form.cleaned_data['bound_unit'],
+                    'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': form.cleaned_data['end_data']
+                })
+                return render(self.request, self.template_name, {'form': form})           
 
     def get_success_url(self):
         return reverse('process_shares')
