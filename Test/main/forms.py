@@ -151,9 +151,6 @@ class SharesPolygonForm(forms.Form):
         ('pre', 'PRE данные'),
         ('in', 'IN данные'),
     ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
-    api = forms.ChoiceField(required=False, choices=(
-        ('EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz', 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'), ('sBQPoe39YLoEVj7m4KpfFEHNmwFxXR9F', 'sBQPoe39YLoEVj7m4KpfFEHNmwFxXR9F'), ('MVClxfjQ3zxZYyH8symJZqIW0TtV2vQP', 'MVClxfjQ3zxZYyH8symJZqIW0TtV2vQP')
-    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
     symbol = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
     interval = forms.ChoiceField(choices=(
         ('1 minute', '1м'), ('5 minute', '5м'), ('15 minute', '15м'), ('30 minute', '30м'), ('45 minute', '45м'), ('1 hour', '1ч'), ('2 hour', '2ч'), ('3 hour', '3ч'), ('4 hour', '4ч'),
@@ -265,9 +262,6 @@ class EditTemplatePolygonForm(forms.Form):
     choice = forms.ChoiceField(choices=(
         ('pre', 'PRE данные'),
         ('in', 'IN данные'),
-    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
-    api = forms.ChoiceField(required=False, choices=(
-        ('EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz', 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'), ('sBQPoe39YLoEVj7m4KpfFEHNmwFxXR9F', 'sBQPoe39YLoEVj7m4KpfFEHNmwFxXR9F'), ('MVClxfjQ3zxZYyH8symJZqIW0TtV2vQP', 'MVClxfjQ3zxZYyH8symJZqIW0TtV2vQP')
     ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
     symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
     interval = forms.ChoiceField(choices=(

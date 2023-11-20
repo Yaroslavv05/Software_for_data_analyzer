@@ -378,7 +378,6 @@ class SharesPolygonView(FormView):
         bound_unit = form.cleaned_data['bound_unit']
         start_data = form.cleaned_data['start_data']
         end_data = form.cleaned_data['end_data']
-        api = form.cleaned_data['api']
         pre = form.cleaned_data['choice']
         symbol_validity = check_symbol_validity(symbol, start_data, end_data)
         
@@ -396,7 +395,7 @@ class SharesPolygonView(FormView):
             })
             return render(self.request, self.template_name, {'form': form})
         else:
-            if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['api'] and form.cleaned_data['choice'] and form.cleaned_data['custom_radio_field']):
+            if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['choice'] and form.cleaned_data['custom_radio_field']):
                 if symbol_validity == "invalid symbol":
                     messages.error(self.request, 'Неверный символ!')
                     form = SharesPolygonForm(user=self.request.user.id,initial={
@@ -452,7 +451,7 @@ class SharesPolygonView(FormView):
                         return render(self.request, self.template_name, {'form': form})
                     else:
                         if form.cleaned_data['save_tamplates'] == True:
-                            Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}/{form.cleaned_data["custom_radio_field"]}с', choice=pre, api=api, symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
+                            Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}/{form.cleaned_data["custom_radio_field"]}с', choice=pre, symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
                             messages.success(self.request, 'Шаблон был сохранен!')
                         task = Task.objects.create(user=self.request.user, is_running=True)
                         data = {
@@ -462,7 +461,7 @@ class SharesPolygonView(FormView):
                             'bound_unit': bound_unit,
                             'start_data': start_data.strftime('%Y-%m-%d'),
                             'end_data': end_data.strftime('%Y-%m-%d'),
-                            'api': api,
+                            'api': 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz',
                             'pre': pre,
                             'task_id': self.request.session.get('task_id'),
                             'us': self.request.user.id,
