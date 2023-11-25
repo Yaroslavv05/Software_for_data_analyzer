@@ -173,7 +173,7 @@ def process_data_async(data):
     return file_path
 
 
-def controversial(symbol, timeframe, open_price, date, bound):
+def controversial(symbol, timeframe, open_price, date, bound_up, bound_low):
     interval_mapping = {
         '1min': 0.0166666667,
         '5min': 0.05,
@@ -193,7 +193,7 @@ def controversial(symbol, timeframe, open_price, date, bound):
     else:
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
     end_date_datetime = start_date_datetime + timedelta(hours=float(interval_mapping[timeframe]))
-    print(symbol, timeframe, bound, start_date, end_date_datetime)
+    print(symbol, timeframe, bound_low, bound_up, start_date, end_date_datetime)
     response = requests.get(
         f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval=1min&symbol={symbol}&timezone=exchange&start_date={start_date}&end_date={end_date_datetime}")
     try:
@@ -202,9 +202,9 @@ def controversial(symbol, timeframe, open_price, date, bound):
         return '3'
 
     for j in d[::-1]:
-        if float(j['high']) - open_price >= bound:
+        if float(j['high']) - open_price >= bound_up:
             return '1'
-        elif open_price - float(j['low']) >= bound:
+        elif open_price - float(j['low']) >= bound_low:
             return '0'
 
 
@@ -212,8 +212,10 @@ def controversial(symbol, timeframe, open_price, date, bound):
 def shared_async_task(data):
     symbol = data['symbol'].upper()
     timeframe = data['interval']
-    bound = float(data['bound'])
-    bound_unit = data['bound_unit']
+    bound_up = float(data['bound_up'])
+    bound_unit_up = data['bound_unit_up']
+    bound_low = float(data['bound_low'])
+    bound_unit_low = data['bound_unit_low']
     start_date_input = data['start_data']
     end_date_input = data['end_data']
     user_id = data['us']
@@ -229,7 +231,7 @@ def shared_async_task(data):
 
     start_date_str = start_date.strftime('%Y-%m-%d %H:%M:%S')
     end_date_str = end_date.strftime('%Y-%m-%d %H:%M:%S')
-    print(symbol, timeframe, bound, bound_unit, start_date, end_date)
+    print(symbol, timeframe, bound_up, bound_unit_up, bound_low, bound_unit_low, start_date, end_date)
     response = requests.get(
         f"https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval={timeframe}&symbol={symbol}&timezone=exchange&start_date={start_date_str}&end_date={end_date_str}")
 
@@ -251,17 +253,22 @@ def shared_async_task(data):
         low = i['low']
         volume = i['volume']
 
-        if bound_unit == '$':
-            bound_check = bound
-        elif bound_unit == '%':
-            bound_check = float(i['open']) / 100 * bound
+        if bound_unit_up == '$':
+            bound_check_up = bound_up
+        elif bound_unit_up == '%':
+            bound_check_up = float(i['open']) / 100 * bound_up
+        
+        if bound_unit_low == '$':
+            bound_check_low = bound_low
+        elif bound_unit_low == '%':
+            bound_check_low = float(i['open']) / 100 * bound_low
 
-        if float(i['high']) - float(i['open']) >= bound_check and float(i['open']) - float(i['low']) >= bound_check:
-            output = controversial(symbol=symbol, timeframe=timeframe, open_price=float(i['open']), date=i['datetime'], bound=bound_check)
+        if float(i['high']) - float(i['open']) >= bound_check_up and float(i['open']) - float(i['low']) >= bound_check_low:
+            output = controversial(symbol=symbol, timeframe=timeframe, open_price=float(i['open']), date=i['datetime'], bound_up=bound_check_up, bound_low=bound_check_low)
             time.sleep(10)
-        elif float(i['high']) - float(i['open']) >= bound_check:
+        elif float(i['high']) - float(i['open']) >= bound_check_up:
             output = '1'
-        elif float(i['open']) - float(i['low']) >= bound_check:
+        elif float(i['open']) - float(i['low']) >= bound_check_low:
             output = '0'
         else:
             output = '2'
@@ -288,7 +295,7 @@ def shared_async_task(data):
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
-    file_path = f'{symbol}_{timeframe}_{bound}{bound_unit}_{start_date}_{end_date}(Twelvedata).xlsx'
+    file_path = f'{symbol}_{timeframe}_{bound_up}{bound_unit_up}_{bound_low}{bound_unit_low}_{start_date}_{end_date}(Twelvedata).xlsx'
     file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
