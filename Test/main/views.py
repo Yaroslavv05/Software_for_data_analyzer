@@ -88,8 +88,10 @@ class MyFormView(FormView):
             form = MyForm(user=self.request.user.id, initial={
                 'symbol': template.symbol,
                 'interval': flipped_interval_mapping[template.interval],
-                'bound': template.bound,
-                'bound_unit': template.bound_unit,
+                'bound_up': template.bound_up,
+                'bound_unit_up': template.bound_unit_up,
+                'bound_low': template.bound_low,
+                'bound_unit_low': template.bound_unit_low,
                 'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
                 'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
             })
@@ -340,7 +342,9 @@ class SharesView(FormView):
                                 '1week': '1 week',
                                 '1month': '1 month'
                             }
-                            Template.objects.create(user=self.request.user, name_exchange='TwelveData', name=f'TwelveData/{symbol}/{interval}/{start_data}/{end_data}/{bound_up}/{bound_unit_up}/{bound_low}/{bound_unit_low}', symbol=symbol, interval=interval_mapping[interval], bound=bound_low, bound_unit=bound_unit_low, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
+                            Template.objects.create(user=self.request.user, name_exchange='TwelveData', name=f'TwelveData/{symbol}/{interval}/{start_data}/{end_data}/{bound_up}/{bound_unit_up}/{bound_low}/{bound_unit_low}', 
+                                                    symbol=symbol, interval=interval_mapping[interval], bound_up=bound_up, bound_unit_up=bound_unit_up, bound_low=bound_low, bound_unit=bound_unit_low, 
+                                                    start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
                             messages.success(self.request, 'Шаблон был сохранен!')
                         task = Task.objects.create(user=self.request.user, is_running=True)
                         data = {
@@ -433,8 +437,10 @@ class SharesPolygonView(FormView):
                 'choice': template.choice,
                 'symbol': template.symbol,
                 'interval': template.interval,
-                'bound': template.bound,
-                'bound_unit': template.bound_unit,
+                'bound_up': template.bound_up,
+                'bound_unit_up': template.bound_unit_up,
+                'bound_low': template.bound_low,
+                'bound_unit_low': template.bound_unit_low,
                 'custom_radio_field': template.min_interval,
                 'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
                 'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
@@ -448,8 +454,10 @@ class SharesPolygonView(FormView):
                         'choice': form.cleaned_data['choice'],
                         'symbol': '',
                         'interval': form.cleaned_data['interval'],
-                        'bound': form.cleaned_data['bound'],
-                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'bound_up': form.cleaned_data['bound_up'],
+                        'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                        'bound_low': form.cleaned_data['bound_low'],
+                        'bound_unit_low': form.cleaned_data['bound_unit_low'],
                         'custom_radio_field': form.cleaned_data['custom_radio_field'],
                         'start_data': form.cleaned_data['start_data'],
                         'end_data': form.cleaned_data['end_data']
@@ -491,8 +499,10 @@ class SharesPolygonView(FormView):
                         'choice': form.cleaned_data['choice'],
                         'symbol': form.cleaned_data['symbol'],
                         'interval': form.cleaned_data['interval'],
-                        'bound': form.cleaned_data['bound'],
-                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'bound_up': form.cleaned_data['bound_up'],
+                        'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                        'bound_low': form.cleaned_data['bound_low'],
+                        'bound_unit_low': form.cleaned_data['bound_unit_low'],
                         'custom_radio_field': form.cleaned_data['custom_radio_field'],
                         'start_data': form.cleaned_data['start_data'],
                         'end_data': ''
@@ -505,8 +515,10 @@ class SharesPolygonView(FormView):
                             'choice': form.cleaned_data['choice'],
                             'symbol': form.cleaned_data['symbol'],
                             'interval': form.cleaned_data['interval'],
-                            'bound': form.cleaned_data['bound'],
-                            'bound_unit': form.cleaned_data['bound_unit'],
+                            'bound_up': form.cleaned_data['bound_up'],
+                            'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                            'bound_low': form.cleaned_data['bound_low'],
+                            'bound_unit_low': form.cleaned_data['bound_unit_low'],
                             'custom_radio_field': form.cleaned_data['custom_radio_field'],
                             'start_data': form.cleaned_data['start_data'],
                             'end_data': form.cleaned_data['end_data']
@@ -514,7 +526,9 @@ class SharesPolygonView(FormView):
                         return render(self.request, self.template_name, {'form': form})
                     else:
                         if form.cleaned_data['save_tamplates'] == True:
-                            Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound_up}/{bound_unit_up}/{form.cleaned_data["custom_radio_field"]}с', choice=pre, symbol=symbol, interval=interval, bound=bound_up, bound_unit=bound_unit_up, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
+                            Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound_up}/{bound_unit_up}/{form.cleaned_data["custom_radio_field"]}с', choice=pre, 
+                                                    symbol=symbol, interval=interval, bound_up=bound_up, bound_unit_up=bound_unit_up, bound_low=bound_low, bound_unit_low=bound_unit_low, start_date=start_data, 
+                                                    end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
                             messages.success(self.request, 'Шаблон был сохранен!')
                         task = Task.objects.create(user=self.request.user, is_running=True)
                         data = {
@@ -910,8 +924,10 @@ def edit_template_polygon_view(request, profile_id):
             'choice': template.choice,
             'symbol': template.symbol,
             'interval': template.interval,
-            'bound': template.bound,
-            'bound_unit': template.bound_unit,
+            'bound_up': template.bound_up,
+            'bound_unit_up': template.bound_unit_up,
+            'bound_low': template.bound_low,
+            'bound_unit_low': template.bound_unit_low,
             'custom_radio_field': template.min_interval,
             'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
             'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
@@ -926,7 +942,9 @@ def edit_template_polygon_view(request, profile_id):
             symbol_validity = check_symbol_validity(form.cleaned_data['symbol'], form.cleaned_data['start_data'], form.cleaned_data['end_data'])
             if symbol_validity == "invalid symbol":
                 messages.error(request, 'Неверный символ!')
-            elif float(form.cleaned_data['bound']) < 0:
+            elif float(form.cleaned_data['bound_up']) < 0:
+                messages.error(request, 'Связка не может быть отрицательной!')
+            elif float(form.cleaned_data['bound_low']) < 0:
                 messages.error(request, 'Связка не может быть отрицательной!')
             elif form.cleaned_data['end_data'] < form.cleaned_data['start_data']:
                 messages.error(request, 'Дата окончания должна быть позже даты начала!')
@@ -939,8 +957,10 @@ def edit_template_polygon_view(request, profile_id):
                     template.choice = form.cleaned_data['choice']
                     template.symbol = form.cleaned_data['symbol']
                     template.interval = form.cleaned_data['interval']
-                    template.bound = form.cleaned_data['bound']
-                    template.bound_unit = form.cleaned_data['bound_unit']
+                    template.bound_up = form.cleaned_data['bound_up']
+                    template.bound_unit_up = form.cleaned_data['bound_unit_up']
+                    template.bound_low = form.cleaned_data['bound_low']
+                    template.bound_unit_low = form.cleaned_data['bound_unit_low']
                     template.start_date = form.cleaned_data['start_data']
                     template.end_date = form.cleaned_data['end_data']
                     template.min_interval = form.cleaned_data['custom_radio_field']
@@ -951,8 +971,10 @@ def edit_template_polygon_view(request, profile_id):
                 template.choice = form.cleaned_data['choice']
                 template.symbol = form.cleaned_data['symbol']
                 template.interval = form.cleaned_data['interval']
-                template.bound = form.cleaned_data['bound']
-                template.bound_unit = form.cleaned_data['bound_unit']
+                template.bound_up = form.cleaned_data['bound_up']
+                template.bound_unit_up = form.cleaned_data['bound_unit_up']
+                template.bound_low = form.cleaned_data['bound_low']
+                template.bound_unit_low = form.cleaned_data['bound_unit_low']= form.cleaned_data['bound_unit']
                 template.start_date = form.cleaned_data['start_data']
                 template.end_date = form.cleaned_data['end_data']
                 template.min_interval = form.cleaned_data['custom_radio_field']
