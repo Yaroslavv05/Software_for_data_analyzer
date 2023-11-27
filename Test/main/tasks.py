@@ -323,7 +323,7 @@ def shared_async_task(data):
     return file_path
 
 
-def second_shares_polygon(symbol, timeframe, open_price, date, bound):
+def second_shares_polygon(symbol, timeframe, open_price, date, bound_up, bound_low):
     interval_mapping = {
         '1 minute': 0.0166666667,
         '5 minute': 0.0833333333,
@@ -376,13 +376,13 @@ def second_shares_polygon(symbol, timeframe, open_price, date, bound):
         })
 
     for i in mass:
-        if float(i['high']) - open_price >= bound:
+        if float(i['high']) - open_price >= bound_up:
             return '1'
-        elif open_price - float(i['low']) >= bound:
+        elif open_price - float(i['low']) >= bound_low:
             return '0'
 
 
-def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
+def minute_shares_polygon(symbol, timeframe, open_price, date, bound_up, bound_low):
     interval_mapping = {
         '1 minute': 0.0166666667,
         '5 minute': 0.0833333333,
@@ -435,20 +435,22 @@ def minute_shares_polygon(symbol, timeframe, open_price, date, bound):
         })
 
     for i in mass:
-        if float(i['high']) - open_price >= bound:
+        if float(i['high']) - open_price >= bound_up:
             return '1'
-        elif open_price - float(i['low']) >= bound:
+        elif open_price - float(i['low']) >= bound_low:
             return '0'
 
 
 class DataProcessor:
-    def __init__(self, input_file_path, output_file_path, bound, symbol, bound_init):
+    def __init__(self, input_file_path, output_file_path, bound_up, bound_low, symbol, bound_unit_up, bound_unit_low, min_interval):
         self.input_file_path = input_file_path
         self.output_file_path = output_file_path
-        self.bound = bound
-        self.bound_init = bound_init
+        self.bound_up = bound_up
+        self.bound_unit_up = bound_unit_up
+        self.bound_low = bound_low
+        self.bound_unit_low = bound_unit_low
         self.symbol = symbol
-        self.bound = bound
+        self.min_interval = min_interval
         self.hourly_intervals = []
 
     def load_data(self):
@@ -509,8 +511,8 @@ class DataProcessor:
 
         if current_interval:
             self.hourly_intervals.append(current_interval)
-
-    def minte(self, date, symbol, open_price, bound):
+    
+    def second(self, symbol, open_price, date, bound_up, bound_low):
         start_date = date
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
         if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
@@ -523,8 +525,7 @@ class DataProcessor:
         start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
         end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
 
-        response = requests.get(
-            f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+        response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/second/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
         print(response.json())
         d = response.json()['results']
         mass = []
@@ -539,25 +540,66 @@ class DataProcessor:
             })
 
         for i in mass:
-            if float(i['high']) - open_price >= bound:
+            if float(i['high']) - open_price >= bound_up:
                 return '1'
-            elif open_price - float(i['low']) >= bound:
+            elif open_price - float(i['low']) >= bound_low:
+                return '0'
+
+    def minte(self, date, symbol, open_price, bound_up, bound_low):
+        start_date = date
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+        else:
+            start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        ny_timezone = pytz.timezone('America/New_York')
+        start_date_datetime = ny_timezone.localize(start_date_datetime)
+        end_date_datetime = start_date_datetime + timedelta(hours=1)
+        start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+        end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+
+        response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+        print(response.json())
+        d = response.json()['results']
+        mass = []
+        for i in d:
+            dt = datetime.fromtimestamp(i['t'] / 1000)
+            mass.append({
+                'time': dt.strftime('%Y-%m-%d %H:%M:%S'),
+                'open': i['o'],
+                'close': i['c'],
+                'high': i['h'],
+                'low': i['l']
+            })
+
+        for i in mass:
+            if float(i['high']) - open_price >= bound_up:
+                return '1'
+            elif open_price - float(i['low']) >= bound_low:
                 return '0'
 
     def generate_output(self):
         output_data = []
 
         for i in self.hourly_intervals:
-            if self.bound_init == '$':
-                bound_value = self.bound
-            elif self.bound_init == '%':
-                bound_value = (float(i['open']) / 100) * self.bound
+            if self.bound_unit_up == '$':
+                bound_value_up = self.bound_up
+            elif self.bound_unit_up == '%':
+                bound_value_up = (float(i['open']) / 100) * self.bound_up
+            
+            if self.bound_unit_low == '$':
+                bound_value_low = self.bound_low
+            elif self.bound_unit_low == '%':
+                bound_value_low = (float(i['open']) / 100) * self.bound_low
 
-            if float(i['high']) - float(i['open']) >= bound_value and float(i['open']) - float(i['low']) >= bound_value:
-                output = self.minte(symbol=self.symbol, date=i['time'], open_price=float(i['open']), bound=bound_value)
-            elif float(i['high']) - float(i['open']) >= bound_value:
+            if float(i['high']) - float(i['open']) >= bound_value_up and float(i['open']) - float(i['low']) >= bound_value_low:
+                if self.min_interval == '60':
+                    output = self.minte(symbol=self.symbol, date=i['time'], open_price=float(i['open']), bound_up=bound_value_up, bound_low=bound_value_low)
+                elif self.min_interval == '1':
+                    output = self.second(symbol=self.symbol, date=i['time'], open_price=float(i['open']), bound_up=bound_value_up, bound_low=bound_value_low)
+            elif float(i['high']) - float(i['open']) >= bound_value_up:
                 output = '1'
-            elif float(i['open']) - float(i['low']) >= bound_value:
+            elif float(i['open']) - float(i['low']) >= bound_value_low:
                 output = '0'
             else:
                 output = '2'
@@ -608,8 +650,10 @@ def split_into_3_month_intervals(start_date, end_date):
 def shares_polygon_async_task(data):
     symbol = data['symbol'].upper()
     timeframe = data['interval']
-    bound = float(data['bound'])
-    bound_unit = data['bound_unit']
+    bound_up = float(data['bound_up'])
+    bound_unit_up = data['bound_unit_up']
+    bound_low = float(data['bound_low'])
+    bound_unit_low = data['bound_unit_low']
     start_date = data['start_data']
     end_date = data['end_data']
     api = data['api']
@@ -653,31 +697,31 @@ def shares_polygon_async_task(data):
         high_price = float(i['high'])
         low_price = float(i['low'])
 
-        if bound_unit == '$':
-            if (high_price - open_price >= bound) and (open_price - low_price >= bound):
-                if data['min_interval'] == 60:
+        if bound_unit_up == '$':
+            if (high_price - open_price >= bound_up) and (open_price - low_price >= bound_up):
+                if data['min_interval'] == '60':
                     output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
-                                                date=i['time'], bound=bound)
-                elif data['min_interval'] == 1:
+                                                date=i['time'], bound_up=bound_up, bound_low=bound_low)
+                elif data['min_interval'] == '1':
                     output = second_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
-                                                date=i['time'], bound=bound)
-            elif high_price - open_price >= bound:
+                                                date=i['time'], bound_up=bound_up, bound_low=bound_low)
+            elif high_price - open_price >= bound_up:
                 output = '1'
-            elif open_price - low_price >= bound:
+            elif open_price - low_price >= bound_low:
                 output = '0'
             else:
                 output = '2'
-        elif bound_unit == '%':
-            if (high_price - open_price >= (open_price / 100 * bound)) and (open_price - low_price >= (open_price / 100 * bound)):
-                if data['min_interval'] == 60:
+        elif bound_unit_up == '%':
+            if (high_price - open_price >= (open_price / 100 * bound_up)) and (open_price - low_price >= (open_price / 100 * bound_low)):
+                if data['min_interval'] == '60':
                     output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
-                                                date=i['time'], bound=(open_price / 100 * bound))
-                elif data['min_interval'] == 1:
+                                                date=i['time'], bound_up=(open_price / 100 * bound_up), bound_low=(open_price / 100 * bound_low))
+                elif data['min_interval'] == '1':
                     output = second_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
-                                                date=i['time'], bound=(open_price / 100 * bound))
-            elif high_price - open_price >= (open_price / 100 * bound):
+                                                date=i['time'], bound_up=(open_price / 100 * bound_up), bound_low=(open_price / 100 * bound_low))
+            elif high_price - open_price >= (open_price / 100 * bound_up):
                 output = '1'
-            elif open_price - low_price >= (open_price / 100 * bound):
+            elif open_price - low_price >= (open_price / 100 * bound_low):
                 output = '0'
             else:
                 output = '2'
@@ -727,17 +771,17 @@ def shares_polygon_async_task(data):
     wb.save(output_buffer)
     output_buffer.seek(0)
 
-    file_path = f'{symbol}_{timeframe}_{bound}{bound_unit}_{start_date}_{end_date}(Polygon).xlsx'
+    file_path = f'{symbol}_{timeframe}_{bound_up}{bound_unit_up}_{bound_low}{bound_unit_low}_{start_date}_{end_date}(Polygon).xlsx'
     file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
 
     if timeframe == '1 hour':
         input_file_path = file_path
-        output_file_path = f'{symbol}_1_hour_{bound}{bound_unit}_{start_date}_{end_date}(Polygon).xlsx'
+        output_file_path = f'{symbol}_1_hour_{bound_up}{bound_unit_up}_{bound_low}{bound_unit_low}_{start_date}_{end_date}(Polygon).xlsx'
 
-        data_processor = DataProcessor(input_file_path, output_file_path, bound=bound, symbol=symbol,
-                                       bound_init=bound_unit)
+        data_processor = DataProcessor(input_file_path, output_file_path, bound_up=bound_up, bound_low=bound_low, symbol=symbol,
+                                       bound_unit_up=bound_unit_up, bound_unit_low=bound_unit_low, min_interval=data['min_interval'])
         data_processor.load_data()
         data_processor.save_output_to_excel()
         task = Task.objects.get(user=data['us'], is_running=True)
@@ -824,166 +868,40 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
         data.append(row)
 
     current_time = datetime.strptime('00:00', '%H:%M')
+    increments = {
+        1441: 0.0166666667,
+        481: 0.05,
+        289: 0.0833333333,
+        97: 0.25,
+        49: 0.5,
+        25: 1,
+        13: 2,
+        7: 4,
+        5: 6,
+        4: 8,
+        3: 12,
+        2: 24
+    }
 
     for row in data:
-        if len(row) == 1441:
+        if len(row) in increments:
             date = row[0]
+            current_increment = increments[len(row)]
+
             for i in row[1:]:
                 combined_datetime = datetime.combine(date, current_time.time())
                 position = i
 
                 formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
                 data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
-                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
-                                       secret_key=secret_key)
+                                    amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
+                                    secret_key=secret_key)
                 data_entry.save()
 
-                current_time += timedelta(hours=0.0166666667)
-        elif len(row) == 481:
-            date = row[0]
-            for i in row[1:]:
-                combined_datetime = datetime.combine(date, current_time.time())
-                position = i
-
-                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
-                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
-                                       secret_key=secret_key)
-                data_entry.save()
-
-                current_time += timedelta(hours=0.05)
-        elif len(row) == 289:
-            date = row[0]
-            for i in row[1:]:
-                combined_datetime = datetime.combine(date, current_time.time())
-                position = i
-
-                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
-                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
-                                       secret_key=secret_key)
-                data_entry.save()
-
-                current_time += timedelta(hours=0.0833333333)
-        elif len(row) == 97:
-            date = row[0]
-            for i in row[1:]:
-                combined_datetime = datetime.combine(date, current_time.time())
-                position = i
-
-                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
-                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
-                                       secret_key=secret_key)
-                data_entry.save()
-
-                current_time += timedelta(hours=0.25)
-        elif len(row) == 49:
-            date = row[0]
-            for i in row[1:]:
-                combined_datetime = datetime.combine(date, current_time.time())
-                position = i
-
-                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
-                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
-                                       secret_key=secret_key)
-                data_entry.save()
-
-                current_time += timedelta(hours=0.5)
-        elif len(row) == 25:
-            date = row[0]
-            for i in row[1:]:
-                combined_datetime = datetime.combine(date, current_time.time())
-                position = i
-
-                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
-                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
-                                       secret_key=secret_key)
-                data_entry.save()
-
-                current_time += timedelta(hours=1)
-        elif len(row) == 13:
-            date = row[0]
-            for i in row[1:]:
-                combined_datetime = datetime.combine(date, current_time.time())
-                position = i
-
-                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
-                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
-                                       secret_key=secret_key)
-                data_entry.save()
-
-                current_time += timedelta(hours=2)
-        elif len(row) == 7:
-            date = row[0]
-            for i in row[1:]:
-                combined_datetime = datetime.combine(date, current_time.time())
-                position = i
-
-                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
-                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
-                                       secret_key=secret_key)
-                data_entry.save()
-
-                current_time += timedelta(hours=4)
-        elif len(row) == 5:
-            date = row[0]
-            for i in row[1:]:
-                combined_datetime = datetime.combine(date, current_time.time())
-                position = i
-
-                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
-                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
-                                       secret_key=secret_key)
-                data_entry.save()
-
-                current_time += timedelta(hours=6)
-        elif len(row) == 4:
-            date = row[0]
-            for i in row[1:]:
-                combined_datetime = datetime.combine(date, current_time.time())
-                position = i
-
-                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
-                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
-                                       secret_key=secret_key)
-                data_entry.save()
-
-                current_time += timedelta(hours=8)
-        elif len(row) == 3:
-            date = row[0]
-            for i in row[1:]:
-                combined_datetime = datetime.combine(date, current_time.time())
-                position = i
-
-                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
-                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
-                                       secret_key=secret_key)
-                data_entry.save()
-
-                current_time += timedelta(hours=12)
-        elif len(row) == 2:
-            date = row[0]
-            for i in row[1:]:
-                combined_datetime = datetime.combine(date, current_time.time())
-                position = i
-
-                formatted_datetime = combined_datetime.strftime('%Y-%m-%d %H:%M')
-                data_entry = DataEntry(user=user, date=formatted_datetime, position=position, symbol=symbol,
-                                       amount_usdt=amount_usdt, leverage=leverage, api_key=api_key,
-                                       secret_key=secret_key)
-                data_entry.save()
-
-                current_time += timedelta(hours=24)
+                current_time += timedelta(hours=current_increment)
         else:
             break
+
     current_datetime = datetime.now()
     entries_to_process = DataEntry.objects.filter(user=user_id, is_completed=False)
     for entry in entries_to_process:

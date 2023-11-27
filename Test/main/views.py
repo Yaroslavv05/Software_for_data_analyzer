@@ -408,8 +408,10 @@ class SharesPolygonView(FormView):
     def form_valid(self, form):
         symbol = form.cleaned_data['symbol']
         interval = form.cleaned_data['interval']
-        bound = form.cleaned_data['bound']
-        bound_unit = form.cleaned_data['bound_unit']
+        bound_up = form.cleaned_data['bound_up']
+        bound_unit_up = form.cleaned_data['bound_unit_up']
+        bound_low = form.cleaned_data['bound_low']
+        bound_unit_low = form.cleaned_data['bound_unit_low']
         start_data = form.cleaned_data['start_data']
         end_data = form.cleaned_data['end_data']
         pre = form.cleaned_data['choice']
@@ -429,7 +431,7 @@ class SharesPolygonView(FormView):
             })
             return render(self.request, self.template_name, {'form': form})
         else:
-            if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['choice'] and form.cleaned_data['custom_radio_field']):
+            if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound_up'] and form.cleaned_data['bound_unit_up'] and form.cleaned_data['bound_low'] and form.cleaned_data['bound_unit_low'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['choice'] and form.cleaned_data['custom_radio_field']):
                 if symbol_validity == "invalid symbol":
                     messages.error(self.request, 'Неверный символ!')
                     form = SharesPolygonForm(user=self.request.user.id,initial={
@@ -443,14 +445,31 @@ class SharesPolygonView(FormView):
                         'end_data': form.cleaned_data['end_data']
                     })
                     return render(self.request, self.template_name, {'form': form})
-                elif float(bound) < 0:
+                elif float(bound_up) < 0:
                     messages.error(self.request, 'Связка не может быть отрицательной!')
                     form = SharesPolygonForm(user=self.request.user.id,initial={
                         'choice': form.cleaned_data['choice'],
                         'symbol': form.cleaned_data['symbol'],
                         'interval': form.cleaned_data['interval'],
-                        'bound': '',
-                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'bound_up': '',
+                        'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                        'bound_low': form.cleaned_data['bound_low'],
+                        'bound_unit_low': form.cleaned_data['bound_unit_low'],
+                        'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data']
+                    })
+                    return render(self.request, self.template_name, {'form': form})
+                elif float(bound_low) < 0:
+                    messages.error(self.request, 'Связка не может быть отрицательной!')
+                    form = SharesPolygonForm(user=self.request.user.id,initial={
+                        'choice': form.cleaned_data['choice'],
+                        'symbol': form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'bound_up': form.cleaned_data['bound_up'],
+                        'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                        'bound_low': '',
+                        'bound_unit_low': form.cleaned_data['bound_unit_low'],
                         'custom_radio_field': form.cleaned_data['custom_radio_field'],
                         'start_data': form.cleaned_data['start_data'],
                         'end_data': form.cleaned_data['end_data']
@@ -485,14 +504,16 @@ class SharesPolygonView(FormView):
                         return render(self.request, self.template_name, {'form': form})
                     else:
                         if form.cleaned_data['save_tamplates'] == True:
-                            Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}/{form.cleaned_data["custom_radio_field"]}с', choice=pre, symbol=symbol, interval=interval, bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
+                            Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound_up}/{bound_unit_up}/{form.cleaned_data["custom_radio_field"]}с', choice=pre, symbol=symbol, interval=interval, bound=bound_up, bound_unit=bound_unit_up, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
                             messages.success(self.request, 'Шаблон был сохранен!')
                         task = Task.objects.create(user=self.request.user, is_running=True)
                         data = {
                             'symbol': symbol,
                             'interval': interval,
-                            'bound': bound,
-                            'bound_unit': bound_unit,
+                            'bound_up': bound_up,
+                            'bound_unit_up': bound_unit_up,
+                            'bound_low': bound_low,
+                            'bound_unit_low': bound_unit_low,
                             'start_data': start_data.strftime('%Y-%m-%d'),
                             'end_data': end_data.strftime('%Y-%m-%d'),
                             'api': 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz',
