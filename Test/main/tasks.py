@@ -746,11 +746,14 @@ def shares_polygon_async_task(data):
 
     filtered_output_data = []
     if data['pre'] == 'in':
-        for item in output_data:
-            time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
-            if (time.hour > 9 or (time.hour == 9 and time.minute >= 30)) and \
-                    (time.hour < 15 or (time.hour == 15 and time.minute <= 30)):
-                filtered_output_data.append(item)
+        if timeframe == '1 day':
+            filtered_output_data = output_data
+        else:
+            for item in output_data:
+                time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
+                if (time.hour > 9 or (time.hour == 9 and time.minute >= 30)) and \
+                        (time.hour < 15 or (time.hour == 15 and time.minute <= 30)):
+                    filtered_output_data.append(item)
     elif data['pre'] == 'pre':
         filtered_output_data = output_data
 
