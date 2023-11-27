@@ -18,7 +18,7 @@ from .models import *
 from django.utils import timezone
 
 
-def minute(symbol, open_price, bound, date, time_frame):
+def minute(symbol, open_price, bound_up, bound_low, date, time_frame):
     client = Client()
     interval = Client.KLINE_INTERVAL_1MINUTE
     start_date = date
@@ -40,11 +40,10 @@ def minute(symbol, open_price, bound, date, time_frame):
             'low': kline[3],
         })
     open_price = open_price
-    bound = bound
     for i in mass:
-        if (float(i['high']) - open_price) >= bound:
+        if (float(i['high']) - open_price) >= bound_up:
             return '1'
-        elif open_price - float(i['low']) >= bound:
+        elif open_price - float(i['low']) >= bound_low:
             return '0'
 
 
@@ -53,10 +52,11 @@ def process_data_async(data):
     client = Client()
     symbol = data['symbol'].upper()
     timeframe = float(data['interval']) * 60
-    bound = float(data['bound'])
-    bound_unit = data['bound_unit']
+    bound_up = float(data['bound_up'])
+    bound_unit_up = data['bound_unit_up']
+    bound_low = float(data['bound_low'])
+    bound_unit_low = data['bound_unit_low']
     inter = data['interval']
-    print(symbol, timeframe, bound, bound_unit, inter)
     
     interval_mapping = {
         0.0166666667: Client.KLINE_INTERVAL_1MINUTE,
@@ -107,7 +107,6 @@ def process_data_async(data):
         
     print(mass)
     output_data = []
-    total = 0
     for i in mass:
         time = i['time']
         high = float(i['high'])
@@ -117,28 +116,47 @@ def process_data_async(data):
         parsed_date = datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
         aware_date = timezone.make_aware(parsed_date)
         DateLog.objects.create(date=aware_date.date(), task_id=process_data_async.request.id)
+        
+        if bound_unit_up == '$':
+            bound_check_up = bound_up
+        elif bound_unit_up == '%':
+            bound_check_up = float(i['open']) / 100 * bound_up
+        
+        if bound_unit_low == '$':
+            bound_check_low = bound_low
+        elif bound_unit_low == '%':
+            bound_check_low = float(i['open']) / 100 * bound_low
 
-        if bound_unit == '$':
-            if ((high - ope) >= bound and (ope - low) >= bound) or \
-                    ((high - ope) >= bound and (ope - low) >= bound):
-                output = minute(symbol=symbol, open_price=ope, bound=bound, date=time, time_frame=float(data['interval']))
-            elif ((high - ope) >= bound) or ((high - ope) >= bound):
-                output = '1'
-            elif ((ope - low) >= bound) or ((ope - low) >= bound):
-                output = '0'
-            else:
-                output = '2'
-        elif bound_unit == '%':
-            bound_percent = ope / 100 * bound
-            if ((high - ope) >= bound_percent and (ope - low) >= bound_percent) or \
-                    ((high - ope) >= bound_percent and (ope - low) >= bound_percent):
-                output = minute(symbol=symbol, open_price=ope, bound=bound_percent, date=time, time_frame=float(data['interval']))
-            elif ((high - ope) >= bound_percent) or ((high - ope) >= bound_percent):
-                output = '1'
-            elif ((ope - low) >= bound_percent) or ((ope - low) >= bound_percent):
-                output = '0'
-            else:
-                output = '2'
+        if float(i['high']) - float(i['open']) >= bound_check_up and float(i['open']) - float(i['low']) >= bound_check_low:
+            output = minute(symbol=symbol, open_price=ope, bound_up=bound_check_up, bound_low=bound_check_low,  date=time, time_frame=float(data['interval']))
+        elif float(i['high']) - float(i['open']) >= bound_check_up:
+            output = '1'
+        elif float(i['open']) - float(i['low']) >= bound_check_low:
+            output = '0'
+        else:
+            output = '2'
+
+        # if bound_unit == '$':
+        #     if ((high - ope) >= bound and (ope - low) >= bound) or \
+        #             ((high - ope) >= bound and (ope - low) >= bound):
+        #         output = minute(symbol=symbol, open_price=ope, bound=bound, date=time, time_frame=float(data['interval']))
+        #     elif ((high - ope) >= bound) or ((high - ope) >= bound):
+        #         output = '1'
+        #     elif ((ope - low) >= bound) or ((ope - low) >= bound):
+        #         output = '0'
+        #     else:
+        #         output = '2'
+        # elif bound_unit == '%':
+        #     bound_percent = ope / 100 * bound
+        #     if ((high - ope) >= bound_percent and (ope - low) >= bound_percent) or \
+        #             ((high - ope) >= bound_percent and (ope - low) >= bound_percent):
+        #         output = minute(symbol=symbol, open_price=ope, bound=bound_percent, date=time, time_frame=float(data['interval']))
+        #     elif ((high - ope) >= bound_percent) or ((high - ope) >= bound_percent):
+        #         output = '1'
+        #     elif ((ope - low) >= bound_percent) or ((ope - low) >= bound_percent):
+        #         output = '0'
+        #     else:
+        #         output = '2'
 
         close = float(i['close'])
         output_data.append({'time': time, 'output': output, 'open': str(ope), 'close': str(close), 'high': str(high), 'low': str(low), 'volume': str(volume)})
@@ -163,7 +181,7 @@ def process_data_async(data):
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
-    file_path = f'{symbol}_{timeframe}_{bound}{bound_unit}_{start_date}_{end_date}(Binance).xlsx'
+    file_path = f'{symbol}_{timeframe}_{bound_up}{bound_unit_up}_{bound_low}_{bound_unit_low}_{start_date}_{end_date}(Binance).xlsx'
     file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())

@@ -58,8 +58,10 @@ class MyFormView(FormView):
     def form_valid(self, form):
         symbol = form.cleaned_data['symbol']
         interval = form.cleaned_data['interval']
-        bound = form.cleaned_data['bound']
-        bound_unit = form.cleaned_data['bound_unit']
+        bound_up = form.cleaned_data['bound_up']
+        bound_unit_up = form.cleaned_data['bound_unit_up']
+        bound_low = form.cleaned_data['bound_low']
+        bound_unit_low = form.cleaned_data['bound_unit_low']
         start_data = form.cleaned_data['start_data']
         end_data = form.cleaned_data['end_data']
         
@@ -93,7 +95,7 @@ class MyFormView(FormView):
             })
             return render(self.request, self.template_name, {'form': form})
         else:
-            if form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound'] and form.cleaned_data['bound_unit'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data']:
+            if form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['bound_up'] and form.cleaned_data['bound_unit_up'] and form.cleaned_data['bound_low'] and form.cleaned_data['bound_unit_low'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data']:
                 if symbol not in get_binance_symbols():
                     messages.error(self.request, 'Invalid symbol!')
                     form = MyForm(user=self.request.user.id,initial={
@@ -105,13 +107,28 @@ class MyFormView(FormView):
                         'end_data': form.cleaned_data['end_data'],
                     })
                     return render(self.request, self.template_name, {'form': form})
-                elif float(bound) < 0:
+                elif float(bound_up) < 0:
                     messages.error(self.request, 'Bound cannot be negative!')
                     form = MyForm(user=self.request.user.id,initial={
                         'symbol': form.cleaned_data['symbol'],
                         'interval': form.cleaned_data['interval'],
-                        'bound': '',
-                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'bound_up': '',
+                        'bound_low': form.cleaned_data['bound_low'],
+                        'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                        'bound_unit_low': form.cleaned_data['bound_unit_low'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data'],
+                    })
+                    return render(self.request, self.template_name, {'form': form})
+                elif float(bound_low) < 0:
+                    messages.error(self.request, 'Bound cannot be negative!')
+                    form = MyForm(user=self.request.user.id,initial={
+                        'symbol': form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'bound_up': form.cleaned_data['bound_up'],
+                        'bound_low': '',
+                        'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                        'bound_unit_low': form.cleaned_data['bound_unit_low'],
                         'start_data': form.cleaned_data['start_data'],
                         'end_data': form.cleaned_data['end_data'],
                     })
@@ -158,14 +175,16 @@ class MyFormView(FormView):
                                 168.0: '1 week',
                                 720.0: '1 month'
                             }
-                            Template.objects.create(user=self.request.user, name_exchange='Binance', name=f'Binance/{symbol}/{interval}/{start_data}/{end_data}/{bound}/{bound_unit}', symbol=symbol, interval=interval_mapping[float(interval)], bound=bound, bound_unit=bound_unit, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
+                            Template.objects.create(user=self.request.user, name_exchange='Binance', name=f'Binance/{symbol}/{interval}/{start_data}/{end_data}/{bound_up}/{bound_unit_up}', symbol=symbol, interval=interval_mapping[float(interval)], bound=bound_up, bound_unit=bound_unit_up, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
                             messages.success(self.request, 'Шаблон был сохранен!')
                         task = Task.objects.create(user=self.request.user, is_running=True)
                         data = {
                             'symbol': symbol,
                             'interval': interval,
-                            'bound': bound,
-                            'bound_unit': bound_unit,
+                            'bound_up': bound_up,
+                            'bound_unit_up': bound_unit_up,
+                            'bound_low': bound_low,
+                            'bound_unit_low': bound_unit_low,
                             'start_data': start_data.strftime('%Y-%m-%d'),
                             'end_data': end_data.strftime('%Y-%m-%d'),
                             'us': self.request.user.id
