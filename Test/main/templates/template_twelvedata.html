@@ -36,7 +36,9 @@
         <th>Название</th>
         <th>Символ</th>
         <th>Интервал</th>
-        <th>Граница</th>
+        <th>Предел верх</th>
+        <th>Единица</th>
+        <th>Предел низ</th>
         <th>Единица</th>
         <th>Начало даты</th>
         <th>Конец даты</th>
@@ -48,8 +50,10 @@
         <td>{{ template.name }}</td>
         <td>{{ template.symbol }}</td>
         <td>{{ template.interval }}</td>
-        <td>{{ template.bound }}</td>
-        <td>{{ template.bound_unit }}</td>
+        <td>{{ template.bound_up }}</td>
+        <td>{{ template.bound_unit_up }}</td>
+        <td>{{ template.bound_low }}</td>
+        <td>{{ template.bound_unit_low }}</td>
         <td>{{ template.start_date }}</td>
         <td>{{ template.end_date }}</td>
         <td>{{ template.min_interval }}с</td>

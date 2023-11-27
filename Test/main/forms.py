@@ -307,8 +307,10 @@ class EditTemplateTwelveDataForm(forms.Form):
         ('$', 'Доллар ($)'),
         ('%', 'Процент (%)'),
     ]
-    bound = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Предел'}))
-    bound_unit = forms.ChoiceField(choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    bound_up = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Предел верх'}))
+    bound_unit_up = forms.ChoiceField(required=False, choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    bound_low = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Предел низ'}))
+    bound_unit_low = forms.ChoiceField(required=False, choices=BOUND_UNIT_CHOICES, widget=forms.Select(attrs={'class': 'form-select mb-2'}))
     start_data = SplitDateTimeField()
     end_data = SplitDateTimeField()
     custom_radio_field = forms.ChoiceField(

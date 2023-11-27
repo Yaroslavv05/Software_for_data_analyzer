@@ -263,8 +263,10 @@ class SharesView(FormView):
             form = SharesForm(user=self.request.user.id, initial={
                 'symbol': template.symbol,
                 'interval': interval_mapping[template.interval],
-                'bound': template.bound,
-                'bound_unit': template.bound_unit,
+                'bound_up': template.bound_up,
+                'bound_unit_up': template.bound_unit_up,
+                'bound_low': template.bound_low,
+                'bound_unit_low': template.bound_unit_low,
                 'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
                 'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
             })
@@ -276,8 +278,10 @@ class SharesView(FormView):
                     form = SharesForm(user=self.request.user.id, initial={
                         'symbol': '',
                         'interval': form.cleaned_data['interval'],
-                        'bound': form.cleaned_data['bound'],
-                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'bound_up': form.cleaned_data['bound_up'],
+                        'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                        'bound_low': form.cleaned_data['bound_low'],
+                        'bound_unit_low': form.cleaned_data['bound_unit_low'],
                         'start_data': form.cleaned_data['start_data'],
                         'end_data': form.cleaned_data['end_data'],
                     })
@@ -287,8 +291,10 @@ class SharesView(FormView):
                     form = SharesForm(user=self.request.user.id, initial={
                         'symbol':  form.cleaned_data['symbol'],
                         'interval': form.cleaned_data['interval'],
-                        'bound': '',
-                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'bound_up': '',
+                        'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                        'bound_low': form.cleaned_data['bound_low'],
+                        'bound_unit_low': form.cleaned_data['bound_unit_low'],
                         'start_data': form.cleaned_data['start_data'],
                         'end_data': form.cleaned_data['end_data'],
                     })
@@ -298,8 +304,10 @@ class SharesView(FormView):
                     form = SharesForm(user=self.request.user.id, initial={
                         'symbol':  form.cleaned_data['symbol'],
                         'interval': form.cleaned_data['interval'],
-                        'bound': '',
-                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'bound_up': form.cleaned_data['bound_up'],
+                        'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                        'bound_low': '',
+                        'bound_unit_low': form.cleaned_data['bound_unit_low'],
                         'start_data': form.cleaned_data['start_data'],
                         'end_data': form.cleaned_data['end_data'],
                     })
@@ -309,8 +317,10 @@ class SharesView(FormView):
                     form = SharesForm(user=self.request.user.id,initial={
                         'symbol':  form.cleaned_data['symbol'],
                         'interval': form.cleaned_data['interval'],
-                        'bound': form.cleaned_data['bound'],
-                        'bound_unit': form.cleaned_data['bound_unit'],
+                        'bound_up': form.cleaned_data['bound_up'],
+                        'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                        'bound_low': form.cleaned_data['bound_low'],
+                        'bound_unit_low': form.cleaned_data['bound_unit_low'],
                         'start_data': form.cleaned_data['start_data'],
                         'end_data': '',
                     })
@@ -321,8 +331,10 @@ class SharesView(FormView):
                         form = SharesForm(user=self.request.user.id,initial={
                             'symbol':  form.cleaned_data['symbol'],
                             'interval': form.cleaned_data['interval'],
-                            'bound': form.cleaned_data['bound'],
-                            'bound_unit': form.cleaned_data['bound_unit'],
+                            'bound_up': form.cleaned_data['bound_up'],
+                            'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                            'bound_low': form.cleaned_data['bound_low'],
+                            'bound_unit_low': form.cleaned_data['bound_unit_low'],
                             'start_data': form.cleaned_data['start_data'],
                             'end_data': form.cleaned_data['end_data'],
                         })
@@ -343,7 +355,7 @@ class SharesView(FormView):
                                 '1month': '1 month'
                             }
                             Template.objects.create(user=self.request.user, name_exchange='TwelveData', name=f'TwelveData/{symbol}/{interval}/{start_data}/{end_data}/{bound_up}/{bound_unit_up}/{bound_low}/{bound_unit_low}', 
-                                                    symbol=symbol, interval=interval_mapping[interval], bound_up=bound_up, bound_unit_up=bound_unit_up, bound_low=bound_low, bound_unit=bound_unit_low, 
+                                                    symbol=symbol, interval=interval_mapping[interval], bound_up=bound_up, bound_unit_up=bound_unit_up, bound_low=bound_low, bound_unit_low=bound_unit_low, 
                                                     start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
                             messages.success(self.request, 'Шаблон был сохранен!')
                         task = Task.objects.create(user=self.request.user, is_running=True)
@@ -367,8 +379,10 @@ class SharesView(FormView):
                 form = SharesForm(user=self.request.user.id,initial={
                     'symbol':  form.cleaned_data['symbol'],
                     'interval': form.cleaned_data['interval'],
-                    'bound': form.cleaned_data['bound'],
-                    'bound_unit': form.cleaned_data['bound_unit'],
+                    'bound_up': form.cleaned_data['bound_up'],
+                    'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                    'bound_low': form.cleaned_data['bound_low'],
+                    'bound_unit_low': form.cleaned_data['bound_unit_low'],
                     'start_data': form.cleaned_data['start_data'],
                     'end_data': form.cleaned_data['end_data'],
                 })
@@ -1018,8 +1032,10 @@ class EditTemplateTwelveDataView(View):
             'name': template.name,
             'symbol': template.symbol,
             'interval': interval_mapping[template.interval],
-            'bound': template.bound,
-            'bound_unit': template.bound_unit,
+            'bound_up': template.bound_up,
+            'bound_unit_up': template.bound_unit_up,
+            'bound_low': template.bound_low,
+            'bound_unit_low': template.bound_unit_low,
             'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
             'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
         })
@@ -1035,7 +1051,10 @@ class EditTemplateTwelveDataView(View):
             if symbol_validity == "invalid symbol":
                 messages.error(self.request, 'Неверный символ!')
                 return redirect('edit_template_twelvedata', profile_id=profile_id)
-            elif float(form.cleaned_data['bound']) < 0:
+            elif float(form.cleaned_data['bound_up']) < 0:
+                messages.error(self.request, 'Связка не может быть отрицательной!')
+                return redirect('edit_template_twelvedata', profile_id=profile_id)
+            elif float(form.cleaned_data['bound_low']) < 0:
                 messages.error(self.request, 'Связка не может быть отрицательной!')
                 return redirect('edit_template_twelvedata', profile_id=profile_id)
             elif form.cleaned_data['end_data'] < form.cleaned_data['start_data']:
@@ -1062,8 +1081,10 @@ class EditTemplateTwelveDataView(View):
                     template.name = form.cleaned_data['name']
                     template.symbol = form.cleaned_data['symbol']
                     template.interval = interval_mapping[form.cleaned_data['interval']]
-                    template.bound = form.cleaned_data['bound']
-                    template.bound_unit = form.cleaned_data['bound_unit']
+                    template.bound_up = form.cleaned_data['bound_up']
+                    template.bound_unit_up = form.cleaned_data['bound_unit_up']
+                    template.bound_low = form.cleaned_data['bound_low']
+                    template.bound_unit_low = form.cleaned_data['bound_unit_low']
                     template.start_date = form.cleaned_data['start_data']
                     template.end_date = form.cleaned_data['end_data']
                     template.min_interval = form.cleaned_data['custom_radio_field']
@@ -1086,8 +1107,10 @@ class EditTemplateTwelveDataView(View):
                 template.name = form.cleaned_data['name']
                 template.symbol = form.cleaned_data['symbol']
                 template.interval = interval_mapping[form.cleaned_data['interval']]
-                template.bound = form.cleaned_data['bound']
-                template.bound_unit = form.cleaned_data['bound_unit']
+                template.bound_up = form.cleaned_data['bound_up']
+                template.bound_unit_up = form.cleaned_data['bound_unit_up']
+                template.bound_low = form.cleaned_data['bound_low']
+                template.bound_unit_low = form.cleaned_data['bound_unit_low']
                 template.start_date = form.cleaned_data['start_data']
                 template.end_date = form.cleaned_data['end_data']
                 template.min_interval = form.cleaned_data['custom_radio_field']
