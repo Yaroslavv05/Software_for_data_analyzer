@@ -920,7 +920,7 @@ def async_parse_file_task(file_path, user_id, symbol, amount_usdt, leverage, api
                 entry.save()
 
 
-def minute_shares_yfinance(symbol, timeframe, open_price, date, bound):
+def minute_shares_yfinance(symbol, timeframe, open_price, date, bound_up, bound_low):
     interval_mapping = {
         '1m': 0.0166666667,
         '2m': 0.0333333333333333,
@@ -955,9 +955,9 @@ def minute_shares_yfinance(symbol, timeframe, open_price, date, bound):
         print(f"Файл {csv_filename} удален.")
 
     for i in data_dict:
-        if float(i['High']) - open_price >= bound:
+        if float(i['High']) - open_price >= bound_up:
             return '1'
-        elif open_price - float(i['Low']) >= bound:
+        elif open_price - float(i['Low']) >= bound_low:
             return '0'
 
 
@@ -968,8 +968,10 @@ def shares_yfinance_async_task(data):
     end_date = data['end_data']
     end_date_inclusive = (datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
     timeframe = data['interval']
-    bound = float(data['bound'])
-    bound_unit = data['bound_unit']
+    bound_up = float(data['bound_up'])
+    bound_unit_up = data['bound_unit_up']
+    bound_low = float(data['bound_up'])
+    bound_unit_low = data['bound_unit_up']
 
     data = yf.download(symbol, start=start_date, end=end_date_inclusive, interval=timeframe)
 
@@ -1001,22 +1003,26 @@ def shares_yfinance_async_task(data):
         high_minus_open = float(i['High']) - float(i['Open'])
         open_minus_low = float(i['Open']) - float(i['Low'])
 
-        if bound_unit == '%' and float(i['Open']) != 0:
-            bound = (float(i['Open']) / 100) * bound
-
+        if bound_unit_up == '%' and float(i['Open']) != 0:
+            bound_up = (float(i['Open']) / 100) * bound_up
+        
+        if bound_unit_low == '%' and float(i['Open']) != 0:
+            bound_low = (float(i['Open']) / 100) * bound_low
+            
         time = i[name]
 
-        if high_minus_open >= bound and open_minus_low >= bound:
+        if high_minus_open >= bound_up and open_minus_low >= bound_low:
             output = minute_shares_yfinance(
                 symbol=symbol,
                 timeframe=timeframe,
                 open_price=float(i['Open']),
                 date=time,
-                bound=bound
+                bound_up=bound_up,
+                bound_low=bound_low,
             )
-        elif high_minus_open >= bound:
+        elif high_minus_open >= bound_up:
             output = '1'
-        elif open_minus_low >= bound:
+        elif open_minus_low >= bound_low:
             output = '0'
         else:
             output = '2'
@@ -1058,11 +1064,11 @@ def shares_yfinance_async_task(data):
     output_buffer = io.BytesIO()
     wb.save(output_buffer)
     output_buffer.seek(0)
-    file_path = f'{symbol}_{timeframe}_{bound}{bound_unit}_{start_date}_{end_date}(YahooFinance).xlsx'
+    file_path = f'{symbol}_{timeframe}_{bound_up}{bound_unit_up}_{bound_low}{bound_unit_low}_{start_date}_{end_date}(YahooFinance).xlsx'
     file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
     with open(file_path, 'wb') as file:
         file.write(output_buffer.read())
-    task = Task.objects.get(user=data['us'], is_running=True)
+    task = Task.objects.get(is_running=True)
     task.is_running = False
     task.save()
     return file_path

@@ -551,8 +551,10 @@ class SharesYFinanceView(FormView):
     def form_valid(self, form):
         symbol = form.cleaned_data['symbol']
         interval = form.cleaned_data['interval']
-        bound = form.cleaned_data['bound']
-        bound_unit = form.cleaned_data['bound_unit']
+        bound_up = form.cleaned_data['bound_up']
+        bound_unit_up = form.cleaned_data['bound_unit_up']
+        bound_low = form.cleaned_data['bound_low']
+        bound_unit_low = form.cleaned_data['bound_unit_low']
         start_data = form.cleaned_data['start_data']
         end_data = form.cleaned_data['end_data']
         symbol_validity = check_symbol_validity(symbol, start_data, end_data)
@@ -568,13 +570,28 @@ class SharesYFinanceView(FormView):
                 'end_data': form.cleaned_data['end_data'],
             })
             return render(self.request, self.template_name, {'form': form})
-        elif float(bound) < 0:
+        elif float(bound_up) < 0:
             messages.error(self.request, 'Bound cannot be negative!')
             form = SharesYFinanceForm(initial={
                 'symbol':  form.cleaned_data['symbol'],
                 'interval': form.cleaned_data['interval'],
-                'bound': '',
-                'bound_unit': form.cleaned_data['bound_unit'],
+                'bound_up': '',
+                'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                'bound_low': form.cleaned_data['bound_low'],
+                'bound_unit_low': form.cleaned_data['bound_unit_low'],
+                'start_data': form.cleaned_data['start_data'],
+                'end_data': form.cleaned_data['end_data'],
+            })
+            return render(self.request, self.template_name, {'form': form})
+        elif float(bound_low) < 0:
+            messages.error(self.request, 'Bound cannot be negative!')
+            form = SharesYFinanceForm(initial={
+                'symbol':  form.cleaned_data['symbol'],
+                'interval': form.cleaned_data['interval'],
+                'bound_up': form.cleaned_data['bound_up'],
+                'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                'bound_low': '',
+                'bound_unit_low': form.cleaned_data['bound_unit_low'],
                 'start_data': form.cleaned_data['start_data'],
                 'end_data': form.cleaned_data['end_data'],
             })
@@ -607,8 +624,10 @@ class SharesYFinanceView(FormView):
                 data = {
                     'symbol': symbol,
                     'interval': interval,
-                    'bound': bound,
-                    'bound_unit': bound_unit,
+                    'bound_up': bound_up,
+                    'bound_unit_up': bound_unit_up,
+                    'bound_low': bound_low,
+                    'bound_unit_low': bound_unit_low,
                     'start_data': start_data.strftime('%Y-%m-%d'),
                     'end_data': end_data.strftime('%Y-%m-%d'),
                     'us': self.request.user.id
