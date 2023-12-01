@@ -11,7 +11,7 @@ class UserProfiles(models.Model):
 
 class TradingData(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    uploaded_file = models.FileField(upload_to='upldfile/')
+    uploaded_file = models.FileField(upload_to="upldfile/")
 
 
 class DataEntry(models.Model):
@@ -38,7 +38,9 @@ class Task(models.Model):
 
 class Template(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    name_exchange = models.CharField(max_length=100)
+    name_exchange = models.CharField(
+        max_length=100
+    )  # You can use model for this so you can chose from list of exchanges
     name = models.CharField(max_length=100)
     choice = models.CharField(max_length=20)
     api = models.CharField(max_length=100)
