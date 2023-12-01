@@ -12,28 +12,28 @@ class DataFetchingService:
         self.client = Client()
         self.yahoo_finance = yf
 
-    def get_minute_interval(
-        self, symbol, exchange, open_price, bound_up, bound_low, date, time_frame
-    ):
-        exchange_handlers = {
-            "Binance": self.handle_binance,
-            "YahooFinance": self.handle_yahoo_finance,
-            "Poligon": self.handle_polygon,
-        }
 
-        # Get the handler function based on the exchange
-        handler = exchange_handlers.get(exchange)
+def get_minute_interval(
+    self, symbol, exchange, open_price, bound_up, bound_low, date, time_frame
+):
+    # Define exchange handlers for different exchanges
+    exchange_handlers = {
+        "Binance": self.handle_binance,  # Binance exchange handler
+        "YahooFinance": self.handle_yahoo_finance,  # YahooFinance exchange handler
+        "Poligon": self.handle_polygon,  # Poligon exchange handler
+    }
 
-        if handler:
-            # Call the handler function
-            try:
-                handler(
-                    symbol, exchange, open_price, bound_up, bound_low, date, time_frame
-                )
-            except Exception as e:
-                print(f"An error occurred while processing {exchange} data: {e}")
-        else:
-            print(f"Unsupported exchange: {exchange}")
+    # Get the handler function based on the exchange
+    handler = exchange_handlers.get(exchange)
+
+    if handler:
+        # Call the handler function
+        try:
+            handler(symbol, exchange, open_price, bound_up, bound_low, date, time_frame)
+        except Exception as e:
+            print(f"An error occurred while processing {exchange} data: {e}")
+    else:
+        print(f"Unsupported exchange: {exchange}")
 
     def handle_binance(
         self, symbol, exchange, open_price, bound_up, bound_low, date, time_frame
