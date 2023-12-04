@@ -687,7 +687,7 @@ def check_task_status(request):
         task = AsyncResult(task_id)
         if task.ready():
             if task.successful():
-                file_path = task.result
+                file_path, output_data = task.result
                 request.session['file_path'] = file_path
                 return JsonResponse({'status': 'completed', 'file_path': file_path})
             else:

@@ -320,7 +320,7 @@ def shared_async_task(data):
     task = Task.objects.get(user=user_id, is_running=True)
     task.is_running = False
     task.save()
-    return file_path
+    return file_path, output_data[::-1]
 
 
 def second_shares_polygon(symbol, timeframe, open_price, date, bound_up, bound_low):
