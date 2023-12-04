@@ -570,8 +570,10 @@ class SharesPolygonView(FormView):
                     'choice': form.cleaned_data['choice'],
                     'symbol': form.cleaned_data['symbol'],
                     'interval': form.cleaned_data['interval'],
-                    'bound': form.cleaned_data['bound'],
-                    'bound_unit': form.cleaned_data['bound_unit'],
+                    'bound_up': form.cleaned_data['bound_up'],
+                    'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                    'bound_low': form.cleaned_data['bound_low'],
+                    'bound_unit_low': form.cleaned_data['bound_unit_low'],
                     'custom_radio_field': form.cleaned_data['custom_radio_field'],
                     'start_data': form.cleaned_data['start_data'],
                     'end_data': form.cleaned_data['end_data']
