@@ -136,28 +136,6 @@ def process_data_async(data):
         else:
             output = '2'
 
-        # if bound_unit == '$':
-        #     if ((high - ope) >= bound and (ope - low) >= bound) or \
-        #             ((high - ope) >= bound and (ope - low) >= bound):
-        #         output = minute(symbol=symbol, open_price=ope, bound=bound, date=time, time_frame=float(data['interval']))
-        #     elif ((high - ope) >= bound) or ((high - ope) >= bound):
-        #         output = '1'
-        #     elif ((ope - low) >= bound) or ((ope - low) >= bound):
-        #         output = '0'
-        #     else:
-        #         output = '2'
-        # elif bound_unit == '%':
-        #     bound_percent = ope / 100 * bound
-        #     if ((high - ope) >= bound_percent and (ope - low) >= bound_percent) or \
-        #             ((high - ope) >= bound_percent and (ope - low) >= bound_percent):
-        #         output = minute(symbol=symbol, open_price=ope, bound=bound_percent, date=time, time_frame=float(data['interval']))
-        #     elif ((high - ope) >= bound_percent) or ((high - ope) >= bound_percent):
-        #         output = '1'
-        #     elif ((ope - low) >= bound_percent) or ((ope - low) >= bound_percent):
-        #         output = '0'
-        #     else:
-        #         output = '2'
-
         close = float(i['close'])
         output_data.append({'time': time, 'output': output, 'open': str(ope), 'close': str(close), 'high': str(high), 'low': str(low), 'volume': str(volume)})
 
@@ -188,7 +166,7 @@ def process_data_async(data):
     task = Task.objects.get(user=data['us'], is_running=True)
     task.is_running = False
     task.save()
-    return file_path
+    return file_path, output_data
 
 
 def controversial(symbol, timeframe, open_price, date, bound_up, bound_low):
@@ -790,12 +768,12 @@ def shares_polygon_async_task(data):
         task = Task.objects.get(user=data['us'], is_running=True)
         task.is_running = False
         task.save()
-        return output_file_path
+        return output_file_path, output_data
     else:
         task = Task.objects.get(user=data['us'], is_running=True)
         task.is_running = False
         task.save()
-        return file_path
+        return file_path, output_data
 
 
 def send_notification_at_time(datetime_str):
@@ -1071,7 +1049,7 @@ def shares_yfinance_async_task(data):
     task = Task.objects.get(is_running=True)
     task.is_running = False
     task.save()
-    return file_path
+    return file_path, output_data
 
 
 def read_csv_data(file_path):
