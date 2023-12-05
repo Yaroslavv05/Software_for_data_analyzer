@@ -851,10 +851,6 @@ def trade(request):
     return render(request, 'trading.html', {'form': form})
 
 
-def waiting(request):
-    return render(request, 'waiting.html')
-
-
 class TradingView(View):
     template_name = 'tradingview.html'
 

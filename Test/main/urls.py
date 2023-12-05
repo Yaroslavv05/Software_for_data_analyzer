@@ -20,7 +20,6 @@ urlpatterns = [
     path('profile/delete/<int:profile_id>/', delete_profile, name='delete_profile'),
     path('edit_profile/<int:profile_id>/', EditProfileView.as_view(), name='edit_profile'),
     path('trade', trade, name='trade'),
-    path('waiting', waiting, name='waiting'),
     path('cancel_task', cancel_task, name='cancel_task'),
     path('shares-yfinance', SharesYFinanceView.as_view(), name='shares_yfinance'),
     path('tradingview', TradingView.as_view(), name='tradingview'),
