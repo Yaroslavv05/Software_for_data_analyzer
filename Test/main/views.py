@@ -604,8 +604,10 @@ class SharesYFinanceView(FormView):
             form = SharesYFinanceForm(initial={
                 'symbol':  '',
                 'interval': form.cleaned_data['interval'],
-                'bound': form.cleaned_data['bound'],
-                'bound_unit': form.cleaned_data['bound_unit'],
+                'bound_up': form.cleaned_data['bound_up'],
+                'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                'bound_low': form.cleaned_data['bound_low'],
+                'bound_unit_low': form.cleaned_data['bound_unit_low'],
                 'start_data': form.cleaned_data['start_data'],
                 'end_data': form.cleaned_data['end_data'],
             })
@@ -641,8 +643,10 @@ class SharesYFinanceView(FormView):
             form = SharesYFinanceForm(initial={
                 'symbol':  form.cleaned_data['symbol'],
                 'interval': form.cleaned_data['interval'],
-                'bound': form.cleaned_data['bound'],
-                'bound_unit': form.cleaned_data['bound_unit'],
+                'bound_up': form.cleaned_data['bound_up'],
+                'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                'bound_low': form.cleaned_data['bound_low'],
+                'bound_unit_low': form.cleaned_data['bound_unit_low'],
                 'start_data': form.cleaned_data['start_data'],
                 'end_data': '',
             })
@@ -653,8 +657,10 @@ class SharesYFinanceView(FormView):
                 form = SharesYFinanceForm(initial={
                     'symbol':  form.cleaned_data['symbol'],
                     'interval': form.cleaned_data['interval'],
-                    'bound': form.cleaned_data['bound'],
-                    'bound_unit': form.cleaned_data['bound_unit'],
+                    'bound_up': form.cleaned_data['bound_up'],
+                    'bound_unit_up': form.cleaned_data['bound_unit_up'],
+                    'bound_low': form.cleaned_data['bound_low'],
+                    'bound_unit_low': form.cleaned_data['bound_unit_low'],
                     'start_data': form.cleaned_data['start_data'],
                     'end_data': form.cleaned_data['end_data'],
                 })
