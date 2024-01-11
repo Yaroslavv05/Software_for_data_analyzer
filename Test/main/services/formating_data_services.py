@@ -8,9 +8,9 @@ from ..models import DateLog
 class FormatingDataService:
     def __init__(self, symbol, bound_up, bound_unit_up, bound_low, bound_unit_low, start_date, end_date, min_interval, api_key):
         self.symbol = symbol
-        self.bound_up = bound_up
+        self.bound_up = float(bound_up)
         self.bound_unit_up = bound_unit_up
-        self.bound_low = bound_low
+        self.bound_low = float(bound_low)
         self.bound_unit_low = bound_unit_low
         self.start_date = start_date
         self.end_date = end_date
@@ -179,12 +179,12 @@ class FormatingDataService:
             if self.bound_unit_up == '$':
                 bound_value_up = self.bound_up
             elif self.bound_unit_up == '%':
-                bound_value_up = (float(i['o']) / 100) * self.bound_up
+                bound_value_up = (float(candle['o']) / 100) * self.bound_up
             
             if self.bound_unit_low == '$':
                 bound_value_low = self.bound_low
             elif self.bound_unit_low == '%':
-                bound_value_low = (float(i['o']) / 100) * self.bound_low
+                bound_value_low = (float(candle['o']) / 100) * self.bound_low
 
             if float(candle['h']) - float(candle['o']) >= bound_value_up and float(candle['o']) - float(candle['l']) >= bound_value_low:
                 if self.min_interval == '60':
