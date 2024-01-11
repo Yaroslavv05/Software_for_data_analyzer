@@ -3,6 +3,7 @@ from datetime import datetime, timezone, timedelta
 import pytz
 import openpyxl
 import os
+from ..models import DateLog
 
 class FormatingDataService:
     def __init__(self, symbol, bound_up, bound_unit_up, bound_low, bound_unit_low, start_date, end_date, min_interval, api_key):
@@ -173,6 +174,8 @@ class FormatingDataService:
         self.output_data = []
 
         for candle in candles_4h:
+            parsed_date = datetime.strptime(candle['t'], "%Y-%m-%d %H:%M:%S")
+            DateLog.objects.create(date=parsed_date.date(), task_id='1')
             if self.bound_unit_up == '$':
                 bound_value_up = self.bound_up
             elif self.bound_unit_up == '%':
@@ -205,6 +208,13 @@ class FormatingDataService:
                 'trade': candle['n'],
                 'volume': candle['v']
             })
+            import time
+            time.sleep(0.01)
+            try:
+                date_log = DateLog.objects.get(task_id='1')
+                date_log.delete()
+            except:
+                print('Ничего не найденно по такому ID')
 
         return self.output_data
     

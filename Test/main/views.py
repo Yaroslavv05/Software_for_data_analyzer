@@ -393,9 +393,14 @@ class SharesView(FormView):
 
 
 def ajax(request):
-    date_log = DateLog.objects.get(task_id=request.session.get('task_id'))
-    dates_list = [date_log.date]
-    return JsonResponse({'dates_list': dates_list})
+    try:
+        date_log = DateLog.objects.get(task_id='1')
+        dates_list = [date_log.date]
+        return JsonResponse({'dates_list': dates_list})
+    except:
+        date_log = DateLog.objects.get(task_id=request.session.get('task_id'))
+        dates_list = [date_log.date]
+        return JsonResponse({'dates_list': dates_list})
 
 
 def process_shares(request):

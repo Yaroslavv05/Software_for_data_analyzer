@@ -641,8 +641,10 @@ def shares_polygon_async_task(data):
     if timeframe == '4 hour':
         formating = FormatingDataService(symbol=symbol, bound_up=bound_up, bound_unit_up=bound_unit_up, bound_low=bound_low, bound_unit_low=bound_unit_low, start_date=start_date, end_date=end_date, min_interval=data['min_interval'], api_key=api)
         file_path, output_data = formating.save_output_to_excel()
+        task = Task.objects.get(user=data['us'], is_running=True)
+        task.is_running = False
+        task.save()
         return file_path, output_data
-        
     else:
         intervals = split_into_3_month_intervals(datetime.strptime(start_date, '%Y-%m-%d').date(), datetime.strptime(end_date, '%Y-%m-%d').date())
 
