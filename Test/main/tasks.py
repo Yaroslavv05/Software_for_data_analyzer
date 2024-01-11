@@ -16,6 +16,7 @@ import pytz
 import csv
 from .models import *
 from django.utils import timezone
+from .services.formating_data_services import FormatingDataService
 
 
 def minute(symbol, open_price, bound_up, bound_low, date, time_frame):
@@ -636,144 +637,151 @@ def shares_polygon_async_task(data):
     end_date = data['end_data']
     api = data['api']
     print(start_date)
-    intervals = split_into_3_month_intervals(datetime.strptime(start_date, '%Y-%m-%d').date(), datetime.strptime(end_date, '%Y-%m-%d').date())
-
-    res = []
-    for i, interval in enumerate(intervals, start=1):
-        if timeframe == '1 hour':
-            url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/30/minute/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
-        else:
-            interval_parts = timeframe.split()
-            url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
-
-        response = requests.get(url)
-        res.append(response.json()['results'])
-
-    mass = []
-    for subarray in res:
-        for i in subarray:
-            unix_timestamp_seconds = i['t'] / 1000
-            unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
-            ny_timezone = pytz.timezone('America/New_York')
-            ny_datetime = unix_datetime.astimezone(ny_timezone)
-            mass.append({
-                'time': ny_datetime.strftime("%Y-%m-%d %H:%M:%S"),
-                'open': i['o'],
-                'close': i['c'],
-                'high': i['h'],
-                'low': i['l'],
-                'trade': i['n'],
-                'volume': i['v']
-            })
-
-    output_data = []
-    for i in mass:
-        parsed_date = datetime.strptime(i['time'], "%Y-%m-%d %H:%M:%S")
-        aware_date = timezone.make_aware(parsed_date)
-        DateLog.objects.create(date=aware_date.date(), task_id=shares_polygon_async_task.request.id)
-        open_price = float(i['open'])
-        high_price = float(i['high'])
-        low_price = float(i['low'])
-
-        if bound_unit_up == '$':
-            if (high_price - open_price >= bound_up) and (open_price - low_price >= bound_up):
-                if data['min_interval'] == '60':
-                    output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
-                                                date=i['time'], bound_up=bound_up, bound_low=bound_low)
-                elif data['min_interval'] == '1':
-                    output = second_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
-                                                date=i['time'], bound_up=bound_up, bound_low=bound_low)
-            elif high_price - open_price >= bound_up:
-                output = '1'
-            elif open_price - low_price >= bound_low:
-                output = '0'
-            else:
-                output = '2'
-        elif bound_unit_up == '%':
-            if (high_price - open_price >= (open_price / 100 * bound_up)) and (open_price - low_price >= (open_price / 100 * bound_low)):
-                if data['min_interval'] == '60':
-                    output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
-                                                date=i['time'], bound_up=(open_price / 100 * bound_up), bound_low=(open_price / 100 * bound_low))
-                elif data['min_interval'] == '1':
-                    output = second_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
-                                                date=i['time'], bound_up=(open_price / 100 * bound_up), bound_low=(open_price / 100 * bound_low))
-            elif high_price - open_price >= (open_price / 100 * bound_up):
-                output = '1'
-            elif open_price - low_price >= (open_price / 100 * bound_low):
-                output = '0'
-            else:
-                output = '2'
-
-        output_data.append({
-            'time': i['time'],
-            'output': output,
-            'open': str(open_price),
-            'close': str(i['close']),
-            'high': str(high_price),
-            'low': str(low_price),
-            'trade': i['trade'],
-            'volume': i['volume']
-        })
-        import time
-        time.sleep(0.01)
-        try:
-            date_log = DateLog.objects.get(task_id=shares_polygon_async_task.request.id)
-            date_log.delete()
-        except:
-            print('Ничего не найденно по такому ID')
-
-    filtered_output_data = []
-    if data['pre'] == 'in':
-        if timeframe == '1 day':
-            filtered_output_data = output_data
-        else:
-            for item in output_data:
-                time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
-                if (time.hour > 9 or (time.hour == 9 and time.minute >= 30)) and \
-                        (time.hour < 15 or (time.hour == 15 and time.minute <= 30)):
-                    filtered_output_data.append(item)
-    elif data['pre'] == 'pre':
-        filtered_output_data = output_data
-
-    wb = openpyxl.Workbook()
-    ws = wb.active
-
-    headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Trade', 'Volume']
-    for col_index, header in enumerate(headers, 1):
-        ws.cell(row=1, column=col_index, value=header)
-
-    for row_index, item in enumerate(filtered_output_data, 2):
-        row_data = [item['time'], item['output'], item['open'].replace(',', '.'), item['close'].replace(',', '.'), item['high'].replace(',', '.'), item['low'].replace(',', '.'), item['trade'],
-                    item['volume']]
-        for col_index, value in enumerate(row_data, 1):
-            ws.cell(row=row_index, column=col_index, value=value)
-
-    output_buffer = io.BytesIO()
-    wb.save(output_buffer)
-    output_buffer.seek(0)
-
-    file_path = f'{symbol}_{timeframe}_{bound_up}{bound_unit_up}_{bound_low}{bound_unit_low}_{start_date}_{end_date}(Polygon).xlsx'
-    file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
-    with open(file_path, 'wb') as file:
-        file.write(output_buffer.read())
-
-    if timeframe == '1 hour':
-        input_file_path = file_path
-        output_file_path = f'{symbol}_1_hour_{bound_up}{bound_unit_up}_{bound_low}{bound_unit_low}_{start_date}_{end_date}(Polygon).xlsx'
-
-        data_processor = DataProcessor(input_file_path, output_file_path, bound_up=bound_up, bound_low=bound_low, symbol=symbol,
-                                       bound_unit_up=bound_unit_up, bound_unit_low=bound_unit_low, min_interval=data['min_interval'])
-        data_processor.load_data()
-        data_processor.save_output_to_excel()
-        task = Task.objects.get(user=data['us'], is_running=True)
-        task.is_running = False
-        task.save()
-        return output_file_path, output_data
-    else:
-        task = Task.objects.get(user=data['us'], is_running=True)
-        task.is_running = False
-        task.save()
+    print(timeframe)
+    if timeframe == '4 hour':
+        formating = FormatingDataService(symbol=symbol, bound_up=bound_up, bound_unit_up=bound_unit_up, bound_low=bound_low, bound_unit_low=bound_unit_low, start_date=start_date, end_date=end_date, min_interval=data['min_interval'], api_key=api)
+        file_path, output_data = formating.save_output_to_excel()
         return file_path, output_data
+        
+    else:
+        intervals = split_into_3_month_intervals(datetime.strptime(start_date, '%Y-%m-%d').date(), datetime.strptime(end_date, '%Y-%m-%d').date())
+
+        res = []
+        for i, interval in enumerate(intervals, start=1):
+            if timeframe == '1 hour':
+                url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/30/minute/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
+            else:
+                interval_parts = timeframe.split()
+                url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
+
+            response = requests.get(url)
+            res.append(response.json()['results'])
+
+        mass = []
+        for subarray in res:
+            for i in subarray:
+                unix_timestamp_seconds = i['t'] / 1000
+                unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
+                ny_timezone = pytz.timezone('America/New_York')
+                ny_datetime = unix_datetime.astimezone(ny_timezone)
+                mass.append({
+                    'time': ny_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                    'open': i['o'],
+                    'close': i['c'],
+                    'high': i['h'],
+                    'low': i['l'],
+                    'trade': i['n'],
+                    'volume': i['v']
+                })
+
+        output_data = []
+        for i in mass:
+            parsed_date = datetime.strptime(i['time'], "%Y-%m-%d %H:%M:%S")
+            aware_date = timezone.make_aware(parsed_date)
+            DateLog.objects.create(date=aware_date.date(), task_id=shares_polygon_async_task.request.id)
+            open_price = float(i['open'])
+            high_price = float(i['high'])
+            low_price = float(i['low'])
+
+            if bound_unit_up == '$':
+                if (high_price - open_price >= bound_up) and (open_price - low_price >= bound_up):
+                    if data['min_interval'] == '60':
+                        output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
+                                                    date=i['time'], bound_up=bound_up, bound_low=bound_low)
+                    elif data['min_interval'] == '1':
+                        output = second_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
+                                                    date=i['time'], bound_up=bound_up, bound_low=bound_low)
+                elif high_price - open_price >= bound_up:
+                    output = '1'
+                elif open_price - low_price >= bound_low:
+                    output = '0'
+                else:
+                    output = '2'
+            elif bound_unit_up == '%':
+                if (high_price - open_price >= (open_price / 100 * bound_up)) and (open_price - low_price >= (open_price / 100 * bound_low)):
+                    if data['min_interval'] == '60':
+                        output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
+                                                    date=i['time'], bound_up=(open_price / 100 * bound_up), bound_low=(open_price / 100 * bound_low))
+                    elif data['min_interval'] == '1':
+                        output = second_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
+                                                    date=i['time'], bound_up=(open_price / 100 * bound_up), bound_low=(open_price / 100 * bound_low))
+                elif high_price - open_price >= (open_price / 100 * bound_up):
+                    output = '1'
+                elif open_price - low_price >= (open_price / 100 * bound_low):
+                    output = '0'
+                else:
+                    output = '2'
+
+            output_data.append({
+                'time': i['time'],
+                'output': output,
+                'open': str(open_price),
+                'close': str(i['close']),
+                'high': str(high_price),
+                'low': str(low_price),
+                'trade': i['trade'],
+                'volume': i['volume']
+            })
+            import time
+            time.sleep(0.01)
+            try:
+                date_log = DateLog.objects.get(task_id=shares_polygon_async_task.request.id)
+                date_log.delete()
+            except:
+                print('Ничего не найденно по такому ID')
+
+        filtered_output_data = []
+        if data['pre'] == 'in':
+            if timeframe == '1 day':
+                filtered_output_data = output_data
+            else:
+                for item in output_data:
+                    time = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
+                    if (time.hour > 9 or (time.hour == 9 and time.minute >= 30)) and \
+                            (time.hour < 15 or (time.hour == 15 and time.minute <= 30)):
+                        filtered_output_data.append(item)
+        elif data['pre'] == 'pre':
+            filtered_output_data = output_data
+
+        wb = openpyxl.Workbook()
+        ws = wb.active
+
+        headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Trade', 'Volume']
+        for col_index, header in enumerate(headers, 1):
+            ws.cell(row=1, column=col_index, value=header)
+
+        for row_index, item in enumerate(filtered_output_data, 2):
+            row_data = [item['time'], item['output'], item['open'].replace(',', '.'), item['close'].replace(',', '.'), item['high'].replace(',', '.'), item['low'].replace(',', '.'), item['trade'],
+                        item['volume']]
+            for col_index, value in enumerate(row_data, 1):
+                ws.cell(row=row_index, column=col_index, value=value)
+
+        output_buffer = io.BytesIO()
+        wb.save(output_buffer)
+        output_buffer.seek(0)
+
+        file_path = f'{symbol}_{timeframe}_{bound_up}{bound_unit_up}_{bound_low}{bound_unit_low}_{start_date}_{end_date}(Polygon).xlsx'
+        file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
+        with open(file_path, 'wb') as file:
+            file.write(output_buffer.read())
+
+        if timeframe == '1 hour':
+            input_file_path = file_path
+            output_file_path = f'{symbol}_1_hour_{bound_up}{bound_unit_up}_{bound_low}{bound_unit_low}_{start_date}_{end_date}(Polygon).xlsx'
+
+            data_processor = DataProcessor(input_file_path, output_file_path, bound_up=bound_up, bound_low=bound_low, symbol=symbol,
+                                        bound_unit_up=bound_unit_up, bound_unit_low=bound_unit_low, min_interval=data['min_interval'])
+            data_processor.load_data()
+            data_processor.save_output_to_excel()
+            task = Task.objects.get(user=data['us'], is_running=True)
+            task.is_running = False
+            task.save()
+            return output_file_path, output_data
+        else:
+            task = Task.objects.get(user=data['us'], is_running=True)
+            task.is_running = False
+            task.save()
+            return file_path, output_data
 
 
 def send_notification_at_time(datetime_str):
