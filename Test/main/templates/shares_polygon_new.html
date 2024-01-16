@@ -110,7 +110,7 @@
 {% endfor %}
 <div class="container d-flex justify-content-center align-items-center" style="min-height: 100vh">
     <div id="forms" class="col-lg-6 col-md-8 col-sm-10 col-12">
-        <h1 class="text-center" style="color: #1abc9c;">Акции(Polygon 1-й алгоритм)</h1>
+        <h1 class="text-center" style="color: #1abc9c;">Акции(Polygon 2-й алгоритм)</h1>
         <form method="post" action="{% url 'shares_polygon' %}">
             {% csrf_token %}
             <div id="manual-form">
@@ -126,28 +126,22 @@
                 {{ form.choice }}
                 {{ form.symbol }}
                 {{ form.interval }}
-                <div class="d-flex">
-                    {{ form.bound_up }}
-                    {{ form.bound_unit_up }}
-                </div>
-                <div class="d-flex">
-                    {{ form.bound_low }}
-                    {{ form.bound_unit_low }}
-                </div>
-                {{ form.start_data }}
-                {{ form.end_data }}
-                <div class="checkbox-wrapper">
+                {{ form.interval_start }}
+                {{ form.interval_end }}
+                {{ form.start_date }}
+                {{ form.end_date }}
+                {% comment %} <div class="checkbox-wrapper">
                     <label for="monitoring_status">Сохранить как шаблон:</label>
                     {{ form.save_tamplates }}
-                </div>
+                </div> {% endcomment %}
             </div>
-            <div id="template-form" style="display: none;">
+            {% comment %} <div id="template-form" style="display: none;">
                 {{ form.selected_template }}
             </div>
             <div class="form-check form-switch" style="display: flex; align-items: center; margin-bottom: 10px; color: #1abc9c;">
                 <label style="margin-right: 50px; margin-left: -40px;" for="use-template">Использовать шаблон:</label>
                 {{ form.use_template }}
-            </div>
+            </div> {% endcomment %}
             <button type="submit" class="btn btn-primary">Отправить</button>
         </form>
     </div>

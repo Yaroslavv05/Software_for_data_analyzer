@@ -12,10 +12,11 @@
             <a href="#" class="dropbtn">Акции</a>
             <div class="dropdown-content">
                 <a href="{% url 'shares' %}">Twelve Data</a>
-                <a href="{% url 'shares_polygon' %}">Polygon</a>
+                <a href="{% url 'shares_polygon' %}">1-й алгоритм Polygon</a>
+                <a href="{% url 'shares_polygon_new' %}">2-й алгоритм Polygon</a>
                 <a href="{% url 'shares_yfinance' %}">Yahoo Finance</a>
             </div>
-        </div>
+        </div>        
         <a href="{% url 'trade' %}">Торговать</a>
         <a href="{% url 'tradingview' %}">Tradingview</a>
         <div class="dropdown crypto">

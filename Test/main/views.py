@@ -429,6 +429,15 @@ def cancel_task(request):
     return JsonResponse({'message': 'Метод запроса должен быть POST'})
 
 
+def shares_polygon_new(request):
+    if request.method == 'POST':
+        # Handle form submission logic here if needed
+        pass
+    else:
+        form = SharesPolygonNewForm()
+    return render(request, 'shares_polygon_new.html', {'form': form})
+
+
 class SharesPolygonView(FormView):
     template_name = 'shares_polygon.html'
     form_class = SharesPolygonForm
