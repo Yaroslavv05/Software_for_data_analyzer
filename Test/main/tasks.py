@@ -1298,9 +1298,9 @@ def shares_polygon_new_async_task(data):
     intervals = split_into_3_month_intervals(datetime.strptime(start_date, '%Y-%m-%d').date(), datetime.strptime(end_date, '%Y-%m-%d').date())
 
     interval_parts = timeframe.split()
-    url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{start_date.strftime("%Y-%m-%d")}/{end_date.strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api_key}'
+    url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api_key}'
 
-    response = requests.get(url)
+    response = requests.get(url).json()['results']
 
     output_data = []
     for candle in response:
