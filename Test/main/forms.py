@@ -196,10 +196,6 @@ class SharesPolygonNewForm(forms.Form):
         ('5 hour', '5ч'), ('6 hour', '6ч'), ('7 hour', '7ч'), ('8 hour', '8ч'), ('9 hour', '9ч'), ('10 hour', '10ч'), ('11 hour', '11ч'), ('12 hour', '12ч'), ('1 day', '1д'), ('1 week', '1н'),
         ('1 month', '1М'), ('1 year', '1г')
     ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
-    BOUND_UNIT_CHOICES = [
-        ('$', 'Доллар ($)'),
-        ('%', 'Процент (%)'),
-    ]
     interval_start = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Начало интервала'}))
     interval_end = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Конец интервала'}))
     start_date = SplitDateTimeField(required=False)
