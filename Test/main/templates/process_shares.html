@@ -36,7 +36,7 @@
         });
     </script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
+    {% comment %} <script>
       function updateDates() {
         $.ajax({
           url: '{% url 'ajax' %}',
@@ -51,7 +51,7 @@
         });
       }
       updateDates();
-    </script>
+    </script> {% endcomment %}
     <style>
         body {
             font-family: Arial, sans-serif;

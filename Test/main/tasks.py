@@ -1224,65 +1224,73 @@ def format_timestamp(timestamp):
 
 
 def check_crossing(date, symbol, timeframe):
-    interval_mapping = {
-        '1 minute': 0.0166666667,
-        '5 minute': 0.0833333333,
-        '15 minute': 0.25,
-        '30 minute': 0.5,
-        '45 minute': 0.75,
-        '1 hour': 1.0,
-        '2 hour': 2.0,
-        '3 hour': 3.0,
-        '4 hour': 4.0,
-        '5 hour': 5.0,
-        '6 hour': 6.0,
-        '7 hour': 7.0,
-        '8 hour': 8.0,
-        '9 hour': 9.0,
-        '10 hour': 10.0,
-        '11 hour': 11.0,
-        '12 hour': 12.0,
-        '1 day': 24.0,
-        '1 week': 168.0,
-        '1 month': 720.0,
-        '1 year': 8760
-    }
-    start_date = date
-    start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
-        start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
-    else:
+    try:
+        interval_mapping = {
+            '1 minute': 0.0166666667,
+            '5 minute': 0.0833333333,
+            '15 minute': 0.25,
+            '30 minute': 0.5,
+            '45 minute': 0.75,
+            '1 hour': 1.0,
+            '2 hour': 2.0,
+            '3 hour': 3.0,
+            '4 hour': 4.0,
+            '5 hour': 5.0,
+            '6 hour': 6.0,
+            '7 hour': 7.0,
+            '8 hour': 8.0,
+            '9 hour': 9.0,
+            '10 hour': 10.0,
+            '11 hour': 11.0,
+            '12 hour': 12.0,
+            '1 day': 24.0,
+            '1 week': 168.0,
+            '1 month': 720.0,
+            '1 year': 8760
+        }
+        
+        start_date = date
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    ny_timezone = pytz.timezone('America/New_York')
-    start_date_datetime = ny_timezone.localize(start_date_datetime)
-    end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
-    start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
-    end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
-    url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
-    response = requests.get(url).json()['results']
-    
-    previous = None
-    active_flag = False
-    
-    for i in response:
-        if active_flag:
-            avg = (float(i['h']) + float(i['l'])) / 2
-            if float(i['o']) > avg:
-                if float(i['h']) > previous_avg:
-                    return '1'
-                else:
-                    return '0'
-            # else:
-            #     if float(i['l']) < previous_avg:
-            #         return '0'
-            #     else:
-            #         return '1'
-                
-            active_flag = False
+        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+        else:
+            start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        ny_timezone = pytz.timezone('America/New_York')
+        start_date_datetime = ny_timezone.localize(start_date_datetime)
+        end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
+        start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+        end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+        url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
+        print(requests.get(url).json())
+        
+        response = requests.get(url).json()['results']
+
             
-        if float(i['h']) > float(i['l']):
-            previous_avg = (float(i['h']) + float(i['l'])) / 2
-            active_flag = True  # Set the active flag if H > L
+        
+        previous = None
+        active_flag = False
+        
+        for i in response:
+            if active_flag:
+                avg = (float(i['h']) + float(i['l'])) / 2
+                if float(i['o']) > avg:
+                    if float(i['h']) > previous_avg:
+                        return '1'
+                    else:
+                        return '0'
+                # else:
+                #     if float(i['l']) < previous_avg:
+                #         return '0'
+                #     else:
+                #         return '1'
+                    
+                active_flag = False
+                
+            if float(i['h']) > float(i['l']):
+                previous_avg = (float(i['h']) + float(i['l'])) / 2
+                active_flag = True  # Set the active flag if H > L
+    except Exception as e:
+        print(e)
             
 
 
@@ -1334,21 +1342,6 @@ def shares_polygon_new_async_task(data):
             'volume': candle['v']
             
         })
-
-
-    # wb = openpyxl.Workbook()
-    # ws = wb.active
-
-    # headers = ['Date', 'Status', 'Output', 'Open', 'Close', 'High', 'Low', 'Volume']
-    # for col_index, header in enumerate(headers, 1):
-    #     ws.cell(row=1, column=col_index, value=header)
-
-    # for item in output_data:
-    #     row_data = [item['time'], item['status'], item['output'], item['open'], item['close'], item['high'], item['low'], item['volume']]
-    #     ws.append(row_data)
-    # file_path = 'test.xlsx'
-    # with open(file_path, 'wb') as file:
-    #     wb.save(file)
         
         
     wb = openpyxl.Workbook()

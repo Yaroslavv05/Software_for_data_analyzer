@@ -739,11 +739,15 @@ def check_task_status(request):
                 request.session['file_path'] = file_path
                 return JsonResponse({'status': 'completed', 'file_path': file_path})
             else:
-                task = Task.objects.get(user=request.user, is_running=True)
-                task.is_running = False
-                task.save()
-                print('failed')
-                return JsonResponse({'status': 'Task failed.'})
+                try:
+                    task = Task.objects.get(user=request.user, is_running=True)
+                    task.is_running = False
+                    task.save()
+                    print('failed')
+                    return JsonResponse({'status': 'Task failed.'})
+                except:
+                    print('failed')
+                    return JsonResponse({'status': 'Task failed.'})
         else:
             print('running')
             return JsonResponse({'status': 'running'})
