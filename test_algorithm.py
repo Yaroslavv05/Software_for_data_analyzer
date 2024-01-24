@@ -2,173 +2,229 @@ import requests
 from datetime import datetime, timedelta
 import pytz
 import openpyxl
-import os
+import io
 
-def calculation(high, low):
-    result = ((high - low) / low) * 100
-    return result
-
-
-def format_timestamp(timestamp):
-    dt = datetime.fromtimestamp(timestamp / 1000)
-    return dt.strftime('%Y-%m-%d %H:%M:%S')
-
-
-def check_crossing(date, symbol, timeframe):
-    interval_mapping = {
-        '1min': 0.0166666667,
-        '5min': 0.05,
-        '15min': 0.0833333333,
-        '30min': 0.25,
-        '45min': 0.375,
-        '1h': 1.0,
-        '2h': 2.0,
-        '4h': 4.0,
-        '1day': 24.0,
-        '1week': 168.0,
-        '1month': 720.0
-    }
-    start_date = date
-    if len(date) == 10:
-        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d')
-    else:
-        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    end_date_datetime = start_date_datetime + timedelta(hours=float(interval_mapping[timeframe]))
-    url = f'https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval=1min&symbol={symbol}&timezone=exchange&start_date={start_date}&end_date={end_date_datetime}'
-    response = requests.get(url).json()['values'][::-1]
-    
-    previous = None
-    active_flag = False
-    
-    for i in response:
-        if active_flag:
-            # Case 2: Check for H or L after crossing the middle of the active candle
-            avg = (float(i['high']) + float(i['low'])) / 2
-            # print("Timestamp:", format_timestamp(i['t']))
-            # Check if the opening price crosses the average
-            if float(i['open']) > avg:
-                if float(i['high']) > previous_avg:
-                    return '1'
-                elif float(i['low']) < previous_avg:
-                    return '0'
-            # else:
-            #     if float(i['low']) < previous_avg:
-            #         return '0'
-            #     else:
-            #         return '1'
-                
-            active_flag = False  # Reset the active flag after processing
-            
-        # Case 1: Check for H or L before crossing the middle of the candle
-        if float(i['high']) > float(i['low']):
-            previous_avg = (float(i['high']) + float(i['low'])) / 2
-            active_flag = True  # Set the active flag if H > L
-            
-        print(i)
-    
-url = 'https://api.twelvedata.com/time_series?apikey=7e1f42d9a4f743749ffa9e77958e06a4&interval=1h&symbol=AAPL&timezone=exchange&start_date=2024-01-02 00:00:00&end_date=2024-01-16 00:00:00&format=JSON'
-response = requests.get(url=url).json()['values'][::-1]
-
+symbol = 'AAPL'
+timeframe = '1 day'
 interval_start = 1
 interval_end = 2
+start_date = '2024-01-01'
+end_date = '2024-01-15'
+api_key = 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
+interval_parts = timeframe.split()
+  
+
+
+def check_crossing_low(avg, previous_high, previous_low, date, symbol, timeframe):
+    try:
+        interval_mapping = {
+            '1 minute': 0.0166666667,
+            '5 minute': 0.0833333333,
+            '15 minute': 0.25,
+            '30 minute': 0.5,
+            '45 minute': 0.75,
+            '1 hour': 1.0,
+            '2 hour': 2.0,
+            '3 hour': 3.0,
+            '4 hour': 4.0,
+            '5 hour': 5.0,
+            '6 hour': 6.0,
+            '7 hour': 7.0,
+            '8 hour': 8.0,
+            '9 hour': 9.0,
+            '10 hour': 10.0,
+            '11 hour': 11.0,
+            '12 hour': 12.0,
+            '1 day': 24.0,
+            '1 week': 168.0,
+            '1 month': 720.0,
+            '1 year': 8760
+        }
+        
+        start_date = date
+        print(start_date)
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+        else:
+            start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        ny_timezone = pytz.timezone('America/New_York')
+        start_date_datetime = ny_timezone.localize(start_date_datetime)
+        end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
+        start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+        end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+        url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
+        
+        response = requests.get(url).json()['results']
+        print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
+        for candle in response:
+            print(candle)
+            if candle['h'] > avg:
+                output = '0'
+                status = 'ACTIVE'
+                return output, status
+    except Exception as e:
+        print(e)  
+
+
+def check_crossing_high(avg, previous_high, previous_low, date, symbol, timeframe):
+    try:
+        interval_mapping = {
+            '1 minute': 0.0166666667,
+            '5 minute': 0.0833333333,
+            '15 minute': 0.25,
+            '30 minute': 0.5,
+            '45 minute': 0.75,
+            '1 hour': 1.0,
+            '2 hour': 2.0,
+            '3 hour': 3.0,
+            '4 hour': 4.0,
+            '5 hour': 5.0,
+            '6 hour': 6.0,
+            '7 hour': 7.0,
+            '8 hour': 8.0,
+            '9 hour': 9.0,
+            '10 hour': 10.0,
+            '11 hour': 11.0,
+            '12 hour': 12.0,
+            '1 day': 24.0,
+            '1 week': 168.0,
+            '1 month': 720.0,
+            '1 year': 8760
+        }
+        
+        start_date = date
+        print(start_date)
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+        else:
+            start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        ny_timezone = pytz.timezone('America/New_York')
+        start_date_datetime = ny_timezone.localize(start_date_datetime)
+        end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
+        start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+        end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+        url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
+        
+        response = requests.get(url).json()['results']
+        print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
+        for candle in response:
+            print(candle)
+            if candle['l'] < avg:
+                output = '1'
+                status = 'ACTIVE'
+                return output, status
+    except Exception as e:
+        print(e)
+
+
+url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api_key}'
+
+response = requests.get(url).json()['results']
+
+first_active_found = False
+avg = 0.0
+previous_high = 0.0
+previous_low = 0.0
 
 output_data = []
-for index, candle in enumerate(response):
-    calculate = calculation(high=float(candle['high']), low=float(candle['low']))
-    if interval_start <= calculate <= interval_end:
-        print('ACTIVE')
+for i in range(len(response) - 1):
+    previous_candle = response[i - 1]
+    candle = response[i]
+    next_candle = response[i + 1]
+    
+    unix_timestamp_seconds = candle['t'] / 1000
+    unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
+    ny_timezone = pytz.timezone('America/New_York')
+    ny_datetime = unix_datetime.astimezone(ny_timezone)
+    time = ny_datetime.strftime("%Y-%m-%d %H:%M:%S")
+    open_price = candle['o']
+    high = candle['h']
+    low = candle['l']
+    close = candle['c'] 
+    volume = candle['v']
+    trade = candle['n']
+    amplitude = ((high - low) / low) * 100
+    print(candle)
+    if interval_start <= amplitude <= interval_end and not first_active_found:
         status = 'ACTIVE'
-        # print("Timestamp:", format_timestamp(candle['datetime']))
-        print(candle)
-        # dt = datetime.fromtimestamp(candle['t'] / 1000)
-        output = check_crossing(date=candle['datetime'], symbol='AAPL', timeframe='1h')
-        print(output)
+        output = '1'
+        print(status, output)
+        first_active_found = True
+        avg = (high + low) / 2
+        previous_high = high
+        previous_low = low
     else:
-        status = 'NOT ACTIVE'
-        # print("Timestamp:", format_timestamp(candle['datetime']))
-        print('NOT ACTIVE')
-        output = 2
-        print(candle)
-        print('2')
-    # unix_timestamp_seconds = candle['datetime'] / 1000
-    # unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
-    # ny_timezone = pytz.timezone('America/New_York')
-    # ny_datetime = unix_datetime.astimezone(ny_timezone)
+        if first_active_found == True:
+            if previous_high < high and low > avg:
+                print(f'previous_high - {previous_high}\nhigh - {high}\nlow - {low}\navg - {avg}\nprevious low - {previous_low}')
+                status = 'NOT ACTIVE'
+                output = '2'
+                print(status, output)
+            elif previous_low > low and high < avg:
+                print(f'previous_high - {previous_high}\nhigh - {high}\nlow - {low}\navg - {avg}\nprevious low - {previous_low}')
+                status = 'NOT ACTIVE'
+                output = '2'
+                print(status, output)
+            elif previous_high < high and low < avg:
+                print(f'previous_high - {previous_high}\nhigh - {high}\nlow - {low}\navg - {avg}\nprevious low - {previous_low}')
+                output, status  = check_crossing_high(avg, previous_high, previous_low, time, symbol, timeframe)
+                print(status, output)
+                if status == 'ACTIVE':
+                    avg = (high + low) / 2
+                    previous_high = high
+                    previous_low = low
+            elif previous_low > low and high > avg:
+                print(f'previous_high - {previous_high}\nhigh - {high}\nlow - {low}\navg - {avg}\nprevious low - {previous_low}')
+                output, status = check_crossing_low(avg, previous_high, previous_low, time, symbol, timeframe)
+                print(status, output)
+                if status == 'ACTIVE':
+                    avg = (high + low) / 2
+                    previous_high = high
+                    previous_low = low
+            elif previous_candle['l'] > low and previous_high < high:
+                print(f'previous_high - {previous_high}\nhigh - {high}\nlow - {low}\navg - {avg}\nprevious low - {previous_low}')
+                status = 'NOT ACTIVE'   
+                output = '1/0/2'
+                print(status, output)
+            else:
+                status = 'NOT ACTIVE'
+                output = '2'
+                print(status, output)
+        else:
+            status = 'NOT ACTIVE'
+            output = '2'
+            print(status, output)
+        
     output_data.append({
-        'time': candle['datetime'],
+        'time': ny_datetime.strftime("%Y-%m-%d %H:%M:%S"),
         'status': status,
         'output': output,
-        'open': candle['open'],
-        'close': candle['close'],
-        'high': candle['high'],
-        'low': candle['low'],
-        # 'trade': candle['n'],
-        'volume': candle['volume']
-        
+        'open': candle['o'],
+        'close': candle['c'],
+        'high': candle['h'],
+        'low': candle['l'],
+        'trade': candle['n'],
+        'volume': candle['v']
     })
-
-
+            
+print(output_data)
 wb = openpyxl.Workbook()
 ws = wb.active
-
-headers = ['Date', 'Status', 'Output', 'Open', 'Close', 'High', 'Low', 'Volume']
+headers = ['Date', 'Status', 'Output', 'Open', 'Close', 'High', 'Low', 'Trade', 'Volume']
 for col_index, header in enumerate(headers, 1):
     ws.cell(row=1, column=col_index, value=header)
 
 for item in output_data:
-    row_data = [item['time'], item['status'], item['output'], item['open'], item['close'], item['high'], item['low'], item['volume']]
+    row_data = [item['time'], item['status'], item['output'], item['open'], item['close'], item['high'], item['low'], item['trade'], item['volume']]
     ws.append(row_data)
-file_path = 'test.xlsx'
+
+output_buffer = io.BytesIO()
+wb.save(output_buffer)
+output_buffer.seek(0)
+
+file_path = f'{symbol}_{timeframe}_{interval_start}%_{interval_end}%{start_date}_{end_date}(Polugon).xlsx'
+file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
 with open(file_path, 'wb') as file:
-    wb.save(file)
-
-
-# def analyze_candlestick(data, Alow, Aup):
-#     result = []
-
-#     for i in range(1, len(data)):
-#         current_candle = data[i]
-#         active_candle = data[i - 1]
-
-#         # Check if the necessary keys exist in the current and active candles
-#         if 'O' not in current_candle or 'H' not in current_candle or 'L' not in current_candle:
-#             continue
-#         if 'O' not in active_candle or 'H' not in active_candle or 'L' not in active_candle:
-#             continue
-
-#         # Calculate amplitude (A) of the given candlestick
-#         A = ((current_candle['H'] - current_candle['L']) * 100) / current_candle['O']
-
-#         if Alow <= A <= Aup:  # Candlestick is 'active'
-#             # Calculate average value
-#             Avg = (active_candle['H'] + active_candle['L']) / 2
-
-#             # Divide the time interval into smaller intervals (e.g., 1 minute intervals)
-#             time_intervals = 60  # 1 minute intervals
-#             for j in range(time_intervals):
-#                 # Calculate the opening price of the current interval
-#                 current_open = current_candle['O'] + (current_candle['H'] - current_candle['O']) * j / time_intervals
-
-#                 if current_open > Avg:  # Opening price crosses the Avg of the active candle
-#                     if current_candle['H'] > Avg:  # Check if H crosses Avg or H of the active candle
-#                         result.append((current_candle['timestamp'], 1))
-#                     elif current_candle['L'] > Avg:  # Check if L crosses Avg or H of the active candle
-#                         result.append((current_candle['timestamp'], 0))
-#                 elif current_open < Avg:  # Opening price crosses the Avg of the active candle
-#                     if current_candle['H'] < Avg:  # Check if H crosses Avg or L of the active candle
-#                         result.append((current_candle['timestamp'], 0))
-#                     elif current_candle['L'] < Avg:  # Check if L crosses Avg or L of the active candle
-#                         result.append((current_candle['timestamp'], 1))
-
-#     return result
-
-# # Example usage:
-# data = [
-#     {'timestamp': '2022-01-01 00:00:00', 'O': 100, 'H': 120, 'L': 90},
-#     {'timestamp': '2022-01-01 01:00:00', 'O': 110, 'H': 130, 'L': 95},
-#     # Add more data as needed
-# ]
-
-# result = analyze_candlestick(data, Alow=1, Aup=5)
-# print(result)
-
+    file.write(output_buffer.read())
