@@ -6,10 +6,10 @@ import io
 
 symbol = 'AAPL'
 timeframe = '1 day'
-interval_start = 1
-interval_end = 2
-start_date = '2024-01-01'
-end_date = '2024-01-15'
+interval_start = 0
+interval_end = 100
+start_date = '2023-12-01'
+end_date = '2023-12-31'
 api_key = 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
 interval_parts = timeframe.split()
   
@@ -57,12 +57,19 @@ def check_crossing_low(avg, previous_high, previous_low, date, symbol, timeframe
         
         response = requests.get(url).json()['results']
         print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
-        for candle in response:
+        index_to_start = 0
+        for i in range(index_to_start, len(response)):
+            candle = response[i]
             print(candle)
             if candle['h'] > avg:
-                output = '0'
-                status = 'ACTIVE'
-                return output, status
+                index_to_start = i
+                for i in range(index_to_start, len(response)):
+                    candle = response[i]
+                    print(candle)
+                    if candle['l'] < previous_low:
+                        output = '0'
+                        status = 'ACTIVE'
+                        return output, status
     except Exception as e:
         print(e)  
 
@@ -109,12 +116,20 @@ def check_crossing_high(avg, previous_high, previous_low, date, symbol, timefram
         
         response = requests.get(url).json()['results']
         print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
-        for candle in response:
+        index_to_start = 0
+        for i in range(index_to_start, len(response)):
+            candle = response[i]
             print(candle)
             if candle['l'] < avg:
-                output = '1'
-                status = 'ACTIVE'
-                return output, status
+                index_to_start = i
+                for i in range(index_to_start, len(response)):
+                    candle = response[i]
+                    print(candle)
+                    if candle['h'] > previous_high:
+                        output = '1'
+                        status = 'ACTIVE'
+                        return output, status
+                
     except Exception as e:
         print(e)
 
@@ -148,13 +163,19 @@ for i in range(len(response) - 1):
     amplitude = ((high - low) / low) * 100
     print(candle)
     if interval_start <= amplitude <= interval_end and not first_active_found:
-        status = 'ACTIVE'
-        output = '1'
-        print(status, output)
-        first_active_found = True
         avg = (high + low) / 2
-        previous_high = high
-        previous_low = low
+        if next_candle['l'] < avg and next_candle['o'] > avg  or next_candle['h'] > avg and next_candle['o'] < avg:
+            status = 'ACTIVE'
+            output = '1'
+            print(status, output)
+            first_active_found = True
+            avg = (high + low) / 2
+            previous_high = high
+            previous_low = low
+        else:
+            status = 'NOT ACTIVE'
+            output = '2'
+            print(status, output)
     else:
         if first_active_found == True:
             if previous_high < high and low > avg:
@@ -169,7 +190,11 @@ for i in range(len(response) - 1):
                 print(status, output)
             elif previous_high < high and low < avg:
                 print(f'previous_high - {previous_high}\nhigh - {high}\nlow - {low}\navg - {avg}\nprevious low - {previous_low}')
-                output, status  = check_crossing_high(avg, previous_high, previous_low, time, symbol, timeframe)
+                try:
+                    output, status  = check_crossing_high(avg, previous_high, previous_low, time, symbol, timeframe)
+                except:
+                    status = 'NOT ACTIVE'
+                    output = '2'
                 print(status, output)
                 if status == 'ACTIVE':
                     avg = (high + low) / 2
@@ -177,7 +202,11 @@ for i in range(len(response) - 1):
                     previous_low = low
             elif previous_low > low and high > avg:
                 print(f'previous_high - {previous_high}\nhigh - {high}\nlow - {low}\navg - {avg}\nprevious low - {previous_low}')
-                output, status = check_crossing_low(avg, previous_high, previous_low, time, symbol, timeframe)
+                try:
+                    output, status = check_crossing_low(avg, previous_high, previous_low, time, symbol, timeframe)
+                except:
+                    status = 'NOT ACTIVE'
+                    output = '2'
                 print(status, output)
                 if status == 'ACTIVE':
                     avg = (high + low) / 2
