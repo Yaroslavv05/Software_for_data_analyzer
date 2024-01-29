@@ -8,8 +8,8 @@ symbol = 'AAPL'
 timeframe = '1 day'
 interval_start = 0
 interval_end = 100
-start_date = '2023-12-01'
-end_date = '2023-12-31'
+start_date = '2024-01-01'
+end_date = '2024-01-28'
 api_key = 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
 interval_parts = timeframe.split()
   
@@ -45,7 +45,7 @@ def check_crossing_low(avg, previous_high, previous_low, date, symbol, timeframe
         print(start_date)
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
         if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
-            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+            start_date_datetime = start_date_datetime.replace(hour=4, minute=0, second=0)
         else:
             start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
         ny_timezone = pytz.timezone('America/New_York')
@@ -57,19 +57,21 @@ def check_crossing_low(avg, previous_high, previous_low, date, symbol, timeframe
         
         response = requests.get(url).json()['results']
         print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
-        index_to_start = 0
-        for i in range(index_to_start, len(response)):
-            candle = response[i]
+        crossed_avg = False
+
+        for i, candle in enumerate(response):
             print(candle)
-            if candle['h'] > avg:
-                index_to_start = i
-                for i in range(index_to_start, len(response)):
-                    candle = response[i]
-                    print(candle)
-                    if candle['l'] < previous_low:
-                        output = '0'
-                        status = 'ACTIVE'
-                        return output, status
+            if crossed_avg == False and candle['h'] > avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['l'] < previous_low:
+                output = '2'
+                status = 'NOT ACTIVE'
+                return output, status
+            elif crossed_avg and candle['l'] < previous_low:
+                output = '0'
+                status = 'ACTIVE'
+                return output, status
     except Exception as e:
         print(e)  
 
@@ -104,7 +106,7 @@ def check_crossing_high(avg, previous_high, previous_low, date, symbol, timefram
         print(start_date)
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
         if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
-            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+            start_date_datetime = start_date_datetime.replace(hour=4, minute=0, second=0)
         else:
             start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
         ny_timezone = pytz.timezone('America/New_York')
@@ -116,20 +118,21 @@ def check_crossing_high(avg, previous_high, previous_low, date, symbol, timefram
         
         response = requests.get(url).json()['results']
         print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
-        index_to_start = 0
-        for i in range(index_to_start, len(response)):
-            candle = response[i]
+        crossed_avg = False
+
+        for i, candle in enumerate(response):
             print(candle)
-            if candle['l'] < avg:
-                index_to_start = i
-                for i in range(index_to_start, len(response)):
-                    candle = response[i]
-                    print(candle)
-                    if candle['h'] > previous_high:
-                        output = '1'
-                        status = 'ACTIVE'
-                        return output, status
-                
+            if crossed_avg == False and candle['l'] < avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['h'] > previous_high:
+                output = '2'
+                status = 'NOT ACTIVE'
+                return output, status
+            elif crossed_avg and candle['h'] > previous_high:
+                output = '1'
+                status = 'ACTIVE'
+                return output, status                
     except Exception as e:
         print(e)
 
