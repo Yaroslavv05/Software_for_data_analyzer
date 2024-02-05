@@ -7,9 +7,9 @@ import io
 symbol = 'AAPL'
 timeframe = '1 day'
 interval_start = 0
-interval_end = 100
+interval_end = 5
 start_date = '2024-01-01'
-end_date = '2024-01-28'
+end_date = '2024-02-01'
 api_key = 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
 interval_parts = timeframe.split()
   
@@ -45,7 +45,7 @@ def check_crossing_low(avg, previous_high, previous_low, date, symbol, timeframe
         print(start_date)
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
         if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
-            start_date_datetime = start_date_datetime.replace(hour=4, minute=0, second=0)
+            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
         else:
             start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
         ny_timezone = pytz.timezone('America/New_York')
@@ -106,7 +106,7 @@ def check_crossing_high(avg, previous_high, previous_low, date, symbol, timefram
         print(start_date)
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
         if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
-            start_date_datetime = start_date_datetime.replace(hour=4, minute=0, second=0)
+            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
         else:
             start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
         ny_timezone = pytz.timezone('America/New_York')
@@ -141,7 +141,6 @@ url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{interval_parts[0]}
 
 response = requests.get(url).json()['results']
 
-first_active_found = False
 avg = 0.0
 previous_high = 0.0
 previous_low = 0.0
@@ -165,69 +164,44 @@ for i in range(len(response) - 1):
     trade = candle['n']
     amplitude = ((high - low) / low) * 100
     print(candle)
-    if interval_start <= amplitude <= interval_end and not first_active_found:
+    if interval_start <= amplitude <= interval_end:
         avg = (high + low) / 2
-        if next_candle['l'] < avg and next_candle['o'] > avg  or next_candle['h'] > avg and next_candle['o'] < avg:
-            status = 'ACTIVE'
-            output = '1'
+        next_high = next_candle['h']
+        next_low = next_candle['l']
+        if high < next_high and next_low > avg:
+            print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+            status = 'NOT ACTIVE'
+            output = '2'
             print(status, output)
-            first_active_found = True
-            avg = (high + low) / 2
-            previous_high = high
-            previous_low = low
+        elif low > next_low and next_high < avg:
+            print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+            status = 'NOT ACTIVE'
+            output = '2'
+            print(status, output)
+        elif high < next_high and next_low < avg:
+            print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+            try:
+                output, status  = check_crossing_high(avg, previous_high, previous_low, time, symbol, timeframe)
+            except:
+                status = 'NOT ACTIVE'
+                output = '2'
+            print(status, output)
+        elif low > next_low and next_high > avg:
+            print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+            try:
+                output, status = check_crossing_low(avg, previous_high, previous_low, time, symbol, timeframe)
+            except:
+                status = 'NOT ACTIVE'
+                output = '2'
+            print(status, output)
         else:
             status = 'NOT ACTIVE'
             output = '2'
             print(status, output)
     else:
-        if first_active_found == True:
-            if previous_high < high and low > avg:
-                print(f'previous_high - {previous_high}\nhigh - {high}\nlow - {low}\navg - {avg}\nprevious low - {previous_low}')
-                status = 'NOT ACTIVE'
-                output = '2'
-                print(status, output)
-            elif previous_low > low and high < avg:
-                print(f'previous_high - {previous_high}\nhigh - {high}\nlow - {low}\navg - {avg}\nprevious low - {previous_low}')
-                status = 'NOT ACTIVE'
-                output = '2'
-                print(status, output)
-            elif previous_high < high and low < avg:
-                print(f'previous_high - {previous_high}\nhigh - {high}\nlow - {low}\navg - {avg}\nprevious low - {previous_low}')
-                try:
-                    output, status  = check_crossing_high(avg, previous_high, previous_low, time, symbol, timeframe)
-                except:
-                    status = 'NOT ACTIVE'
-                    output = '2'
-                print(status, output)
-                if status == 'ACTIVE':
-                    avg = (high + low) / 2
-                    previous_high = high
-                    previous_low = low
-            elif previous_low > low and high > avg:
-                print(f'previous_high - {previous_high}\nhigh - {high}\nlow - {low}\navg - {avg}\nprevious low - {previous_low}')
-                try:
-                    output, status = check_crossing_low(avg, previous_high, previous_low, time, symbol, timeframe)
-                except:
-                    status = 'NOT ACTIVE'
-                    output = '2'
-                print(status, output)
-                if status == 'ACTIVE':
-                    avg = (high + low) / 2
-                    previous_high = high
-                    previous_low = low
-            elif previous_candle['l'] > low and previous_high < high:
-                print(f'previous_high - {previous_high}\nhigh - {high}\nlow - {low}\navg - {avg}\nprevious low - {previous_low}')
-                status = 'NOT ACTIVE'   
-                output = '1/0/2'
-                print(status, output)
-            else:
-                status = 'NOT ACTIVE'
-                output = '2'
-                print(status, output)
-        else:
-            status = 'NOT ACTIVE'
-            output = '2'
-            print(status, output)
+        status = 'NOT ACTIVE'
+        output = '2'
+        print(status, output)
         
     output_data.append({
         'time': ny_datetime.strftime("%Y-%m-%d %H:%M:%S"),
