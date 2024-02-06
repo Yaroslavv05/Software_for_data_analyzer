@@ -1266,13 +1266,14 @@ def check_crossing_low(avg, previous_high, previous_low, date, symbol, timeframe
             elif crossed_avg == False and candle['l'] < previous_low:
                 output = '2'
                 status = 'NOT ACTIVE'
-                return output, status
+                return output, status, crossed_avg 
             elif crossed_avg and candle['l'] < previous_low:
                 output = '0'
                 status = 'ACTIVE'
-                return output, status
+                return output, status, crossed_avg 
     except Exception as e:
-        print(e)  
+        print(e) 
+    return '1/0', 'ACTIVE', crossed_avg   
 
 
 def check_crossing_high(avg, previous_high, previous_low, date, symbol, timeframe):
@@ -1327,13 +1328,16 @@ def check_crossing_high(avg, previous_high, previous_low, date, symbol, timefram
             elif crossed_avg == False and candle['h'] > previous_high:
                 output = '2'
                 status = 'NOT ACTIVE'
-                return output, status
+                return output, status, crossed_avg
             elif crossed_avg and candle['h'] > previous_high:
                 output = '1'
                 status = 'ACTIVE'
-                return output, status                
+                crossed_avg = False
+                return output, status, crossed_avg
+            
     except Exception as e:
         print(e)
+    return '1/0', 'ACTIVE', crossed_avg
             
 
 
@@ -1385,6 +1389,21 @@ def shares_polygon_new_async_task(data):
                 status = 'NOT ACTIVE'
                 output = '2'
                 print(status, output)
+            elif next_high > avg and next_low < avg and next_high < high and next_low > low:
+                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                previous_high = high
+                previous_low = low
+                for j in response[i:-1]:
+                    if j['h'] > previous_high:
+                        status = 'ACTIVE'
+                        output = '1'
+                        print(status, output)
+                        break
+                    elif j['l'] < previous_low:
+                        status = 'ACTIVE'
+                        output = '0'
+                        print(status, output)
+                        break
             elif low > next_low and next_high < avg:
                 print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
                 status = 'NOT ACTIVE'
@@ -1392,20 +1411,40 @@ def shares_polygon_new_async_task(data):
                 print(status, output)
             elif high < next_high and next_low < avg:
                 print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
-                try:
-                    output, status  = check_crossing_high(avg, previous_high, previous_low, time, symbol, timeframe)
-                except:
-                    status = 'NOT ACTIVE'
-                    output = '2'
+                output, status, crossed_avg  = check_crossing_high(avg, previous_high, previous_low, time, symbol, timeframe)
                 print(status, output)
+                if output == '1/0' and status == 'ACTIVE' and crossed_avg == True:
+                    previous_high = high
+                    previous_low = low
+                    for j in response[i:-1]:
+                        if j['h'] > previous_high:
+                            status = 'ACTIVE'
+                            output = '1'
+                            print(status, output)
+                            break
+                        elif j['l'] < previous_low:
+                            status = 'ACTIVE'
+                            output = '0'
+                            print(status, output)
+                            break
             elif low > next_low and next_high > avg:
                 print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
-                try:
-                    output, status = check_crossing_low(avg, previous_high, previous_low, time, symbol, timeframe)
-                except:
-                    status = 'NOT ACTIVE'
-                    output = '2'
+                output, status, crossed_avg = check_crossing_low(avg, previous_high, previous_low, time, symbol, timeframe)
                 print(status, output)
+                if output == '1/0' and status == 'ACTIVE' and crossed_avg == True:
+                    previous_high = high
+                    previous_low = low
+                    for j in response[i:-1]:
+                        if j['h'] > previous_high:
+                            status = 'ACTIVE'
+                            output = '1'
+                            print(status, output)
+                            break
+                        elif j['l'] < previous_low:
+                            status = 'ACTIVE'
+                            output = '0'
+                            print(status, output)
+                            break
             else:
                 status = 'NOT ACTIVE'
                 output = '2'
@@ -1426,9 +1465,8 @@ def shares_polygon_new_async_task(data):
             'trade': candle['n'],
             'volume': candle['v']
         })
-                
-        print(output_data)
         
+    print(output_data)    
     wb = openpyxl.Workbook()
     ws = wb.active
     headers = ['Date', 'Status', 'Output', 'Open', 'Close', 'High', 'Low', 'Trade', 'Volume']
