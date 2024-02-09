@@ -429,40 +429,158 @@ def cancel_task(request):
     return JsonResponse({'message': 'Метод запроса должен быть POST'})
 
 
-def shares_polygon_new(request):
-    if request.method == 'POST':
-        form = SharesPolygonNewForm(request.POST)
-        if form.is_valid():
-            symbol = form.cleaned_data['symbol']
-            timeframe = form.cleaned_data['interval']
-            interval_start = form.cleaned_data['interval_start']
-            interval_end = form.cleaned_data['interval_end']
-            start_date = form.cleaned_data['start_date']
-            end_date = form.cleaned_data['end_date']
-            pre = form.cleaned_data['choice']
-            min_interval = form.cleaned_data['custom_radio_field']
-            # task = Task.objects.create(user=request.user, is_running=True)
-            data = {
-                'symbol': symbol,
-                'timeframe': timeframe,
-                'interval_start': interval_start,
-                'interval_end': interval_end,
-                'start_date': start_date.strftime('%Y-%m-%d'),
-                'end_date': end_date.strftime('%Y-%m-%d'),
-                'api_key': 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz',
-                'pre': pre,
-                'task_id': request.session.get('task_id'),
-                'us': request.user.id,
-                'min_interval': min_interval
-            }
+# def shares_polygon_new(request):
+#     if request.method == 'POST':
+#         form = SharesPolygonNewForm(request.POST)
+#         if form.is_valid():
+#             symbol = form.cleaned_data['symbol']
+#             timeframe = form.cleaned_data['interval']
+#             interval_start = form.cleaned_data['interval_start']
+#             interval_end = form.cleaned_data['interval_end']
+#             start_date = form.cleaned_data['start_date']
+#             end_date = form.cleaned_data['end_date']
+#             pre = form.cleaned_data['choice']
+#             min_interval = form.cleaned_data['custom_radio_field']
+#             # task = Task.objects.create(user=request.user, is_running=True)
+#             data = {
+#                 'symbol': symbol,
+#                 'timeframe': timeframe,
+#                 'interval_start': interval_start,
+#                 'interval_end': interval_end,
+#                 'start_date': start_date.strftime('%Y-%m-%d'),
+#                 'end_date': end_date.strftime('%Y-%m-%d'),
+#                 'api_key': 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz',
+#                 'pre': pre,
+#                 'task_id': request.session.get('task_id'),
+#                 'us': request.user.id,
+#                 'min_interval': min_interval
+#             }
             
-            task = shares_polygon_new_async_task.delay(data)
-            request.session['task_id'] = task.id
-            print(request.session.get('task_id'))
-            return redirect('process_shares')
-    else:
-        form = SharesPolygonNewForm()
-    return render(request, 'shares_polygon_new.html', {'form': form})
+#             task = shares_polygon_new_async_task.delay(data)
+#             request.session['task_id'] = task.id
+#             print(request.session.get('task_id'))
+#             return redirect('process_shares')
+#     else:
+#         form = SharesPolygonNewForm()
+#     return render(request, 'shares_polygon_new.html', {'form': form})
+
+
+class SharesPolygonNewView(FormView):
+    template_name = 'shares_polygon_new.html'
+    form_class = SharesPolygonNewForm
+    
+    def form_valid(self, form):
+        symbol = form.cleaned_data['symbol']
+        interval = form.cleaned_data['interval']
+        interval_start = form.cleaned_data['interval_start']
+        interval_end = form.cleaned_data['interval_end']
+        start_data = form.cleaned_data['start_data']
+        end_data = form.cleaned_data['end_data']
+        pre = form.cleaned_data['choice']
+        symbol_validity = check_symbol_validity(symbol, start_data, end_data)
+    
+        if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['interval_start'] and form.cleaned_data['interval_end'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['choice'] and form.cleaned_data['custom_radio_field']):
+            if symbol_validity == "invalid symbol":
+                messages.error(self.request, 'Неверный символ!')
+                form = SharesPolygonNewForm(initial={
+                    'choice': form.cleaned_data['choice'],
+                    'symbol': '',
+                    'interval': form.cleaned_data['interval'],
+                    'interval_start': form.cleaned_data['interval_start'],
+                    'interval_end': form.cleaned_data['interval_end'],
+                    'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': form.cleaned_data['end_data']
+                })
+                return render(self.request, self.template_name, {'form': form})
+            elif float(interval_start) < 0:
+                messages.error(self.request, 'Связка не может быть отрицательной!')
+                form = SharesPolygonNewForm(user=self.request.user.id,initial={
+                    'choice': form.cleaned_data['choice'],
+                    'symbol': form.cleaned_data['symbol'],
+                    'interval': form.cleaned_data['interval'],
+                    'interval_start': '',
+                    'interval_end': form.cleaned_data['interval_end'],
+                    'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': form.cleaned_data['end_data']
+                })
+                return render(self.request, self.template_name, {'form': form})
+            elif float(interval_end) < 0:
+                messages.error(self.request, 'Связка не может быть отрицательной!')
+                form = SharesPolygonNewForm(user=self.request.user.id,initial={
+                    'choice': form.cleaned_data['choice'],
+                    'symbol': form.cleaned_data['symbol'],
+                    'interval': form.cleaned_data['interval'],
+                    'interval_start': form.cleaned_data['interval_start'],
+                    'interval_end': '',
+                    'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': form.cleaned_data['end_data']
+                })
+                return render(self.request, self.template_name, {'form': form})
+            elif end_data < start_data:
+                messages.error(self.request, 'Дата окончания должна быть позже даты начала!')
+                form = SharesPolygonNewForm(user=self.request.user.id,initial={
+                    'choice': form.cleaned_data['choice'],
+                    'symbol': form.cleaned_data['symbol'],
+                    'interval': form.cleaned_data['interval'],
+                    'interval_start': form.cleaned_data['interval_start'],
+                    'interval_end': form.cleaned_data['interval_end'],
+                    'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': ''
+                })
+                return render(self.request, self.template_name, {'form': form})
+            else:
+                if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                    messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                    form = SharesPolygonNewForm(user=self.request.user.id,initial={
+                        'choice': form.cleaned_data['choice'],
+                        'symbol': form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'interval_start': form.cleaned_data['interval_start'],
+                        'interval_end': form.cleaned_data['interval_end'],
+                        'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data']
+                    })
+                    return render(self.request, self.template_name, {'form': form})
+                else:
+                    # task = Task.objects.create(user=self.request.user, is_running=True)
+                    data = {
+                        'symbol': symbol,
+                        'timeframe': interval,
+                        'interval_start': interval_start,
+                        'interval_end': interval_end,
+                        'start_date': start_data.strftime('%Y-%m-%d'),
+                        'end_date': end_data.strftime('%Y-%m-%d'),
+                        'api_key': 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz',
+                        'pre': pre,
+                        'task_id': self.request.session.get('task_id'),
+                        'us': self.request.user.id,
+                    }
+                    
+                    task = shares_polygon_new_async_task.delay(data)
+                    self.request.session['task_id'] = task.id
+                    print(self.request.session.get('task_id'))
+                    return redirect('process_shares')
+        else:
+            messages.error(self.request, 'Пожалуйста, заполните все поля.')
+            form = SharesPolygonNewForm(initial={
+                'choice': form.cleaned_data['choice'],
+                'symbol': form.cleaned_data['symbol'],
+                'interval': form.cleaned_data['interval'],
+                'interval_start': form.cleaned_data['interval_start'],
+                'interval_end': form.cleaned_data['interval_end'],
+                'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                'start_data': form.cleaned_data['start_data'],
+                'end_data': form.cleaned_data['end_data']
+            })
+            return render(self.request, self.template_name, {'form': form})           
+
+    def get_success_url(self):
+        return reverse('process_shares')
 
 
 class SharesPolygonView(FormView):

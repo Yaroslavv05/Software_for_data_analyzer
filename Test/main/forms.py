@@ -197,8 +197,8 @@ class SharesPolygonNewForm(forms.Form):
     ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
     interval_start = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Начало интервала'}))
     interval_end = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Конец интервала'}))
-    start_date = SplitDateTimeField(required=False)
-    end_date = SplitDateTimeField(required=False )
+    start_data = SplitDateTimeField(required=False)
+    end_data = SplitDateTimeField(required=False )
     custom_radio_field = forms.ChoiceField(
         choices=(
             ('60', '1 минута'),
