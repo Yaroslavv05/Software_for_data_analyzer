@@ -177,7 +177,6 @@ class SharesPolygonForm(forms.Form):
     use_template = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'type': "checkbox", "id": "use-template", 'name': "use_template"}))
     custom_radio_field = forms.ChoiceField(
         choices=(
-            ('1', '1 секунда'),
             ('60', '1 минута'),
         ), 
         widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
@@ -202,7 +201,6 @@ class SharesPolygonNewForm(forms.Form):
     end_date = SplitDateTimeField(required=False )
     custom_radio_field = forms.ChoiceField(
         choices=(
-            ('1', '1 секунда'),
             ('60', '1 минута'),
         ), 
         widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
@@ -315,7 +313,6 @@ class EditTemplatePolygonForm(forms.Form):
     end_data = SplitDateTimeField()
     custom_radio_field = forms.ChoiceField(
         choices=(
-            ('1', '1 секунда'),
             ('60', '1 минута'),
         ), 
         widget=forms.RadioSelect(attrs={'class': 'form-check-input'})

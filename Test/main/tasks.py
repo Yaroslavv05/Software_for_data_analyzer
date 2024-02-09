@@ -16,7 +16,8 @@ import pytz
 import csv
 from .models import *
 from django.utils import timezone
-from .services.formating_data_services import FormatingDataService
+from .services.formating_data_services import FormatingDataService, DataProcessor
+from .services.formating_data_new_services import FormatingDataServiceNew
 
 
 def minute(symbol, open_price, bound_up, bound_low, date, time_frame):
@@ -418,199 +419,6 @@ def minute_shares_polygon(symbol, timeframe, open_price, date, bound_up, bound_l
             return '1'
         elif open_price - float(i['low']) >= bound_low:
             return '0'
-
-
-class DataProcessor:
-    def __init__(self, input_file_path, output_file_path, bound_up, bound_low, symbol, bound_unit_up, bound_unit_low, min_interval):
-        self.input_file_path = input_file_path
-        self.output_file_path = output_file_path
-        self.bound_up = bound_up
-        self.bound_unit_up = bound_unit_up
-        self.bound_low = bound_low
-        self.bound_unit_low = bound_unit_low
-        self.symbol = symbol
-        self.min_interval = min_interval
-        self.hourly_intervals = []
-
-    def load_data(self):
-        workbook = openpyxl.load_workbook(self.input_file_path)
-        sheet = workbook.active
-        headers = [cell.value for cell in sheet[1]]
-        data_list = []
-
-        for row in sheet.iter_rows(values_only=True, min_row=2):
-            row_data = dict(zip(headers, row))
-            time = datetime.strptime(row_data['Date'], '%Y-%m-%d %H:%M:%S')
-            if self.is_valid_time(time):
-                data_list.append(row_data)
-
-        data_list.sort(key=lambda x: (x['Date'][-5:] == ':30', x['Date']))
-        workbook.close()
-        self.process_intervals(data_list)
-
-    def is_valid_time(self, time):
-        return (time.hour == 9 and time.minute >= 30) or (9 < time.hour < 15) or (time.hour == 15 and time.minute <= 30)
-
-    def process_intervals(self, data_list):
-        current_interval = None
-
-        for candle in data_list:
-            candle_date = datetime.strptime(candle['Date'], '%Y-%m-%d %H:%M:%S')
-
-            if current_interval is None:
-                current_interval = {
-                    'time': candle_date.strftime('%Y-%m-%d %H:%M:%S'),
-                    'open': candle['Open'],
-                    'close': candle['Close'],
-                    'high': candle['High'],
-                    'low': candle['Low'],
-                    'trade': candle['Trade'],
-                    'volume': candle['Volume']
-                }
-            else:
-                current_interval_date = datetime.strptime(current_interval['time'], '%Y-%m-%d %H:%M:%S')
-                time_difference = (candle_date - current_interval_date).total_seconds()
-                if time_difference < 3600:
-                    current_interval['close'] = candle['Close']
-                    current_interval['high'] = max(current_interval['high'], candle['High'])
-                    current_interval['low'] = min(current_interval['low'], candle['Low'])
-                    current_interval['trade'] += candle['Trade']
-                    current_interval['volume'] += candle['Volume']
-                else:
-                    self.hourly_intervals.append(current_interval)
-                    current_interval = {
-                        'time': candle_date.strftime('%Y-%m-%d %H:%M:%S'),
-                        'open': candle['Open'],
-                        'close': candle['Close'],
-                        'high': candle['High'],
-                        'low': candle['Low'],
-                        'trade': candle['Trade'],
-                        'volume': candle['Volume']
-                    }
-
-        if current_interval:
-            self.hourly_intervals.append(current_interval)
-    
-    def second(self, symbol, open_price, date, bound_up, bound_low):
-        start_date = date
-        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
-            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
-        else:
-            start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-        ny_timezone = pytz.timezone('America/New_York')
-        start_date_datetime = ny_timezone.localize(start_date_datetime)
-        end_date_datetime = start_date_datetime + timedelta(hours=1)
-        start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
-        end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
-
-        response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/second/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
-        print(response.json())
-        d = response.json()['results']
-        mass = []
-        for i in d:
-            dt = datetime.fromtimestamp(i['t'] / 1000)
-            mass.append({
-                'time': dt.strftime('%Y-%m-%d %H:%M:%S'),
-                'open': i['o'],
-                'close': i['c'],
-                'high': i['h'],
-                'low': i['l']
-            })
-
-        for i in mass:
-            if float(i['high']) - open_price >= bound_up:
-                return '1'
-            elif open_price - float(i['low']) >= bound_low:
-                return '0'
-
-    def minte(self, date, symbol, open_price, bound_up, bound_low):
-        start_date = date
-        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
-            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
-        else:
-            start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-        ny_timezone = pytz.timezone('America/New_York')
-        start_date_datetime = ny_timezone.localize(start_date_datetime)
-        end_date_datetime = start_date_datetime + timedelta(hours=1)
-        start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
-        end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
-
-        response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
-        print(response.json())
-        d = response.json()['results']
-        mass = []
-        for i in d:
-            dt = datetime.fromtimestamp(i['t'] / 1000)
-            mass.append({
-                'time': dt.strftime('%Y-%m-%d %H:%M:%S'),
-                'open': i['o'],
-                'close': i['c'],
-                'high': i['h'],
-                'low': i['l']
-            })
-
-        for i in mass:
-            if float(i['high']) - open_price >= bound_up:
-                return '1'
-            elif open_price - float(i['low']) >= bound_low:
-                return '0'
-
-    def generate_output(self):
-        output_data = []
-
-        for i in self.hourly_intervals:
-            if self.bound_unit_up == '$':
-                bound_value_up = self.bound_up
-            elif self.bound_unit_up == '%':
-                bound_value_up = (float(i['open']) / 100) * self.bound_up
-            
-            if self.bound_unit_low == '$':
-                bound_value_low = self.bound_low
-            elif self.bound_unit_low == '%':
-                bound_value_low = (float(i['open']) / 100) * self.bound_low
-
-            if float(i['high']) - float(i['open']) >= bound_value_up and float(i['open']) - float(i['low']) >= bound_value_low:
-                if self.min_interval == '60':
-                    output = self.minte(symbol=self.symbol, date=i['time'], open_price=float(i['open']), bound_up=bound_value_up, bound_low=bound_value_low)
-                elif self.min_interval == '1':
-                    output = self.second(symbol=self.symbol, date=i['time'], open_price=float(i['open']), bound_up=bound_value_up, bound_low=bound_value_low)
-            elif float(i['high']) - float(i['open']) >= bound_value_up:
-                output = '1'
-            elif float(i['open']) - float(i['low']) >= bound_value_low:
-                output = '0'
-            else:
-                output = '2'
-
-            output_data.append({
-                'time': i['time'],
-                'output': output,
-                'open': i['open'],
-                'close': i['close'],
-                'high': i['high'],
-                'low': i['low'],
-                'trade': i['trade'],
-                'volume': i['volume']
-            })
-
-        return output_data
-
-    def save_output_to_excel(self):
-        wb = openpyxl.Workbook()
-        ws = wb.active
-
-        headers = ['Date', 'Output', 'Open', 'Close', 'High', 'Low', 'Trade', 'Volume']
-        for col_index, header in enumerate(headers, 1):
-            ws.cell(row=1, column=col_index, value=header)
-
-        output_data = self.generate_output()
-        for item in output_data:
-            row_data = [item['time'], item['output'], item['open'], item['close'], item['high'], item['low'], item['trade'], item['volume']]
-            ws.append(row_data)
-
-        with open(self.output_file_path, 'wb') as file:
-            wb.save(file)
 
 
 def split_into_3_month_intervals(start_date, end_date):
@@ -1420,78 +1228,62 @@ def shares_polygon_new_async_task(data):
     end_date = data['end_date']
     api_key = data['api_key']
     
-    
-    interval_parts = timeframe.split()
-    url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api_key}'
+    if timeframe == '4 hour' or timeframe == '1 hour':
+        formating = FormatingDataServiceNew(symbol=symbol, timeframe=timeframe, interval_start=interval_start, interval_end=interval_end,  start_date=start_date, end_date=end_date, api_key=api_key)
+        file_path, output_data = formating.save_output_to_excel()
+        # task = Task.objects.get(user=data['us'], is_running=True)
+        # task.is_running = False
+        # task.save()
+        return file_path, output_data
+    else:
+        interval_parts = timeframe.split()
+        url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{start_date}/{end_date}?adjusted=true&sort=asc&limit=50000&apiKey={api_key}'
 
-    response = requests.get(url).json()['results']
+        response = requests.get(url).json()['results']
 
-    avg = 0.0
-    previous_high = 0.0
-    previous_low = 0.0
+        avg = 0.0
+        previous_high = 0.0
+        previous_low = 0.0
 
-    output_data = []
-    for i in range(len(response) - 1):
-        previous_candle = response[i - 1]
-        candle = response[i]
-        next_candle = response[i + 1]
-        
-        unix_timestamp_seconds = candle['t'] / 1000
-        unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
-        ny_timezone = pytz.timezone('America/New_York')
-        ny_datetime = unix_datetime.astimezone(ny_timezone)
-        time = ny_datetime.strftime("%Y-%m-%d %H:%M:%S")
-        open_price = candle['o']
-        high = candle['h']
-        low = candle['l']
-        close = candle['c'] 
-        volume = candle['v']
-        trade = candle['n']
-        amplitude = ((high - low) / low) * 100
-        print(candle)
-        unix_timestamp_seconds = next_candle['t'] / 1000
-        unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
-        ny_timezone = pytz.timezone('America/New_York')
-        ny_datetime_next = unix_datetime.astimezone(ny_timezone)
-        next_time = ny_datetime_next.strftime("%Y-%m-%d %H:%M:%S")
-        if interval_start <= amplitude <= interval_end:
-            avg = (high + low) / 2
-            next_high = next_candle['h']
-            next_low = next_candle['l']
-            if high < next_high and next_low > avg:
-                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
-                status = 'NOT ACTIVE'
-                output = '2'
-                print(status, output)
-            elif next_high > high and next_low < low:
-                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
-                output, status  = check_crossing_low_or_high(avg, high, low, next_time, symbol, timeframe)
-                print(status, output)
-            elif next_high > avg and next_low < avg and next_high < high and next_low > low:
-                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
-                previous_high = high
-                previous_low = low
-                for j in response[i:-1]:
-                    if j['h'] > previous_high:
-                        status = 'ACTIVE'
-                        output = '1'
-                        print(status, output)
-                        break
-                    elif j['l'] < previous_low:
-                        status = 'ACTIVE'
-                        output = '0'
-                        print(status, output)
-                        break
-            elif low > next_low and next_high < avg:
-                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
-                status = 'NOT ACTIVE'
-                output = '2'
-                print(status, output)
-            elif high < next_high and next_low < avg:
-                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
-                output, status, crossed_avg  = check_crossing_high(avg, high, low, next_time, symbol, timeframe)
-                print(status, output)
-                if output == '1/0' and status == 'ACTIVE' and crossed_avg == True:
+        output_data = []
+        for i in range(len(response) - 1):
+            previous_candle = response[i - 1]
+            candle = response[i]
+            next_candle = response[i + 1]
+            
+            unix_timestamp_seconds = candle['t'] / 1000
+            unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
+            ny_timezone = pytz.timezone('America/New_York')
+            ny_datetime = unix_datetime.astimezone(ny_timezone)
+            time = ny_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            open_price = candle['o']
+            high = candle['h']
+            low = candle['l']
+            close = candle['c'] 
+            volume = candle['v']
+            trade = candle['n']
+            amplitude = ((high - low) / low) * 100
+            print(candle)
+            unix_timestamp_seconds = next_candle['t'] / 1000
+            unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
+            ny_timezone = pytz.timezone('America/New_York')
+            ny_datetime_next = unix_datetime.astimezone(ny_timezone)
+            next_time = ny_datetime_next.strftime("%Y-%m-%d %H:%M:%S")
+            if interval_start <= amplitude <= interval_end:
+                avg = (high + low) / 2
+                next_high = next_candle['h']
+                next_low = next_candle['l']
+                if high < next_high and next_low > avg:
+                    print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                    status = 'NOT ACTIVE'
+                    output = '2'
+                    print(status, output)
+                elif next_high > high and next_low < low:
+                    print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                    output, status  = check_crossing_low_or_high(avg, high, low, next_time, symbol, timeframe)
+                    print(status, output)
+                elif next_high > avg and next_low < avg and next_high < high and next_low > low:
+                    print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
                     previous_high = high
                     previous_low = low
                     for j in response[i:-1]:
@@ -1505,63 +1297,86 @@ def shares_polygon_new_async_task(data):
                             output = '0'
                             print(status, output)
                             break
-            elif low > next_low and next_high > avg:
-                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
-                output, status, crossed_avg = check_crossing_low(avg, high, low, next_time, symbol, timeframe)
-                print(status, output)
-                if output == '1/0' and status == 'ACTIVE' and crossed_avg == True:
-                    previous_high = high
-                    previous_low = low
-                    for j in response[i:-1]:
-                        if j['h'] > previous_high:
-                            status = 'ACTIVE'
-                            output = '1'
-                            print(status, output)
-                            break
-                        elif j['l'] < previous_low:
-                            status = 'ACTIVE'
-                            output = '0'
-                            print(status, output)
-                            break
+                elif low > next_low and next_high < avg:
+                    print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                    status = 'NOT ACTIVE'
+                    output = '2'
+                    print(status, output)
+                elif high < next_high and next_low < avg:
+                    print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                    output, status, crossed_avg  = check_crossing_high(avg, high, low, next_time, symbol, timeframe)
+                    print(status, output)
+                    if output == '1/0' and status == 'ACTIVE' and crossed_avg == True:
+                        previous_high = high
+                        previous_low = low
+                        for j in response[i:-1]:
+                            if j['h'] > previous_high:
+                                status = 'ACTIVE'
+                                output = '1'
+                                print(status, output)
+                                break
+                            elif j['l'] < previous_low:
+                                status = 'ACTIVE'
+                                output = '0'
+                                print(status, output)
+                                break
+                elif low > next_low and next_high > avg:
+                    print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                    output, status, crossed_avg = check_crossing_low(avg, high, low, next_time, symbol, timeframe)
+                    print(status, output)
+                    if output == '1/0' and status == 'ACTIVE' and crossed_avg == True:
+                        previous_high = high
+                        previous_low = low
+                        for j in response[i:-1]:
+                            if j['h'] > previous_high:
+                                status = 'ACTIVE'
+                                output = '1'
+                                print(status, output)
+                                break
+                            elif j['l'] < previous_low:
+                                status = 'ACTIVE'
+                                output = '0'
+                                print(status, output)
+                                break
+                else:
+                    status = 'NOT ACTIVE'
+                    output = '2'
+                    print(status, output)
             else:
                 status = 'NOT ACTIVE'
                 output = '2'
                 print(status, output)
-        else:
-            status = 'NOT ACTIVE'
-            output = '2'
-            print(status, output)
+                
+            output_data.append({
+                'time': ny_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                'status': status,
+                'output': output,
+                'open': candle['o'],
+                'close': candle['c'],
+                'high': candle['h'],
+                'low': candle['l'],
+                'trade': candle['n'],
+                'volume': candle['v']
+            })
             
-        output_data.append({
-            'time': ny_datetime.strftime("%Y-%m-%d %H:%M:%S"),
-            'status': status,
-            'output': output,
-            'open': candle['o'],
-            'close': candle['c'],
-            'high': candle['h'],
-            'low': candle['l'],
-            'trade': candle['n'],
-            'volume': candle['v']
-        })
+        print(output_data)    
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        headers = ['Date', 'Status', 'Output', 'Open', 'Close', 'High', 'Low', 'Trade', 'Volume']
+        for col_index, header in enumerate(headers, 1):
+            ws.cell(row=1, column=col_index, value=header)
+
+        for item in output_data:
+            row_data = [item['time'], item['status'], item['output'], item['open'], item['close'], item['high'], item['low'], item['trade'], item['volume']]
+            ws.append(row_data)
+
+        output_buffer = io.BytesIO()
+        wb.save(output_buffer)
+        output_buffer.seek(0)
+
+        file_path = f'{symbol}_{timeframe}_{interval_start}%_{interval_end}%{start_date}_{end_date}(Polugon).xlsx'
+        file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
+        with open(file_path, 'wb') as file:
+            file.write(output_buffer.read())
         
-    print(output_data)    
-    wb = openpyxl.Workbook()
-    ws = wb.active
-    headers = ['Date', 'Status', 'Output', 'Open', 'Close', 'High', 'Low', 'Trade', 'Volume']
-    for col_index, header in enumerate(headers, 1):
-        ws.cell(row=1, column=col_index, value=header)
-
-    for item in output_data:
-        row_data = [item['time'], item['status'], item['output'], item['open'], item['close'], item['high'], item['low'], item['trade'], item['volume']]
-        ws.append(row_data)
-
-    output_buffer = io.BytesIO()
-    wb.save(output_buffer)
-    output_buffer.seek(0)
-
-    file_path = f'{symbol}_{timeframe}_{interval_start}%_{interval_end}%{start_date}_{end_date}(Polugon).xlsx'
-    file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
-    with open(file_path, 'wb') as file:
-        file.write(output_buffer.read())
-    
-    return file_path, output_data
+        return file_path, output_data

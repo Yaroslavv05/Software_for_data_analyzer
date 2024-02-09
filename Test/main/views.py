@@ -441,6 +441,7 @@ def shares_polygon_new(request):
             end_date = form.cleaned_data['end_date']
             pre = form.cleaned_data['choice']
             min_interval = form.cleaned_data['custom_radio_field']
+            # task = Task.objects.create(user=request.user, is_running=True)
             data = {
                 'symbol': symbol,
                 'timeframe': timeframe,
@@ -450,8 +451,8 @@ def shares_polygon_new(request):
                 'end_date': end_date.strftime('%Y-%m-%d'),
                 'api_key': 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz',
                 'pre': pre,
-                # 'task_id': self.request.session.get('task_id'),
-                # 'us': self.request.user.id,
+                'task_id': request.session.get('task_id'),
+                'us': request.user.id,
                 'min_interval': min_interval
             }
             
