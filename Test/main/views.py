@@ -429,42 +429,6 @@ def cancel_task(request):
     return JsonResponse({'message': 'Метод запроса должен быть POST'})
 
 
-# def shares_polygon_new(request):
-#     if request.method == 'POST':
-#         form = SharesPolygonNewForm(request.POST)
-#         if form.is_valid():
-#             symbol = form.cleaned_data['symbol']
-#             timeframe = form.cleaned_data['interval']
-#             interval_start = form.cleaned_data['interval_start']
-#             interval_end = form.cleaned_data['interval_end']
-#             start_date = form.cleaned_data['start_date']
-#             end_date = form.cleaned_data['end_date']
-#             pre = form.cleaned_data['choice']
-#             min_interval = form.cleaned_data['custom_radio_field']
-#             # task = Task.objects.create(user=request.user, is_running=True)
-#             data = {
-#                 'symbol': symbol,
-#                 'timeframe': timeframe,
-#                 'interval_start': interval_start,
-#                 'interval_end': interval_end,
-#                 'start_date': start_date.strftime('%Y-%m-%d'),
-#                 'end_date': end_date.strftime('%Y-%m-%d'),
-#                 'api_key': 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz',
-#                 'pre': pre,
-#                 'task_id': request.session.get('task_id'),
-#                 'us': request.user.id,
-#                 'min_interval': min_interval
-#             }
-            
-#             task = shares_polygon_new_async_task.delay(data)
-#             request.session['task_id'] = task.id
-#             print(request.session.get('task_id'))
-#             return redirect('process_shares')
-#     else:
-#         form = SharesPolygonNewForm()
-#     return render(request, 'shares_polygon_new.html', {'form': form})
-
-
 class SharesPolygonNewView(FormView):
     template_name = 'shares_polygon_new.html'
     form_class = SharesPolygonNewForm

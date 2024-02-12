@@ -17,6 +17,7 @@ class FormatingDataServiceNew:
 
 
     def check_crossing_low(self, avg, previous_high, previous_low, date, symbol, timeframe):
+        crossed_avg = False
         try:
             interval_mapping = {
                 '1 minute': 0.0166666667,
@@ -58,7 +59,6 @@ class FormatingDataServiceNew:
             
             response = requests.get(url).json()['results']
             print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
-            crossed_avg = False
 
             for i, candle in enumerate(response):
                 print(candle)
@@ -79,6 +79,7 @@ class FormatingDataServiceNew:
 
 
     def check_crossing_low_or_high(self, avg, previous_high, previous_low, date, symbol, timeframe):
+        crossed_avg = False
         try:
             interval_mapping = {
                 '1 minute': 0.0166666667,
@@ -120,7 +121,7 @@ class FormatingDataServiceNew:
             
             response = requests.get(url).json()['results']
             print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
-            crossed_avg = False
+
 
             for i, candle in enumerate(response):
                 print(candle)
@@ -149,6 +150,7 @@ class FormatingDataServiceNew:
 
 
     def check_crossing_high(self, avg, previous_high, previous_low, date, symbol, timeframe):
+        crossed_avg = False
         try:
             interval_mapping = {
                 '1 minute': 0.0166666667,
@@ -190,7 +192,6 @@ class FormatingDataServiceNew:
             
             response = requests.get(url).json()['results']
             print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
-            crossed_avg = False
 
             for i, candle in enumerate(response):
                 print(candle)
@@ -395,6 +396,9 @@ class FormatingDataServiceNew:
                                 output = '0'
                                 print(status, output)
                                 break
+                    elif output == '1/0' and status == 'ACTIVE' and crossed_avg == False:
+                        status = 'NOT ACTIVE'
+                        output = '2'
                 elif next_high > avg and next_low < avg and next_high < high and next_low > low:
                     print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
                     previous_high = high
@@ -433,6 +437,9 @@ class FormatingDataServiceNew:
                                 output = '0'
                                 print(status, output)
                                 break
+                    elif output == '1/0' and status == 'ACTIVE' and crossed_avg == False:
+                        status = 'NOT ACTIVE'
+                        output = '2'
                 elif low > next_low and next_high > avg:
                     print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
                     output, status, crossed_avg = self.check_crossing_low(avg, high, low, next_time, self.symbol, self.timeframe)
@@ -451,6 +458,9 @@ class FormatingDataServiceNew:
                                 output = '0'
                                 print(status, output)
                                 break
+                    elif output == '1/0' and status == 'ACTIVE' and crossed_avg == False:
+                        status = 'NOT ACTIVE'
+                        output = '2'
                 else:
                     status = 'NOT ACTIVE'
                     output = '2'
