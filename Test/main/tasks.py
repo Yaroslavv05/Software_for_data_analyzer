@@ -1071,6 +1071,9 @@ def check_crossing_low(avg, previous_high, previous_low, date, symbol, timeframe
             if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
                 crossed_avg = True
                 print('Было пересечение средины')
+            elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
+                crossed_avg = True
+                print('Было пересечение средины')
             elif crossed_avg == False and candle['l'] < previous_low:
                 output = '2'
                 status = 'NOT ACTIVE'
@@ -1131,6 +1134,9 @@ def check_crossing_low_or_high(avg, previous_high, previous_low, date, symbol, t
         for i, candle in enumerate(response):
             print(candle)
             if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
                 crossed_avg = True
                 print('Было пересечение средины')
             elif crossed_avg == False and candle['l'] < previous_low:
@@ -1200,6 +1206,9 @@ def check_crossing_high(avg, previous_high, previous_low, date, symbol, timefram
         for i, candle in enumerate(response):
             print(candle)
             if crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
                 crossed_avg = True
                 print('Было пересечение средины')
             elif crossed_avg == False and candle['h'] > previous_high:

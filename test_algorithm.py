@@ -6,10 +6,10 @@ import io
 
 symbol = 'AAPL'
 timeframe = '1 day'
-interval_start = 0.01
+interval_start = 0.25
 interval_end = 10
-start_date = '2023-01-01'
-end_date = '2023-06-01'
+start_date = '2024-02-01'
+end_date = '2024-02-15'
 api_key = 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
 interval_parts = timeframe.split()
   
@@ -62,6 +62,9 @@ def check_crossing_low(avg, previous_high, previous_low, date, symbol, timeframe
         for i, candle in enumerate(response):
             print(candle)
             if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
                 crossed_avg = True
                 print('Было пересечение средины')
             elif crossed_avg == False and candle['l'] < previous_low:
@@ -124,6 +127,9 @@ def check_crossing_low_or_high(avg, previous_high, previous_low, date, symbol, t
         for i, candle in enumerate(response):
             print(candle)
             if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
                 crossed_avg = True
                 print('Было пересечение средины')
             elif crossed_avg == False and candle['l'] < previous_low:
@@ -193,6 +199,9 @@ def check_crossing_high(avg, previous_high, previous_low, date, symbol, timefram
         for i, candle in enumerate(response):
             print(candle)
             if crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
                 crossed_avg = True
                 print('Было пересечение средины')
             elif crossed_avg == False and candle['h'] > previous_high:

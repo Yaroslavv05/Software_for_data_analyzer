@@ -65,6 +65,9 @@ class FormatingDataServiceNew:
                 if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
                     crossed_avg = True
                     print('Было пересечение средины')
+                elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
+                    crossed_avg = True
+                    print('Было пересечение средины')
                 elif crossed_avg == False and candle['l'] < previous_low:
                     output = '2'
                     status = 'NOT ACTIVE'
@@ -126,6 +129,9 @@ class FormatingDataServiceNew:
             for i, candle in enumerate(response):
                 print(candle)
                 if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
+                    crossed_avg = True
+                    print('Было пересечение средины')
+                elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
                     crossed_avg = True
                     print('Было пересечение средины')
                 elif crossed_avg == False and candle['l'] < previous_low:
@@ -196,6 +202,9 @@ class FormatingDataServiceNew:
             for i, candle in enumerate(response):
                 print(candle)
                 if crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
+                    crossed_avg = True
+                    print('Было пересечение средины')
+                elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
                     crossed_avg = True
                     print('Было пересечение средины')
                 elif crossed_avg == False and candle['h'] > previous_high:
