@@ -388,12 +388,12 @@ class FormatingDataServiceNew:
                     status = 'NOT ACTIVE'
                     output = '2'
                     print(status, output)
-                elif next_open > avg and next_low < low:
+                elif next_open > avg and next_low < low and next_high < high:
                     print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
                     status = 'ACTIVE'
                     output = '0'
                     print(status, output)
-                elif next_open < avg and next_high > high:
+                elif next_open < avg and next_high > high and next_low > low:
                     print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
                     status = 'ACTIVE'
                     output = '1'
