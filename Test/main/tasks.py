@@ -1307,7 +1307,17 @@ def shares_polygon_new_async_task(data):
                     previous_high = high
                     previous_low = low
                     for j in response[i:-1]:
-                        if j['h'] > previous_high:
+                        if j['o'] < previous_low:
+                            status = 'ACTIVE'
+                            output = '0'
+                            print(status, output)
+                            break
+                        elif j['o'] > previous_high:
+                            status = 'ACTIVE'
+                            output = '1'
+                            print(status, output)
+                            break
+                        elif j['h'] > previous_high:
                             status = 'ACTIVE'
                             output = '1'
                             print(status, output)
@@ -1330,7 +1340,17 @@ def shares_polygon_new_async_task(data):
                         previous_high = high
                         previous_low = low
                         for j in response[i:-1]:
-                            if j['h'] > previous_high:
+                            if j['o'] < previous_low:
+                                status = 'ACTIVE'
+                                output = '0'
+                                print(status, output)
+                                break
+                            elif j['o'] > previous_high:
+                                status = 'ACTIVE'
+                                output = '1'
+                                print(status, output)
+                                break
+                            elif j['h'] > previous_high:
                                 status = 'ACTIVE'
                                 output = '1'
                                 print(status, output)
@@ -1348,7 +1368,17 @@ def shares_polygon_new_async_task(data):
                         previous_high = high
                         previous_low = low
                         for j in response[i:-1]:
-                            if j['h'] > previous_high:
+                            if j['o'] < previous_low:
+                                status = 'ACTIVE'
+                                output = '0'
+                                print(status, output)
+                                break
+                            elif j['o'] > previous_high:
+                                status = 'ACTIVE'
+                                output = '1'
+                                print(status, output)
+                                break
+                            elif j['h'] > previous_high:
                                 status = 'ACTIVE'
                                 output = '1'
                                 print(status, output)
