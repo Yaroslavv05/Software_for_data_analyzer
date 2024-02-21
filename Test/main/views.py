@@ -504,7 +504,7 @@ class SharesPolygonNewView(FormView):
                     'interval_start': interval_start,
                     'interval_end': interval_end,
                     'start_date': start_data.strftime('%Y-%m-%d'),
-                    'end_date': end_data.strftime('%Y-%m-%d'),
+                    'end_date': end_data.strftime('%Y-%m-%d') ,
                     'api_key': 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz',
                     'pre': pre,
                     'task_id': self.request.session.get('task_id'),

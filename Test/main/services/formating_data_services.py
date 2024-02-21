@@ -96,6 +96,7 @@ class FormatingDataService:
 
 
     def create_4h_candles(self, data):
+        print(data)
         candles_4h = []
 
         current_candle = None

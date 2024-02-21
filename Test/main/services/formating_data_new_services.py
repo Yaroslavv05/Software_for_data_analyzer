@@ -225,14 +225,21 @@ class FormatingDataServiceNew:
     def is_valid_time(self, time):
             return (time.hour == 9 and time.minute >= 30) or (9 < time.hour < 15) or (time.hour == 15 and time.minute <= 30)
 
-
-    def convert_unix_to_datetime(self, unix_timestamp):
+    def convert_unix_to_datetime_for_4h_candles(self, unix_timestamp):
         dt_object = datetime.fromtimestamp(unix_timestamp / 1000.0, tz=timezone.utc)
         dt_object = dt_object.astimezone(timezone(timedelta(hours=-5)))
         return dt_object.strftime('%Y-%m-%d %H:%M:%S')
 
 
+    def convert_unix_to_datetime_for_1h_candles(self, unix_timestamp):
+        dt_object = datetime.fromtimestamp(unix_timestamp / 1000.0, tz=timezone.utc)
+        ny_timezone = pytz.timezone('America/New_York')
+        dt_object = dt_object.astimezone(ny_timezone)
+        return dt_object.strftime('%Y-%m-%d %H:%M:%S')
+
+
     def create_4h_candles(self, data):
+        print(data)
         candles_4h = []
 
         current_candle = None
@@ -270,7 +277,7 @@ class FormatingDataServiceNew:
                     current_candle['v'] += entry['v']
                     current_candle['n'] += entry['n']
 
-        if current_candle:
+        if current_candle is not None:
             current_candle['t'] = current_candle['t'].strftime('%Y-%m-%d %H:%M:%S')
             candles_4h.append(current_candle)
 
@@ -278,48 +285,49 @@ class FormatingDataServiceNew:
     
     
     def create_1h_candles(self, data):
+        print(data)
         candles_1h = []
+        current_interval = {} 
 
-        current_candle = None
+        for candle in data:
+            candle_date = datetime.strptime(candle['t'], '%Y-%m-%d %H:%M:%S')
 
-        for entry in data:
-            entry_time = datetime.strptime(entry['t'], '%Y-%m-%d %H:%M:%S')
-
-            if current_candle is None:
-                current_candle = {
-                    'o': entry['o'],
-                    'h': entry['h'],
-                    'l': entry['l'],
-                    'c': entry['c'],
-                    'v': entry['v'],
-                    't': entry_time.replace(minute=30, second=0),
-                    'n': entry['n']
+            if not current_interval: 
+                current_interval = {
+                    't': candle_date.strftime('%Y-%m-%d %H:%M:%S'),
+                    'o': candle['o'],
+                    'c': candle['c'],
+                    'h': candle['h'],
+                    'l': candle['l'],
+                    'n': candle['n'],
+                    'v': candle['v']
                 }
             else:
-                if entry_time >= current_candle['t'] + timedelta(hours=1):
-                    current_candle['t'] = current_candle['t'].strftime('%Y-%m-%d %H:%M:%S')
-                    candles_1h.append(current_candle)
-                    current_candle = {
-                        'o': entry['o'],
-                        'h': entry['h'],
-                        'l': entry['l'],
-                        'c': entry['c'],
-                        'v': entry['v'],
-                        't': entry_time.replace(minute=30, second=0),
-                        'n': entry['n']
-                    }
+                current_interval_date = datetime.strptime(current_interval['t'], '%Y-%m-%d %H:%M:%S')
+                time_difference = (candle_date - current_interval_date).total_seconds()
+                if time_difference < 3600:
+                    current_interval['c'] = candle['c']
+                    current_interval['h'] = max(current_interval['h'], candle['h'])
+                    current_interval['l'] = min(current_interval['l'], candle['l'])
+                    current_interval['n'] += candle['n']
+                    current_interval['v'] += candle['v']
                 else:
-                    current_candle['h'] = max(current_candle['h'], entry['h'])
-                    current_candle['l'] = min(current_candle['l'], entry['l'])
-                    current_candle['c'] = entry['c']
-                    current_candle['v'] += entry['v']
-                    current_candle['n'] += entry['n']
+                    candles_1h.append(current_interval)
+                    current_interval = {
+                        't': candle_date.strftime('%Y-%m-%d %H:%M:%S'),
+                        'o': candle['o'],
+                        'c': candle['c'],
+                        'h': candle['h'],
+                        'l': candle['l'],
+                        'n': candle['n'],
+                        'v': candle['v']
+                    }
 
-        if current_candle:
-            current_candle['t'] = current_candle['t'].strftime('%Y-%m-%d %H:%M:%S')
-            candles_1h.append(current_candle)
+        if current_interval:
+            candles_1h.append(current_interval)
 
         return candles_1h
+            
 
 
     def split_into_3_month_intervals(self, start_date, end_date):
@@ -343,13 +351,20 @@ class FormatingDataServiceNew:
             response = requests.get(url)
             results.append(response.json()['results'])
 
+        print(f'RESULTS {results}')
         data = []
         for result in results:
             for j in result:
-                j['t'] = self.convert_unix_to_datetime(j['t'])
-                time = datetime.strptime(j['t'], '%Y-%m-%d %H:%M:%S')
-                if self.is_valid_time(time):
-                    data.append(j)
+                if self.timeframe == '1 hour':
+                    j['t'] = self.convert_unix_to_datetime_for_1h_candles(j['t'])
+                    time = datetime.strptime(j['t'], '%Y-%m-%d %H:%M:%S')
+                    if self.is_valid_time(time):
+                        data.append(j)
+                elif self.timeframe == '4 hour':
+                    j['t'] = self.convert_unix_to_datetime_for_4h_candles(j['t'])
+                    time = datetime.strptime(j['t'], '%Y-%m-%d %H:%M:%S')
+                    if self.is_valid_time(time):
+                        data.append(j)
         
         if self.timeframe == '4 hour':
             candles = self.create_4h_candles(data)
