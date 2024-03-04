@@ -153,6 +153,64 @@ class FormatingDataServiceNew:
         except Exception as e:
             print(e) 
         return '1/0', 'ACTIVE', crossed_avg
+    
+    
+    def check_crossing_avg(self, avg, previous_high, previous_low, date, symbol, timeframe):
+        crossed_avg = False
+        try:
+            interval_mapping = {
+                '1 minute': 0.0166666667,
+                '5 minute': 0.0833333333,
+                '15 minute': 0.25,
+                '30 minute': 0.5,
+                '45 minute': 0.75,
+                '1 hour': 1.0,
+                '2 hour': 2.0,
+                '3 hour': 3.0,
+                '4 hour': 4.0,
+                '5 hour': 5.0,
+                '6 hour': 6.0,
+                '7 hour': 7.0,
+                '8 hour': 8.0,
+                '9 hour': 9.0,
+                '10 hour': 10.0,
+                '11 hour': 11.0,
+                '12 hour': 12.0,
+                '1 day': 24.0,
+                '1 week': 168.0,
+                '1 month': 720.0,
+                '1 year': 8760
+            }
+            
+            start_date = date
+            print(start_date)
+            start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+            if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+                start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+            else:
+                start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+            ny_timezone = pytz.timezone('America/New_York')
+            start_date_datetime = ny_timezone.localize(start_date_datetime)
+            end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
+            start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+            end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+            url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
+            
+            response = requests.get(url).json()['results']
+            print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
+
+
+            for i, candle in enumerate(response):
+                print(candle)
+                if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
+                    crossed_avg = True
+                    print('Было пересечение средины')
+                elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
+                    crossed_avg = True
+                    print('Было пересечение средины')
+        except Exception as e:
+            print(e) 
+        return '1/0', 'ACTIVE', crossed_avg
 
 
     def check_crossing_high(self, avg, previous_high, previous_low, date, symbol, timeframe):
@@ -398,11 +456,37 @@ class FormatingDataServiceNew:
                 avg = (high + low) / 2
                 next_high = next_candle['h']
                 next_low = next_candle['l']
-                if high < next_high and next_low > avg:
+                if (high < next_high and next_low > avg) or high == next_high:
                     print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
-                    status = 'NOT ACTIVE'
-                    output = '2'
-                    print(status, output)
+                    output, status, crossed_avg  = self.check_crossing_avg(avg, high, low, next_time, self.symbol, self.timeframe)
+                    print(status, output, crossed_avg)
+                    if output == '1/0' and status == 'ACTIVE' and crossed_avg == True:
+                        previous_high = high
+                        previous_low = low
+                        for j in candles[i:-1]:
+                            if j['o'] < previous_low:
+                                status = 'ACTIVE'
+                                output = '0'
+                                print(status, output)
+                                break
+                            elif j['o'] > previous_high:
+                                status = 'ACTIVE'
+                                output = '1'
+                                print(status, output)
+                                break
+                            elif j['h'] > previous_high:
+                                status = 'ACTIVE'
+                                output = '1'
+                                print(status, output)
+                                break
+                            elif j['l'] < previous_low:
+                                status = 'ACTIVE'
+                                output = '0'
+                                print(status, output)
+                                break
+                    elif output == '1/0' and status == 'ACTIVE' and crossed_avg == False:
+                        status = 'NOT ACTIVE'
+                        output = '2'
                 elif next_open > avg and next_low < low and next_high < high:
                     print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
                     status = 'ACTIVE'
