@@ -456,7 +456,11 @@ class FormatingDataServiceNew:
                 avg = (high + low) / 2
                 next_high = next_candle['h']
                 next_low = next_candle['l']
-                if (high < next_high and next_low > avg) or high == next_high:
+                if next_open < low or next_open > high:
+                    status = 'NOT ACTIVE'
+                    output = '2'
+                    print(status, output)
+                elif (high < next_high and next_low > avg) or high == next_high:
                     print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
                     output, status, crossed_avg  = self.check_crossing_avg(avg, high, low, next_time, self.symbol, self.timeframe)
                     print(status, output, crossed_avg)
