@@ -92,6 +92,42 @@ class MyForm(forms.Form):
     )
 
 
+class BinanceNewForm(forms.Form):
+    def __init__(self, user, *args, **kwargs):
+        super(BinanceNewForm, self).__init__(*args, **kwargs)
+        
+        templates = Template.objects.filter(Q(user=user) & Q(name_exchange='Binance'))
+        ACCOUNT_CHOICES = [(template.id, template.name) for template in templates]
+        
+        self.fields['selected_template'] = forms.ChoiceField(
+            required=False,
+            choices=ACCOUNT_CHOICES,
+            widget=forms.Select(attrs={'class': 'form-select mb-2'})
+        )
+        
+        self.has_templates = bool(ACCOUNT_CHOICES)
+        
+    symbol = forms.ChoiceField(required=False, choices=sorted_symbols, widget=forms.Select(attrs={'class': 'form-control mb-2'}))
+    interval = forms.ChoiceField(choices=(
+        (0.0166666667, '1м'), (0.05, '3м'), (0.0833333333, '5м'), (0.25, '15м'), (0.5, '30м'), (1, '1ч'), (2, '2ч'),
+        (4, '4ч'),
+        (6, '6ч'), (8, '8ч'), (12, '12ч'), (24, '1д'), (72, '3д'), (168, '1н'), (720, '1М'),
+    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    start_data = SplitDateTimeField(required=False)
+    end_data = SplitDateTimeField(required=False)
+    interval_start = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Начало интервала'}))
+    interval_end = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Конец интервала'}))
+    # save_tamplates = forms.BooleanField(
+    #     required=False,
+    #     widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    # use_template = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'type': "checkbox", "id": "use-template", 'name': "use_template"}))
+    custom_radio_field = forms.ChoiceField(
+        choices=(
+            ('60', '1 минута'),
+        ), 
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+    )
+    
 
 class SharesForm(forms.Form):
     def __init__(self, user, *args, **kwargs):

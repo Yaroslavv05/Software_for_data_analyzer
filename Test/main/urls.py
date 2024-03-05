@@ -5,6 +5,7 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
     path('', main, name='main'),
     path('crypto-binance', MyFormView.as_view(), name='crypto'),
+    path('crypto-binance-new', BinanceNewView.as_view(), name='crypto_new'),
     path('shares-twelvedata', SharesView.as_view(), name='shares'),
     path('process', process, name='process'),
     path('process_shares', process_shares, name='process_shares'),

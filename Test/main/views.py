@@ -46,6 +46,111 @@ def main(request):
     return render(request, 'main.html')
 
 
+class BinanceNewView(FormView):
+    template_name = 'crypto_binance_new.html'
+    form_class = BinanceNewForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+            
+    def form_valid(self, form):
+        symbol = form.cleaned_data['symbol']
+        interval = form.cleaned_data['interval']
+        interval_start = form.cleaned_data['interval_start']
+        interval_end = form.cleaned_data['interval_end']
+        start_data = form.cleaned_data['start_data']
+        end_data = form.cleaned_data['end_data']
+        
+        if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['interval_start'] and form.cleaned_data['interval_end'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['choice'] and form.cleaned_data['custom_radio_field']):
+            if symbol not in get_binance_symbols():
+                messages.error(self.request, 'Invalid symbol!')
+                form = BinanceNewForm(user=self.request.user.id,initial={
+                    'symbol': '',
+                    'interval': form.cleaned_data['interval'],
+                    'interval_start': form.cleaned_data['interval_start'],
+                    'interval_end': form.cleaned_data['interval_end'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': form.cleaned_data['end_data'],
+                })
+                return render(self.request, self.template_name, {'form': form})
+            elif float(interval_start) < 0:
+                messages.error(self.request, 'Bound cannot be negative!')
+                form = BinanceNewForm(user=self.request.user.id,initial={
+                    'symbol': form.cleaned_data['symbol'],
+                    'interval': form.cleaned_data['interval'],
+                    'interval_start': '',
+                    'interval_end': form.cleaned_data['interval_end'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': form.cleaned_data['end_data'],
+                })
+                return render(self.request, self.template_name, {'form': form})
+            elif float(interval_end) < 0:
+                messages.error(self.request, 'Bound cannot be negative!')
+                form = BinanceNewForm(user=self.request.user.id,initial={
+                    'symbol': form.cleaned_data['symbol'],
+                    'interval': form.cleaned_data['interval'],
+                    'interval_start': form.cleaned_data['interval_start'],
+                    'interval_end': '',
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': form.cleaned_data['end_data'],
+                })
+                return render(self.request, self.template_name, {'form': form})
+            elif end_data < start_data:
+                messages.error(self.request, 'The end date must be after the start date!')
+                form = BinanceNewForm(user=self.request.user.id,initial={
+                    'symbol':  form.cleaned_data['symbol'],
+                    'interval': form.cleaned_data['interval'],
+                    'interval_start': form.cleaned_data['interval_start'],
+                    'interval_end': form.cleaned_data['interval_end'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': '',
+                })
+                return render(self.request, self.template_name, {'form': form})
+            else:
+                if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                    messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                    form = BinanceNewForm(user=self.request.user.id,initial={
+                        'symbol':  form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'interval_start': form.cleaned_data['interval_start'],
+                        'interval_end': form.cleaned_data['interval_end'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data'],
+                    })
+                    return render(self.request, self.template_name, {'form': form})
+                else:
+                    task = Task.objects.create(user=self.request.user, is_running=True)
+                    data = {
+                        'symbol': symbol,
+                        'interval': interval,
+                        'interval_start': interval_start,
+                        'interval_end': interval_end,
+                        'start_data': start_data.strftime('%Y-%m-%d'),
+                        'end_data': end_data.strftime('%Y-%m-%d'),
+                        'us': self.request.user.id
+                    }
+
+                    task = process_data_async.delay(data)
+                    self.request.session['task_id'] = task.id
+
+                    return redirect('process')
+        else:
+            messages.error(self.request, 'Пожалуйста, заполните все поля.')
+            form = BinanceNewForm(user=self.request.user.id,initial={
+                'symbol':  form.cleaned_data['symbol'],
+                'interval': form.cleaned_data['interval'],
+                'interval_start': form.cleaned_data['interval_start'],
+                'interval_end': form.cleaned_data['interval_end'],
+                'start_data': form.cleaned_data['start_data'],
+                'end_data': form.cleaned_data['end_data'],
+            })
+            return render(self.request, self.template_name, {'form': form})
+    def get_success_url(self):
+        return reverse('process')
+
+
 class MyFormView(FormView):
     template_name = 'index.html'
     form_class = MyForm
