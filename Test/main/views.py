@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .forms import *
-from .tasks import *
-from .models import *
+from django.views.generic.edit import FormView
+from django.urls import reverse
+from django.views import View
 from celery.result import AsyncResult
 from django.contrib.auth.decorators import login_required
 from binance.client import Client
@@ -10,12 +10,11 @@ from django.http import JsonResponse
 from django.http import HttpResponse
 from django.contrib.auth import login, logout
 from django.conf import settings
-import requests
+from .forms import *
+from .tasks import *
+from .models import *
 from datetime import time
-import os
-from django.views.generic.edit import FormView
-from django.urls import reverse
-from django.views import View
+import requests, os
 
 
 def get_binance_symbols():
@@ -63,7 +62,7 @@ class BinanceNewView(FormView):
         start_data = form.cleaned_data['start_data']
         end_data = form.cleaned_data['end_data']
         
-        if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['interval_start'] and form.cleaned_data['interval_end'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['choice'] and form.cleaned_data['custom_radio_field']):
+        if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['interval_start'] and form.cleaned_data['interval_end'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['custom_radio_field']):
             if symbol not in get_binance_symbols():
                 messages.error(self.request, 'Invalid symbol!')
                 form = BinanceNewForm(user=self.request.user.id,initial={
@@ -121,18 +120,18 @@ class BinanceNewView(FormView):
                     })
                     return render(self.request, self.template_name, {'form': form})
                 else:
-                    task = Task.objects.create(user=self.request.user, is_running=True)
+                    # task = Task.objects.create(user=self.request.user, is_running=True)
                     data = {
                         'symbol': symbol,
                         'interval': interval,
                         'interval_start': interval_start,
                         'interval_end': interval_end,
-                        'start_data': start_data.strftime('%Y-%m-%d'),
-                        'end_data': end_data.strftime('%Y-%m-%d'),
+                        'start_date': start_data.strftime('%Y-%m-%d'),
+                        'end_date': end_data.strftime('%Y-%m-%d'),
                         'us': self.request.user.id
                     }
 
-                    task = process_data_async.delay(data)
+                    task = crypto_binance_new_async_task.delay(data)
                     self.request.session['task_id'] = task.id
 
                     return redirect('process')

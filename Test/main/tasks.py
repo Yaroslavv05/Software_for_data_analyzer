@@ -1,24 +1,14 @@
-import io
+import io, openpyxl, time, requests, os, pytz, csv, yfinance as yf, pandas as pd
 from django.contrib.auth.models import User
 from celery import shared_task
-import yfinance as yf
-import pandas as pd
 from binance.client import Client
 from datetime import datetime, timedelta, timezone
-import openpyxl
-import time
-import requests
-import os
-import re
-from .models import DataEntry
 from plyer import notification
-import pytz
-import csv
 from .models import *
 from django.utils import timezone
 from .services.formating_data_services import FormatingDataService, DataProcessor
 from .services.formating_data_new_services import FormatingDataServiceNew
-
+from .services.crossing_services import check_crossing_avg_crypto, check_crossing_high_crypto, check_crossing_low_crypto, check_crossing_low_or_high_crypto
 
 def minute(symbol, open_price, bound_up, bound_low, date, time_frame):
     client = Client()
@@ -1159,6 +1149,64 @@ def check_crossing_low_or_high(avg, previous_high, previous_low, date, symbol, t
         print(e)   
 
 
+def check_crossing_avg(avg, previous_high, previous_low, date, symbol, timeframe):
+        crossed_avg = False
+        try:
+            interval_mapping = {
+                '1 minute': 0.0166666667,
+                '5 minute': 0.0833333333,
+                '15 minute': 0.25,
+                '30 minute': 0.5,
+                '45 minute': 0.75,
+                '1 hour': 1.0,
+                '2 hour': 2.0,
+                '3 hour': 3.0,
+                '4 hour': 4.0,
+                '5 hour': 5.0,
+                '6 hour': 6.0,
+                '7 hour': 7.0,
+                '8 hour': 8.0,
+                '9 hour': 9.0,
+                '10 hour': 10.0,
+                '11 hour': 11.0,
+                '12 hour': 12.0,
+                '1 day': 24.0,
+                '1 week': 168.0,
+                '1 month': 720.0,
+                '1 year': 8760
+            }
+            
+            start_date = date
+            print(start_date)
+            start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+            if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+                start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+            else:
+                start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+            ny_timezone = pytz.timezone('America/New_York')
+            start_date_datetime = ny_timezone.localize(start_date_datetime)
+            end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
+            start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+            end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+            url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
+            
+            response = requests.get(url).json()['results']
+            print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
+
+
+            for i, candle in enumerate(response):
+                print(candle)
+                if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
+                    crossed_avg = True
+                    print('Было пересечение средины')
+                elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
+                    crossed_avg = True
+                    print('Было пересечение средины')
+        except Exception as e:
+            print(e) 
+        return '1/0', 'ACTIVE', crossed_avg
+
+
 def check_crossing_high(avg, previous_high, previous_low, date, symbol, timeframe):
     try:
         interval_mapping = {
@@ -1283,11 +1331,41 @@ def shares_polygon_new_async_task(data):
                 avg = (high + low) / 2
                 next_high = next_candle['h']
                 next_low = next_candle['l']
-                if high < next_high and next_low > avg:
-                    print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                if next_open < low or next_open > high:
                     status = 'NOT ACTIVE'
                     output = '2'
                     print(status, output)
+                elif (high < next_high and next_low > avg) or high == next_high:
+                    print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                    output, status, crossed_avg  = check_crossing_avg(avg, high, low, next_time, symbol, timeframe)
+                    print(status, output, crossed_avg)
+                    if output == '1/0' and status == 'ACTIVE' and crossed_avg == True:
+                        previous_high = high
+                        previous_low = low
+                        for j in response[i:-1]:
+                            if j['o'] < previous_low:
+                                status = 'ACTIVE'
+                                output = '0'
+                                print(status, output)
+                                break
+                            elif j['o'] > previous_high:
+                                status = 'ACTIVE'
+                                output = '1'
+                                print(status, output)
+                                break
+                            elif j['h'] > previous_high:
+                                status = 'ACTIVE'
+                                output = '1'
+                                print(status, output)
+                                break
+                            elif j['l'] < previous_low:
+                                status = 'ACTIVE'
+                                output = '0'
+                                print(status, output)
+                                break
+                    elif output == '1/0' and status == 'ACTIVE' and crossed_avg == False:
+                        status = 'NOT ACTIVE'
+                        output = '2'
                 elif next_open > avg and next_low < low and next_high < high:
                     print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
                     status = 'ACTIVE'
@@ -1424,9 +1502,272 @@ def shares_polygon_new_async_task(data):
         wb.save(output_buffer)
         output_buffer.seek(0)
 
-        file_path = f'{symbol}_{timeframe}_{interval_start}%_{interval_end}%{start_date}_{end_date}(Polugon).xlsx'
+        file_path = f'{symbol}_{timeframe}_{interval_start}%_{interval_end}%{start_date}_{end_date}(Polygon).xlsx'
         file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
         with open(file_path, 'wb') as file:
             file.write(output_buffer.read())
         
         return file_path, output_data
+
+
+
+@shared_task
+def crypto_binance_new_async_task(data):
+    client = Client()
+    symbol = data['symbol'].upper()
+    timeframe = float(data['interval']) * 60
+    inter = data['interval']
+    interval_start = float(data['interval_start'])
+    interval_end = float(data['interval_end'])
+    start_date = data['start_date']
+    end_date = data['end_date']
+    
+    interval_mapping = {
+        0.0166666667: Client.KLINE_INTERVAL_1MINUTE,
+        0.05: Client.KLINE_INTERVAL_3MINUTE,
+        0.0833333333: Client.KLINE_INTERVAL_5MINUTE,
+        0.25: Client.KLINE_INTERVAL_15MINUTE,
+        0.5: Client.KLINE_INTERVAL_30MINUTE,
+        1.0: Client.KLINE_INTERVAL_1HOUR,
+        2.0: Client.KLINE_INTERVAL_2HOUR,
+        4.0: Client.KLINE_INTERVAL_4HOUR,
+        6.0: Client.KLINE_INTERVAL_6HOUR,
+        8.0: Client.KLINE_INTERVAL_8HOUR,
+        12.0: Client.KLINE_INTERVAL_12HOUR,
+        24.0: Client.KLINE_INTERVAL_1DAY,
+        72.0: Client.KLINE_INTERVAL_3DAY,
+        168.0: Client.KLINE_INTERVAL_1WEEK,
+        720.0: Client.KLINE_INTERVAL_1MONTH
+    }
+
+    start_date_str = data['start_date']
+    start_date = datetime.fromisoformat(start_date_str) if 'T' in start_date_str else datetime.strptime(start_date_str, '%Y-%m-%d')
+
+    end_date_str = data['end_date']
+    end_date = datetime.fromisoformat(end_date_str) if 'T' in end_date_str else datetime.strptime(end_date_str, '%Y-%m-%d') + timedelta(days=1) 
+
+    difference = end_date - start_date
+    minutes = difference.days * 24 * 60
+    hours = int(minutes / timeframe)
+    
+    start_timestamp = int(start_date.timestamp()) * 1000
+    end_timestamp = int(end_date.timestamp()) * 1000
+    print(start_timestamp)
+    print(end_timestamp)
+
+    klines = client.futures_historical_klines(symbol, interval_mapping.get(float(inter), None), start_timestamp, end_timestamp)
+
+    response = []
+    for kline in klines:
+        time = datetime.fromtimestamp(kline[0] / 1000).strftime('%Y-%m-%d %H:%M:%S')
+        response.append({
+            't': time,
+            'o': kline[1],
+            'h': kline[2],
+            'l': kline[3],
+            'c': kline[4],
+            'v': kline[5]
+        })
+    
+    
+    avg = 0.0
+    previous_high = 0.0
+    previous_low = 0.0
+
+    output_data = []
+    for i in range(len(response) - 1):
+        previous_candle = response[i - 1]
+        candle = response[i]
+        next_candle = response[i + 1]
+        
+
+        time = candle['t']
+        open_price = float(candle['o'])
+        high = float(candle['h'])
+        low = float(candle['l'])
+        close = float(candle['c']) 
+        volume = candle['v']
+        next_open = float(next_candle['o'])
+        amplitude = ((high - low) / low) * 100
+        print(candle)
+        next_time = next_candle['t']
+        if interval_start <= amplitude <= interval_end:
+            avg = (high + low) / 2
+            next_high = float(next_candle['h'])
+            next_low = float(next_candle['l'])
+            if next_open < low or next_open > high:
+                status = 'NOT ACTIVE'
+                output = '2'
+                print(status, output)
+            elif (high < next_high and next_low > avg) or high == next_high:
+                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                output, status, crossed_avg  = check_crossing_avg_crypto(avg, high, low, next_time, symbol, timeframe=float(data['interval']))
+                print(status, output, crossed_avg)
+                if output == '1/0' and status == 'ACTIVE' and crossed_avg == True:
+                    previous_high = high
+                    previous_low = low
+                    for j in response[i:-1]:
+                        if float(j['o']) < previous_low:
+                            status = 'ACTIVE'
+                            output = '0'
+                            print(status, output)
+                            break
+                        elif float(j['o']) > previous_high:
+                            status = 'ACTIVE'
+                            output = '1'
+                            print(status, output)
+                            break
+                        elif float(j['h']) > previous_high:
+                            status = 'ACTIVE'
+                            output = '1'
+                            print(status, output)
+                            break
+                        elif float(j['l']) < previous_low:
+                            status = 'ACTIVE'
+                            output = '0'
+                            print(status, output)
+                            break
+                elif output == '1/0' and status == 'ACTIVE' and crossed_avg == False:
+                    status = 'NOT ACTIVE'
+                    output = '2'
+            elif next_open > avg and next_low < low and next_high < high:
+                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                status = 'ACTIVE'
+                output = '0'
+                print(status, output)
+            elif next_open < avg and next_high > high and next_low > low:
+                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                status = 'ACTIVE'
+                output = '1'
+                print(status, output)
+            elif next_high > high and next_low < low:
+                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                output, status  = check_crossing_low_or_high_crypto(avg, high, low, next_time, symbol, timeframe=float(data['interval']))
+                print(status, output)
+            elif next_high > avg and next_low < avg and next_high < high and next_low > low:
+                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                previous_high = high
+                previous_low = low
+                for j in response[i:-1]:
+                    if float(j['o']) < previous_low:
+                        status = 'ACTIVE'
+                        output = '0'
+                        print(status, output)
+                        break
+                    elif float(j['o']) > previous_high:
+                        status = 'ACTIVE'
+                        output = '1'
+                        print(status, output)
+                        break
+                    elif float(j['h']) > previous_high:
+                        status = 'ACTIVE'
+                        output = '1'
+                        print(status, output)
+                        break
+                    elif float(j['l']) < previous_low:
+                        status = 'ACTIVE'
+                        output = '0'
+                        print(status, output)
+                        break
+            elif low > next_low and next_high < avg:
+                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                status = 'NOT ACTIVE'
+                output = '2'
+                print(status, output)
+            elif high < next_high and next_low < avg:
+                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                output, status, crossed_avg  = check_crossing_high_crypto(avg, high, low, next_time, symbol, timeframe=float(data['interval']))
+                print(status, output)
+                if output == '1/0' and status == 'ACTIVE' and crossed_avg == True:
+                    previous_high = high
+                    previous_low = low
+                    for j in response[i:-1]:
+                        if float(j['o']) < previous_low:
+                            status = 'ACTIVE'
+                            output = '0'
+                            print(status, output)
+                            break
+                        elif float(j['o']) > previous_high:
+                            status = 'ACTIVE'
+                            output = '1'
+                            print(status, output)
+                            break
+                        elif float(j['h']) > previous_high:
+                            status = 'ACTIVE'
+                            output = '1'
+                            print(status, output)
+                            break
+                        elif float(j['l']) < previous_low:
+                            status = 'ACTIVE'
+                            output = '0'
+                            print(status, output)
+                            break
+            elif low > next_low and next_high > avg:
+                print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
+                output, status, crossed_avg = check_crossing_low_crypto(avg, high, low, next_time, symbol, timeframe=float(data['interval']))
+                print(status, output)
+                if output == '1/0' and status == 'ACTIVE' and crossed_avg == True:
+                    previous_high = high
+                    previous_low = low
+                    for j in response[i:-1]:
+                        if float(j['o']) < previous_low:
+                            status = 'ACTIVE'
+                            output = '0'
+                            print(status, output)
+                            break
+                        elif float(j['o']) > previous_high:
+                            status = 'ACTIVE'
+                            output = '1'
+                            print(status, output)
+                            break
+                        elif float(j['h']) > previous_high:
+                            status = 'ACTIVE'
+                            output = '1'
+                            print(status, output)
+                            break
+                        elif float(j['l']) < previous_low:
+                            status = 'ACTIVE'
+                            output = '0'
+                            print(status, output)
+                            break
+            else:
+                status = 'NOT ACTIVE'
+                output = '2'
+                print(status, output)
+        else:
+            status = 'NOT ACTIVE'
+            output = '2'
+            print(status, output)
+            
+        output_data.append({
+            'time': time,
+            'status': status,
+            'output': output,
+            'open': open_price,
+            'close': close,
+            'high': high,
+            'low': low,
+            'volume': volume
+        })
+            
+    print(output_data)    
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    headers = ['Date', 'Status', 'Output', 'Open', 'Close', 'High', 'Low', 'Volume']
+    for col_index, header in enumerate(headers, 1):
+        ws.cell(row=1, column=col_index, value=header)
+
+    for item in output_data:
+        row_data = [item['time'], item['status'], item['output'], item['open'], item['close'], item['high'], item['low'], item['volume']]
+        ws.append(row_data)
+
+    output_buffer = io.BytesIO()
+    wb.save(output_buffer)
+    output_buffer.seek(0)
+
+    file_path = f'{symbol}_{timeframe}_{interval_start}%_{interval_end}%{start_date}_{end_date}(Polugon).xlsx'
+    file_path = file_path.replace(':', '_').replace('?', '_').replace(' ', '_')
+    with open(file_path, 'wb') as file:
+        file.write(output_buffer.read())
+    
+    return file_path, output_data
