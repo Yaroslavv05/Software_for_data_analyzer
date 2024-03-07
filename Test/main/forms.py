@@ -96,7 +96,7 @@ class BinanceNewForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
         super(BinanceNewForm, self).__init__(*args, **kwargs)
         
-        templates = Template.objects.filter(Q(user=user) & Q(name_exchange='Binance'))
+        templates = Template.objects.filter(Q(user=user) & Q(name_exchange='BinanceNew'))
         ACCOUNT_CHOICES = [(template.id, template.name) for template in templates]
         
         self.fields['selected_template'] = forms.ChoiceField(
@@ -117,10 +117,10 @@ class BinanceNewForm(forms.Form):
     end_data = SplitDateTimeField(required=False)
     interval_start = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Начало интервала'}))
     interval_end = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Конец интервала'}))
-    # save_tamplates = forms.BooleanField(
-    #     required=False,
-    #     widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
-    # use_template = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'type': "checkbox", "id": "use-template", 'name': "use_template"}))
+    save_tamplates = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    use_template = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'type': "checkbox", "id": "use-template", 'name': "use_template"}))
     custom_radio_field = forms.ChoiceField(
         choices=(
             ('60', '1 минута'),
@@ -171,7 +171,6 @@ class SharesForm(forms.Form):
     )
 
 
-
 class SharesPolygonForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
         super(SharesPolygonForm, self).__init__(*args, **kwargs)
@@ -220,7 +219,20 @@ class SharesPolygonForm(forms.Form):
     )
 
 
-class SharesPolygonNewForm(forms.Form):          
+class SharesPolygonNewForm(forms.Form):   
+    def __init__(self, user, *args, **kwargs):
+        super(SharesPolygonNewForm, self).__init__(*args, **kwargs)
+        
+        templates = Template.objects.filter(Q(user=user) & Q(name_exchange='PolygonNew'))
+        ACCOUNT_CHOICES = [(template.id, template.name) for template in templates]
+        
+        self.fields['selected_template'] = forms.ChoiceField(
+            required=False,
+            choices=ACCOUNT_CHOICES,
+            widget=forms.Select(attrs={'class': 'form-select mb-2'})
+        )
+
+        self.has_templates = bool(ACCOUNT_CHOICES)       
     choice = forms.ChoiceField(choices=(
         ('pre', 'PRE данные'),
         ('in', 'IN данные'),
@@ -235,6 +247,10 @@ class SharesPolygonNewForm(forms.Form):
     interval_end = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Конец интервала'}))
     start_data = SplitDateTimeField(required=False)
     end_data = SplitDateTimeField(required=False )
+    save_tamplates = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    use_template = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input', 'type': "checkbox", "id": "use-template", 'name': "use_template"}))
     custom_radio_field = forms.ChoiceField(
         choices=(
             ('60', '1 минута'),
@@ -354,6 +370,28 @@ class EditTemplatePolygonForm(forms.Form):
         widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
     )
 
+class EditTemplatePolygonNewForm(forms.Form):
+    name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Название'}))
+    choice = forms.ChoiceField(choices=(
+        ('pre', 'PRE данные'),
+        ('in', 'IN данные'),
+    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    symbol = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Cимвол'}))
+    interval = forms.ChoiceField(choices=(
+        ('1 minute', '1м'), ('5 minute', '5м'), ('15 minute', '15м'), ('30 minute', '30м'), ('45 minute', '45м'), ('1 hour', '1ч'), ('2 hour', '2ч'), ('3 hour', '3ч'), ('4 hour', '4ч'),
+        ('5 hour', '5ч'), ('6 hour', '6ч'), ('7 hour', '7ч'), ('8 hour', '8ч'), ('9 hour', '9ч'), ('10 hour', '10ч'), ('11 hour', '11ч'), ('12 hour', '12ч'), ('1 day', '1д'), ('1 week', '1н'),
+        ('1 month', '1М'), ('1 year', '1г')
+    ), widget=forms.Select(attrs={'class': 'form-select mb-2'}))
+    interval_start = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Начало интервала'}))
+    interval_end = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Конец интервала'}))
+    start_data = SplitDateTimeField()
+    end_data = SplitDateTimeField()
+    custom_radio_field = forms.ChoiceField(
+        choices=(
+            ('60', '1 минута'),
+        ), 
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'})
+        )
 
 class EditTemplateTwelveDataForm(forms.Form):
     name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control mb-2', 'placeholder': 'Название'}))

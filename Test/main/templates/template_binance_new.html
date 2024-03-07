@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Шаблоны Polygon</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+            background-color: #1e2733;
+        }
+        button {
+            background-color: #1abc9c;
+            color: #1e2733;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+{% include 'navbar.html' %}
+<table>
+    <tr>
+        <th>Название</th>
+        <th>Символ</th>
+        <th>Интервал</th>
+        <th>Начало интервала</th>
+        <th>Конец интервала</th>
+        <th>Начало даты</th>
+        <th>Конец даты</th>
+        <th>Минимальный интервал</th>
+        <th>Actions</th>
+    </tr>
+    {% for template in templates %}
+    <tr>
+        <td>{{ template.name }}</td>
+        <td>{{ template.symbol }}</td>
+        <td>{{ template.interval }}</td>
+        <td>{{ template.interval_start }}</td>
+        <td>{{ template.interval_end }}</td>
+        <td>{{ template.start_date }}</td>
+        <td>{{ template.end_date }}</td>
+        <td>{{ template.min_interval }}с</td>
+        <td>
+            <form method="get" action="{% url 'edit_template_binance_new' profile_id=template.id %}">
+                {% csrf_token %}
+                <button>Edit</button>
+            </form>            
+            <form class="deleteForm" data-id="{{ template.id }}" method="post" action="{% url 'delete_template_binance_new' profile_id=template.id %}">
+                {% csrf_token %}
+                <button type="button" onclick="confirmDelete(this)">Delete</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+<script>
+    function confirmDelete(button) {
+        var confirmDelete = confirm("Действительно хотите удалить?");
+        if (confirmDelete) {
+            var form = button.parentNode; // Получаем родительскую форму кнопки
+            while (form && form.tagName !== 'FORM') {
+                form = form.parentNode; // Ищем форму вверх по дереву DOM
+            }
+            if (form) {
+                var templateId = form.getAttribute('data-id'); // Получаем уникальный ID из атрибута data-id
+                document.querySelector('.deleteForm[data-id="' + templateId + '"]').submit();
+            }
+        }
+    }
+</script>
+</body>
+</html>

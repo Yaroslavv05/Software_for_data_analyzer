@@ -62,56 +62,42 @@ class BinanceNewView(FormView):
         start_data = form.cleaned_data['start_data']
         end_data = form.cleaned_data['end_data']
         
-        if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['interval_start'] and form.cleaned_data['interval_end'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['custom_radio_field']):
-            if symbol not in get_binance_symbols():
-                messages.error(self.request, 'Invalid symbol!')
-                form = BinanceNewForm(user=self.request.user.id,initial={
-                    'symbol': '',
-                    'interval': form.cleaned_data['interval'],
-                    'interval_start': form.cleaned_data['interval_start'],
-                    'interval_end': form.cleaned_data['interval_end'],
-                    'start_data': form.cleaned_data['start_data'],
-                    'end_data': form.cleaned_data['end_data'],
-                })
-                return render(self.request, self.template_name, {'form': form})
-            elif float(interval_start) < 0:
-                messages.error(self.request, 'Bound cannot be negative!')
-                form = BinanceNewForm(user=self.request.user.id,initial={
-                    'symbol': form.cleaned_data['symbol'],
-                    'interval': form.cleaned_data['interval'],
-                    'interval_start': '',
-                    'interval_end': form.cleaned_data['interval_end'],
-                    'start_data': form.cleaned_data['start_data'],
-                    'end_data': form.cleaned_data['end_data'],
-                })
-                return render(self.request, self.template_name, {'form': form})
-            elif float(interval_end) < 0:
-                messages.error(self.request, 'Bound cannot be negative!')
-                form = BinanceNewForm(user=self.request.user.id,initial={
-                    'symbol': form.cleaned_data['symbol'],
-                    'interval': form.cleaned_data['interval'],
-                    'interval_start': form.cleaned_data['interval_start'],
-                    'interval_end': '',
-                    'start_data': form.cleaned_data['start_data'],
-                    'end_data': form.cleaned_data['end_data'],
-                })
-                return render(self.request, self.template_name, {'form': form})
-            elif end_data < start_data:
-                messages.error(self.request, 'The end date must be after the start date!')
-                form = BinanceNewForm(user=self.request.user.id,initial={
-                    'symbol':  form.cleaned_data['symbol'],
-                    'interval': form.cleaned_data['interval'],
-                    'interval_start': form.cleaned_data['interval_start'],
-                    'interval_end': form.cleaned_data['interval_end'],
-                    'start_data': form.cleaned_data['start_data'],
-                    'end_data': '',
-                })
-                return render(self.request, self.template_name, {'form': form})
-            else:
-                if Task.objects.filter(user=self.request.user, is_running=True).exists():
-                    messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+        
+        if form.cleaned_data['use_template'] == True:
+            flipped_interval_mapping = {
+                '1 minute': 0.0166666667,
+                '3 minute': 0.05,
+                '5 minute': 0.0833333333,
+                '15 minute': 0.25,
+                '30 minute': 0.5,
+                '1 hour': 1,
+                '2 hour': 2,
+                '4 hour': 4,
+                '6 hour': 6,
+                '8 hour': 8,
+                '12 hour': 12,
+                '1 day': 24,
+                '3 day': 72,
+                '1 week': 168,
+                '1 month': 720
+            }
+            template = get_object_or_404(Template, id=form.cleaned_data['selected_template'])
+            print(flipped_interval_mapping[template.interval],)
+            form = BinanceNewForm(user=self.request.user.id, initial={
+                'symbol': template.symbol,
+                'interval': flipped_interval_mapping[template.interval],
+                'interval_start': template.interval_start,
+                'interval_end': template.interval_end,
+                'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
+                'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
+            })
+            return render(self.request, self.template_name, {'form': form})
+        else:
+            if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['interval_start'] and form.cleaned_data['interval_end'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['custom_radio_field']):
+                if symbol not in get_binance_symbols():
+                    messages.error(self.request, 'Invalid symbol!')
                     form = BinanceNewForm(user=self.request.user.id,initial={
-                        'symbol':  form.cleaned_data['symbol'],
+                        'symbol': '',
                         'interval': form.cleaned_data['interval'],
                         'interval_start': form.cleaned_data['interval_start'],
                         'interval_end': form.cleaned_data['interval_end'],
@@ -119,33 +105,99 @@ class BinanceNewView(FormView):
                         'end_data': form.cleaned_data['end_data'],
                     })
                     return render(self.request, self.template_name, {'form': form})
+                elif float(interval_start) < 0:
+                    messages.error(self.request, 'Bound cannot be negative!')
+                    form = BinanceNewForm(user=self.request.user.id,initial={
+                        'symbol': form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'interval_start': '',
+                        'interval_end': form.cleaned_data['interval_end'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data'],
+                    })
+                    return render(self.request, self.template_name, {'form': form})
+                elif float(interval_end) < 0:
+                    messages.error(self.request, 'Bound cannot be negative!')
+                    form = BinanceNewForm(user=self.request.user.id,initial={
+                        'symbol': form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'interval_start': form.cleaned_data['interval_start'],
+                        'interval_end': '',
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data'],
+                    })
+                    return render(self.request, self.template_name, {'form': form})
+                elif end_data < start_data:
+                    messages.error(self.request, 'The end date must be after the start date!')
+                    form = BinanceNewForm(user=self.request.user.id,initial={
+                        'symbol':  form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'interval_start': form.cleaned_data['interval_start'],
+                        'interval_end': form.cleaned_data['interval_end'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': '',
+                    })
+                    return render(self.request, self.template_name, {'form': form})
                 else:
-                    # task = Task.objects.create(user=self.request.user, is_running=True)
-                    data = {
-                        'symbol': symbol,
-                        'interval': interval,
-                        'interval_start': interval_start,
-                        'interval_end': interval_end,
-                        'start_date': start_data.strftime('%Y-%m-%d'),
-                        'end_date': end_data.strftime('%Y-%m-%d'),
-                        'us': self.request.user.id
-                    }
+                    if Task.objects.filter(user=self.request.user, is_running=True).exists():
+                        messages.error(self.request, 'Задача уже выполняется. Подождите завершения.')
+                        form = BinanceNewForm(user=self.request.user.id,initial={
+                            'symbol':  form.cleaned_data['symbol'],
+                            'interval': form.cleaned_data['interval'],
+                            'interval_start': form.cleaned_data['interval_start'],
+                            'interval_end': form.cleaned_data['interval_end'],
+                            'start_data': form.cleaned_data['start_data'],
+                            'end_data': form.cleaned_data['end_data'],
+                        })
+                        return render(self.request, self.template_name, {'form': form})
+                    else:
+                        if form.cleaned_data['save_tamplates'] == True:
+                            interval_mapping = {
+                                0.0166666667: '1 minute',
+                                0.05: '3 minute',
+                                0.0833333333: '5 minute',
+                                0.25: '15 minute',
+                                0.5: '30 minute',
+                                1.0: '1 hour',
+                                2.0: '2 hour',
+                                4.0: '4 hour',
+                                6.0: '6 hour',
+                                8.0: '8 hour',
+                                12.0: '12 hour',
+                                24.0: '1 day',
+                                72.0: '3 day',
+                                168.0: '1 week',
+                                720.0: '1 month'
+                            }
+                            Template.objects.create(user=self.request.user, name_exchange='BinanceNew', name=f'Binance/{symbol}/{interval}/{start_data}/{end_data}/{interval_start}/{interval_end}', 
+                                                    symbol=symbol, interval=interval_mapping[float(interval)], interval_start=interval_start, interval_end=interval_end, start_date=start_data, end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
+                            messages.success(self.request, 'Шаблон был сохранен!')
+                        # task = Task.objects.create(user=self.request.user, is_running=True)
+                        data = {
+                            'symbol': symbol,
+                            'interval': interval,
+                            'interval_start': interval_start,
+                            'interval_end': interval_end,
+                            'start_date': start_data.strftime('%Y-%m-%d'),
+                            'end_date': end_data.strftime('%Y-%m-%d'),
+                            'us': self.request.user.id
+                        }
 
-                    task = crypto_binance_new_async_task.delay(data)
-                    self.request.session['task_id'] = task.id
+                        task = crypto_binance_new_async_task.delay(data)
+                        self.request.session['task_id'] = task.id
 
-                    return redirect('process')
-        else:
-            messages.error(self.request, 'Пожалуйста, заполните все поля.')
-            form = BinanceNewForm(user=self.request.user.id,initial={
-                'symbol':  form.cleaned_data['symbol'],
-                'interval': form.cleaned_data['interval'],
-                'interval_start': form.cleaned_data['interval_start'],
-                'interval_end': form.cleaned_data['interval_end'],
-                'start_data': form.cleaned_data['start_data'],
-                'end_data': form.cleaned_data['end_data'],
-            })
-            return render(self.request, self.template_name, {'form': form})
+                        return redirect('process')
+            else:
+                messages.error(self.request, 'Пожалуйста, заполните все поля.')
+                form = BinanceNewForm(user=self.request.user.id,initial={
+                    'symbol':  form.cleaned_data['symbol'],
+                    'interval': form.cleaned_data['interval'],
+                    'interval_start': form.cleaned_data['interval_start'],
+                    'interval_end': form.cleaned_data['interval_end'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': form.cleaned_data['end_data'],
+                })
+                return render(self.request, self.template_name, {'form': form})
     def get_success_url(self):
         return reverse('process')
 
@@ -537,6 +589,11 @@ class SharesPolygonNewView(FormView):
     template_name = 'shares_polygon_new.html'
     form_class = SharesPolygonNewForm
     
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
     def form_valid(self, form):
         symbol = form.cleaned_data['symbol']
         interval = form.cleaned_data['interval']
@@ -546,92 +603,111 @@ class SharesPolygonNewView(FormView):
         end_data = form.cleaned_data['end_data']
         pre = form.cleaned_data['choice']
         symbol_validity = check_symbol_validity(symbol, start_data, end_data)
-    
-        if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['interval_start'] and form.cleaned_data['interval_end'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['choice'] and form.cleaned_data['custom_radio_field']):
-            if symbol_validity == "invalid symbol":
-                messages.error(self.request, 'Неверный символ!')
-                form = SharesPolygonNewForm(initial={
-                    'choice': form.cleaned_data['choice'],
-                    'symbol': '',
-                    'interval': form.cleaned_data['interval'],
-                    'interval_start': form.cleaned_data['interval_start'],
-                    'interval_end': form.cleaned_data['interval_end'],
-                    'custom_radio_field': form.cleaned_data['custom_radio_field'],
-                    'start_data': form.cleaned_data['start_data'],
-                    'end_data': form.cleaned_data['end_data']
-                })
-                return render(self.request, self.template_name, {'form': form})
-            elif float(interval_start) < 0:
-                messages.error(self.request, 'Связка не может быть отрицательной!')
-                form = SharesPolygonNewForm(initial={
-                    'choice': form.cleaned_data['choice'],
-                    'symbol': form.cleaned_data['symbol'],
-                    'interval': form.cleaned_data['interval'],
-                    'interval_start': '',
-                    'interval_end': form.cleaned_data['interval_end'],
-                    'custom_radio_field': form.cleaned_data['custom_radio_field'],
-                    'start_data': form.cleaned_data['start_data'],
-                    'end_data': form.cleaned_data['end_data']
-                })
-                return render(self.request, self.template_name, {'form': form})
-            elif float(interval_end) < 0:
-                messages.error(self.request, 'Связка не может быть отрицательной!')
-                form = SharesPolygonNewForm(initial={
-                    'choice': form.cleaned_data['choice'],
-                    'symbol': form.cleaned_data['symbol'],
-                    'interval': form.cleaned_data['interval'],
-                    'interval_start': form.cleaned_data['interval_start'],
-                    'interval_end': '',
-                    'custom_radio_field': form.cleaned_data['custom_radio_field'],
-                    'start_data': form.cleaned_data['start_data'],
-                    'end_data': form.cleaned_data['end_data']
-                })
-                return render(self.request, self.template_name, {'form': form})
-            elif end_data < start_data:
-                messages.error(self.request, 'Дата окончания должна быть позже даты начала!')
-                form = SharesPolygonNewForm(initial={
-                    'choice': form.cleaned_data['choice'],
-                    'symbol': form.cleaned_data['symbol'],
-                    'interval': form.cleaned_data['interval'],
-                    'interval_start': form.cleaned_data['interval_start'],
-                    'interval_end': form.cleaned_data['interval_end'],
-                    'custom_radio_field': form.cleaned_data['custom_radio_field'],
-                    'start_data': form.cleaned_data['start_data'],
-                    'end_data': ''
-                })
-                return render(self.request, self.template_name, {'form': form})
-            else:
-                # task = Task.objects.create(user=self.request.user, is_running=True)
-                data = {
-                    'symbol': symbol,
-                    'timeframe': interval,
-                    'interval_start': interval_start,
-                    'interval_end': interval_end,
-                    'start_date': start_data.strftime('%Y-%m-%d'),
-                    'end_date': end_data.strftime('%Y-%m-%d') ,
-                    'api_key': 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz',
-                    'pre': pre,
-                    'task_id': self.request.session.get('task_id'),
-                    'us': self.request.user.id,
-                }
-                
-                task = shares_polygon_new_async_task.delay(data)
-                self.request.session['task_id'] = task.id
-                print(self.request.session.get('task_id'))
-                return redirect('process_shares')
-        else:
-            messages.error(self.request, 'Пожалуйста, заполните все поля.')
-            form = SharesPolygonNewForm(initial={
-                'choice': form.cleaned_data['choice'],
-                'symbol': form.cleaned_data['symbol'],
-                'interval': form.cleaned_data['interval'],
-                'interval_start': form.cleaned_data['interval_start'],
-                'interval_end': form.cleaned_data['interval_end'],
-                'custom_radio_field': form.cleaned_data['custom_radio_field'],
-                'start_data': form.cleaned_data['start_data'],
-                'end_data': form.cleaned_data['end_data']
+        
+        if form.cleaned_data['use_template'] == True:
+            template = get_object_or_404(Template, id=form.cleaned_data['selected_template'])
+            form = SharesPolygonNewForm(user=self.request.user.id, initial={
+                'choice': template.choice,
+                'symbol': template.symbol,
+                'interval': template.interval,
+                'interval_start': template.interval_start,
+                'interval_end': template.interval_end,
+                'custom_radio_field': template.min_interval,
+                'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
+                'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
             })
-            return render(self.request, self.template_name, {'form': form})           
+            return render(self.request, self.template_name, {'form': form})
+        else:
+            if (form.cleaned_data['symbol'] and form.cleaned_data['interval'] and form.cleaned_data['interval_start'] and form.cleaned_data['interval_end'] and form.cleaned_data['start_data'] and form.cleaned_data['end_data'] and form.cleaned_data['choice'] and form.cleaned_data['custom_radio_field']):
+                if symbol_validity == "invalid symbol":
+                    messages.error(self.request, 'Неверный символ!')
+                    form = SharesPolygonNewForm(initial={
+                        'choice': form.cleaned_data['choice'],
+                        'symbol': '',
+                        'interval': form.cleaned_data['interval'],
+                        'interval_start': form.cleaned_data['interval_start'],
+                        'interval_end': form.cleaned_data['interval_end'],
+                        'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data']
+                    })
+                    return render(self.request, self.template_name, {'form': form})
+                elif float(interval_start) < 0:
+                    messages.error(self.request, 'Связка не может быть отрицательной!')
+                    form = SharesPolygonNewForm(initial={
+                        'choice': form.cleaned_data['choice'],
+                        'symbol': form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'interval_start': '',
+                        'interval_end': form.cleaned_data['interval_end'],
+                        'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data']
+                    })
+                    return render(self.request, self.template_name, {'form': form})
+                elif float(interval_end) < 0:
+                    messages.error(self.request, 'Связка не может быть отрицательной!')
+                    form = SharesPolygonNewForm(initial={
+                        'choice': form.cleaned_data['choice'],
+                        'symbol': form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'interval_start': form.cleaned_data['interval_start'],
+                        'interval_end': '',
+                        'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': form.cleaned_data['end_data']
+                    })
+                    return render(self.request, self.template_name, {'form': form})
+                elif end_data < start_data:
+                    messages.error(self.request, 'Дата окончания должна быть позже даты начала!')
+                    form = SharesPolygonNewForm(initial={
+                        'choice': form.cleaned_data['choice'],
+                        'symbol': form.cleaned_data['symbol'],
+                        'interval': form.cleaned_data['interval'],
+                        'interval_start': form.cleaned_data['interval_start'],
+                        'interval_end': form.cleaned_data['interval_end'],
+                        'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                        'start_data': form.cleaned_data['start_data'],
+                        'end_data': ''
+                    })
+                    return render(self.request, self.template_name, {'form': form})
+                else:
+                    if form.cleaned_data['save_tamplates'] == True:
+                            Template.objects.create(user=self.request.user, name_exchange='PolygonNew', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{interval_start}/{interval_end}/{form.cleaned_data["custom_radio_field"]}с', choice=pre, 
+                                                    symbol=symbol, interval=interval, interval_start=interval_start, interval_end=interval_end, start_date=start_data, 
+                                                    end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
+                            messages.success(self.request, 'Шаблон был сохранен!')
+                    # task = Task.objects.create(user=self.request.user, is_running=True)
+                    data = {
+                        'symbol': symbol,
+                        'timeframe': interval,
+                        'interval_start': interval_start,
+                        'interval_end': interval_end,
+                        'start_date': start_data.strftime('%Y-%m-%d'),
+                        'end_date': end_data.strftime('%Y-%m-%d') ,
+                        'api_key': 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz',
+                        'pre': pre,
+                        'task_id': self.request.session.get('task_id'),
+                        'us': self.request.user.id,
+                    }
+                    
+                    task = shares_polygon_new_async_task.delay(data)
+                    self.request.session['task_id'] = task.id
+                    print(self.request.session.get('task_id'))
+                    return redirect('process_shares')
+            else:
+                messages.error(self.request, 'Пожалуйста, заполните все поля.')
+                form = SharesPolygonNewForm(initial={
+                    'choice': form.cleaned_data['choice'],
+                    'symbol': form.cleaned_data['symbol'],
+                    'interval': form.cleaned_data['interval'],
+                    'interval_start': form.cleaned_data['interval_start'],
+                    'interval_end': form.cleaned_data['interval_end'],
+                    'custom_radio_field': form.cleaned_data['custom_radio_field'],
+                    'start_data': form.cleaned_data['start_data'],
+                    'end_data': form.cleaned_data['end_data']
+                })
+                return render(self.request, self.template_name, {'form': form})           
 
     def get_success_url(self):
         return reverse('process_shares')
@@ -1133,6 +1209,161 @@ class TradingView(View):
                 return redirect('process_shares')
 
         return render(request, self.template_name, {'form': form})
+
+
+def template_polygon_new(request):
+    templates = Template.objects.filter(name_exchange='PolygonNew', user_id=request.user.id)
+    return render(request, 'template_polygon_new.html', {'templates': templates})
+
+
+def delete_template_polygon_new(request, profile_id):
+    teplate = Template.objects.get(pk=profile_id)
+    if teplate.user == request.user:
+        teplate.delete()
+    return redirect('template_polygon_new')
+
+
+def edit_template_polygon_new_view(request, profile_id):
+    template_name = 'edit_template_polygon_new.html'
+    template = get_object_or_404(Template, id=profile_id)
+
+    if request.method == 'GET':
+        print("GET method is executed")
+        print(template.start_date)
+        form = EditTemplatePolygonNewForm(initial={
+            'name': template.name,
+            'choice': template.choice,
+            'symbol': template.symbol,
+            'interval': template.interval,
+            'interval_start': template.interval_start,
+            'interval_end': template.interval_end,
+            'custom_radio_field': template.min_interval,
+            'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
+            'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
+        })
+        return render(request, template_name, {'form': form})
+
+    elif request.method == 'POST':
+        form = EditTemplatePolygonNewForm(request.POST)
+
+        if form.is_valid():
+            exist = Template.objects.filter(user=request.user.id, name_exchange='PolygonNew', name=form.cleaned_data['name'] ).exists()
+            symbol_validity = check_symbol_validity(form.cleaned_data['symbol'], form.cleaned_data['start_data'], form.cleaned_data['end_data'])
+            if symbol_validity == "invalid symbol":
+                messages.error(request, 'Неверный символ!')
+            elif float(form.cleaned_data['interval_start']) < 0:
+                messages.error(request, 'Связка не может быть отрицательной!')
+            elif float(form.cleaned_data['interval_end']) < 0:
+                messages.error(request, 'Связка не может быть отрицательной!')
+            elif form.cleaned_data['end_data'] < form.cleaned_data['start_data']:
+                messages.error(request, 'Дата окончания должна быть позже даты начала!')
+            elif exist:
+                if get_object_or_404(Template, id=profile_id).name != form.cleaned_data['name']:
+                    messages.error(request, 'Такое название шаблона уже существует!')
+                    return redirect('edit_template_polygon_new', profile_id=profile_id)
+                else:
+                    template.name = form.cleaned_data['name']
+                    template.choice = form.cleaned_data['choice']
+                    template.symbol = form.cleaned_data['symbol']
+                    template.interval = form.cleaned_data['interval']
+                    template.interval_start = form.cleaned_data['interval_start']
+                    template.interval_end = form.cleaned_data['interval_end']
+                    template.start_date = form.cleaned_data['start_data']
+                    template.end_date = form.cleaned_data['end_data']
+                    template.min_interval = form.cleaned_data['custom_radio_field']
+                    template.save()
+                    return redirect('template_polygon_new')
+            else:
+                template.name = form.cleaned_data['name']
+                template.choice = form.cleaned_data['choice']
+                template.symbol = form.cleaned_data['symbol']
+                template.interval = form.cleaned_data['interval']
+                template.interval_start = form.cleaned_data['interval_start']
+                template.interval_end = form.cleaned_data['interval_end']
+                template.start_date = form.cleaned_data['start_data']
+                template.end_date = form.cleaned_data['end_data']
+                template.min_interval = form.cleaned_data['custom_radio_field']
+                template.save()
+                return redirect('template_polygon_new')
+
+        return render(request, template_name, {'form': form})
+
+
+def template_binance_new(request):
+    templates = Template.objects.filter(name_exchange='BinanceNew', user_id=request.user.id)
+    return render(request, 'template_binance_new.html', {'templates': templates})
+
+
+def delete_template_binance_new(request, profile_id):
+    teplate = Template.objects.get(pk=profile_id)
+    if teplate.user == request.user:
+        teplate.delete()
+    return redirect('template_binance_new')
+
+
+def edit_template_binance_new_view(request, profile_id):
+    template_name = 'edit_template_binance_new.html'
+    template = get_object_or_404(Template, id=profile_id)
+
+    if request.method == 'GET':
+        print("GET method is executed")
+        print(template.start_date)
+        form = EditTemplatePolygonNewForm(initial={
+            'name': template.name,
+            'choice': template.choice,
+            'symbol': template.symbol,
+            'interval': template.interval,
+            'interval_start': template.interval_start,
+            'interval_end': template.interval_end,
+            'custom_radio_field': template.min_interval,
+            'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
+            'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
+        })
+        return render(request, template_name, {'form': form})
+
+    elif request.method == 'POST':
+        form = EditTemplatePolygonNewForm(request.POST)
+
+        if form.is_valid():
+            exist = Template.objects.filter(user=request.user.id, name_exchange='BinanceNew', name=form.cleaned_data['name'] ).exists()
+            if form.cleaned_data['symbol'] not in get_binance_symbols():
+                messages.error(request, 'Неверный символ!')
+            elif float(form.cleaned_data['interval_start']) < 0:
+                messages.error(request, 'Связка не может быть отрицательной!')
+            elif float(form.cleaned_data['interval_end']) < 0:
+                messages.error(request, 'Связка не может быть отрицательной!')
+            elif form.cleaned_data['end_data'] < form.cleaned_data['start_data']:
+                messages.error(request, 'Дата окончания должна быть позже даты начала!')
+            elif exist:
+                if get_object_or_404(Template, id=profile_id).name != form.cleaned_data['name']:
+                    messages.error(request, 'Такое название шаблона уже существует!')
+                    return redirect('edit_template_binance_new', profile_id=profile_id)
+                else:
+                    template.name = form.cleaned_data['name']
+                    template.choice = form.cleaned_data['choice']
+                    template.symbol = form.cleaned_data['symbol']
+                    template.interval = form.cleaned_data['interval']
+                    template.interval_start = form.cleaned_data['interval_start']
+                    template.interval_end = form.cleaned_data['interval_end']
+                    template.start_date = form.cleaned_data['start_data']
+                    template.end_date = form.cleaned_data['end_data']
+                    template.min_interval = form.cleaned_data['custom_radio_field']
+                    template.save()
+                    return redirect('template_binance_new')
+            else:
+                template.name = form.cleaned_data['name']
+                template.choice = form.cleaned_data['choice']
+                template.symbol = form.cleaned_data['symbol']
+                template.interval = form.cleaned_data['interval']
+                template.interval_start = form.cleaned_data['interval_start']
+                template.interval_end = form.cleaned_data['interval_end']
+                template.start_date = form.cleaned_data['start_data']
+                template.end_date = form.cleaned_data['end_data']
+                template.min_interval = form.cleaned_data['custom_radio_field']
+                template.save()
+                return redirect('template_binance_new')
+
+        return render(request, template_name, {'form': form})
 
 
 def template_polygon(request):

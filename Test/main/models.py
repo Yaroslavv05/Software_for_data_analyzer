@@ -48,6 +48,8 @@ class Template(models.Model):
     bound_unit_up = models.CharField(max_length=10)
     bound_low = models.CharField(max_length=100)
     bound_unit_low = models.CharField(max_length=10)
+    interval_start = models.CharField(max_length=100)
+    interval_end = models.CharField(max_length=10)
     start_date = models.CharField(max_length=100)
     end_date = models.CharField(max_length=100)
     min_interval = models.CharField(max_length=100)
