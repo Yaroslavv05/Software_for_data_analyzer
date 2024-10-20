@@ -52,6 +52,7 @@
             <th>Начало даты</th>
             <th>Конец даты</th>
             <th>Минимальный интервал</th>
+            <th>Asset type</th>
             <th>Actions</th>
         </tr>
         {% for template in templates %}
@@ -67,6 +68,7 @@
             <td>{{ template.start_date }}</td>
             <td>{{ template.end_date }}</td>
             <td>{{ template.min_interval }}с</td>
+            <td>{{ template.asset_type }}</td>
             <td>
                 <form method="get" action="{% url 'edit_template_polygon' profile_id=template.id %}">
                     {% csrf_token %}

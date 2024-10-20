@@ -53,3 +53,4 @@ class Template(models.Model):
     start_date = models.CharField(max_length=100)
     end_date = models.CharField(max_length=100)
     min_interval = models.CharField(max_length=100)
+    asset_type = models.CharField(max_length=100)

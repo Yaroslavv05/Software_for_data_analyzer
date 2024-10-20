@@ -6,7 +6,7 @@ import os
 from ..models import DateLog
 
 class FormatingDataService:
-    def __init__(self, symbol, bound_up, bound_unit_up, bound_low, bound_unit_low, start_date, end_date, min_interval, api_key):
+    def __init__(self, symbol, bound_up, bound_unit_up, bound_low, bound_unit_low, start_date, end_date, min_interval, api_key, asset_type):
         self.symbol = symbol
         self.bound_up = float(bound_up)
         self.bound_unit_up = bound_unit_up
@@ -16,6 +16,7 @@ class FormatingDataService:
         self.end_date = end_date
         self.min_interval = min_interval
         self.api_key = api_key
+        self.asset_type = asset_type
 
 
     def second(self, symbol, open_price, date, bound_up, bound_low):
@@ -31,7 +32,11 @@ class FormatingDataService:
             start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
             end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
 
-            response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/second/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}")
+            if self.asset_type == 'currency':
+                response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/1/second/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}")
+            else:
+                response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/second/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}")
+
             print(response.json())
             d = response.json()['results']
             mass = []
@@ -64,7 +69,11 @@ class FormatingDataService:
         start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
         end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
 
-        response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}")
+        if self.asset_type == 'currency':
+            response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}")
+        else:
+            response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}")
+
         print(response.json())
         d = response.json()['results']
         mass = []
@@ -157,7 +166,10 @@ class FormatingDataService:
 
         results = []
         for i, interval in enumerate(intervals, start=1):
-            url = f'https://api.polygon.io/v2/aggs/ticker/{self.symbol}/range/30/minute/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}'
+            if self.asset_type == 'currency':
+                url = f'https://api.polygon.io/v2/aggs/ticker/C:{self.symbol}/range/30/minute/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}'
+            else:
+                url = f'https://api.polygon.io/v2/aggs/ticker/{self.symbol}/range/30/minute/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}'
 
             response = requests.get(url)
             results.append(response.json()['results'])
@@ -325,7 +337,11 @@ class DataProcessor:
         start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
         end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
 
-        response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/second/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+        if self.asset_type == 'currency':
+            response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/1/second/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+        else:
+            response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/second/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+
         print(response.json())
         d = response.json()['results']
         mass = []
@@ -358,7 +374,11 @@ class DataProcessor:
         start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
         end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
 
-        response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+        if self.asset_type == 'currency':
+            response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+        else:
+            response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+
         print(response.json())
         d = response.json()['results']
         mass = []

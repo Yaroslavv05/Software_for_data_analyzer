@@ -602,11 +602,13 @@ class SharesPolygonNewView(FormView):
         start_data = form.cleaned_data['start_data']
         end_data = form.cleaned_data['end_data']
         pre = form.cleaned_data['choice']
+        asset_type = form.cleaned_data['asset_type']
         symbol_validity = check_symbol_validity(symbol, start_data, end_data)
         
         if form.cleaned_data['use_template'] == True:
             template = get_object_or_404(Template, id=form.cleaned_data['selected_template'])
             form = SharesPolygonNewForm(user=self.request.user.id, initial={
+                'asset_type': template.asset_type,
                 'choice': template.choice,
                 'symbol': template.symbol,
                 'interval': template.interval,
@@ -622,6 +624,7 @@ class SharesPolygonNewView(FormView):
                 if symbol_validity == "invalid symbol":
                     messages.error(self.request, 'Неверный символ!')
                     form = SharesPolygonNewForm(initial={
+                        'asset_type': form.asset_type,
                         'choice': form.cleaned_data['choice'],
                         'symbol': '',
                         'interval': form.cleaned_data['interval'],
@@ -635,6 +638,7 @@ class SharesPolygonNewView(FormView):
                 elif float(interval_start) < 0:
                     messages.error(self.request, 'Связка не может быть отрицательной!')
                     form = SharesPolygonNewForm(initial={
+                        'asset_type': form.asset_type,
                         'choice': form.cleaned_data['choice'],
                         'symbol': form.cleaned_data['symbol'],
                         'interval': form.cleaned_data['interval'],
@@ -648,6 +652,7 @@ class SharesPolygonNewView(FormView):
                 elif float(interval_end) < 0:
                     messages.error(self.request, 'Связка не может быть отрицательной!')
                     form = SharesPolygonNewForm(initial={
+                        'asset_type': form.asset_type,
                         'choice': form.cleaned_data['choice'],
                         'symbol': form.cleaned_data['symbol'],
                         'interval': form.cleaned_data['interval'],
@@ -661,6 +666,7 @@ class SharesPolygonNewView(FormView):
                 elif end_data < start_data:
                     messages.error(self.request, 'Дата окончания должна быть позже даты начала!')
                     form = SharesPolygonNewForm(initial={
+                        'asset_type': form.asset_type,
                         'choice': form.cleaned_data['choice'],
                         'symbol': form.cleaned_data['symbol'],
                         'interval': form.cleaned_data['interval'],
@@ -675,7 +681,7 @@ class SharesPolygonNewView(FormView):
                     if form.cleaned_data['save_tamplates'] == True:
                             Template.objects.create(user=self.request.user, name_exchange='PolygonNew', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{interval_start}/{interval_end}/{form.cleaned_data["custom_radio_field"]}с', choice=pre, 
                                                     symbol=symbol, interval=interval, interval_start=interval_start, interval_end=interval_end, start_date=start_data, 
-                                                    end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
+                                                    end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'], asset_type=asset_type)
                             messages.success(self.request, 'Шаблон был сохранен!')
                     # task = Task.objects.create(user=self.request.user, is_running=True)
                     data = {
@@ -689,6 +695,7 @@ class SharesPolygonNewView(FormView):
                         'pre': pre,
                         'task_id': self.request.session.get('task_id'),
                         'us': self.request.user.id,
+                        'asset_type': form.cleaned_data['asset_type'],
                     }
                     
                     task = shares_polygon_new_async_task.delay(data)
@@ -698,6 +705,7 @@ class SharesPolygonNewView(FormView):
             else:
                 messages.error(self.request, 'Пожалуйста, заполните все поля.')
                 form = SharesPolygonNewForm(initial={
+                    'asset_type': form.cleaned_data['symbol'],
                     'choice': form.cleaned_data['choice'],
                     'symbol': form.cleaned_data['symbol'],
                     'interval': form.cleaned_data['interval'],
@@ -723,6 +731,7 @@ class SharesPolygonView(FormView):
         return kwargs
 
     def form_valid(self, form):
+        asset_type = form.cleaned_data['asset_type']
         symbol = form.cleaned_data['symbol']
         interval = form.cleaned_data['interval']
         bound_up = form.cleaned_data['bound_up']
@@ -746,7 +755,8 @@ class SharesPolygonView(FormView):
                 'bound_unit_low': template.bound_unit_low,
                 'custom_radio_field': template.min_interval,
                 'start_data': datetime.strptime(template.start_date, '%Y-%m-%d %H:%M:%S'),
-                'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S')
+                'end_data': datetime.strptime(template.end_date, '%Y-%m-%d %H:%M:%S'),
+                'asset_type': template.asset_type,
             })
             return render(self.request, self.template_name, {'form': form})
         else:
@@ -763,6 +773,7 @@ class SharesPolygonView(FormView):
                         'bound_unit_low': form.cleaned_data['bound_unit_low'],
                         'custom_radio_field': form.cleaned_data['custom_radio_field'],
                         'start_data': form.cleaned_data['start_data'],
+                        'asset_type': form.cleaned_data['asset_type'],
                         'end_data': form.cleaned_data['end_data']
                     })
                     return render(self.request, self.template_name, {'form': form})
@@ -778,6 +789,7 @@ class SharesPolygonView(FormView):
                         'bound_unit_low': form.cleaned_data['bound_unit_low'],
                         'custom_radio_field': form.cleaned_data['custom_radio_field'],
                         'start_data': form.cleaned_data['start_data'],
+                        'asset_type': form.cleaned_data['asset_type'],
                         'end_data': form.cleaned_data['end_data']
                     })
                     return render(self.request, self.template_name, {'form': form})
@@ -793,6 +805,7 @@ class SharesPolygonView(FormView):
                         'bound_unit_low': form.cleaned_data['bound_unit_low'],
                         'custom_radio_field': form.cleaned_data['custom_radio_field'],
                         'start_data': form.cleaned_data['start_data'],
+                        'asset_type': form.cleaned_data['asset_type'],
                         'end_data': form.cleaned_data['end_data']
                     })
                     return render(self.request, self.template_name, {'form': form})
@@ -808,6 +821,7 @@ class SharesPolygonView(FormView):
                         'bound_unit_low': form.cleaned_data['bound_unit_low'],
                         'custom_radio_field': form.cleaned_data['custom_radio_field'],
                         'start_data': form.cleaned_data['start_data'],
+                        'asset_type': form.cleaned_data['asset_type'],
                         'end_data': ''
                     })
                     return render(self.request, self.template_name, {'form': form})
@@ -824,6 +838,7 @@ class SharesPolygonView(FormView):
                             'bound_unit_low': form.cleaned_data['bound_unit_low'],
                             'custom_radio_field': form.cleaned_data['custom_radio_field'],
                             'start_data': form.cleaned_data['start_data'],
+                            'asset_type': form.cleaned_data['asset_type'],
                             'end_data': form.cleaned_data['end_data']
                         })
                         return render(self.request, self.template_name, {'form': form})
@@ -831,7 +846,7 @@ class SharesPolygonView(FormView):
                         if form.cleaned_data['save_tamplates'] == True:
                             Template.objects.create(user=self.request.user, name_exchange='Polygon', name=f'Polygon/{symbol}/{interval}/{start_data}/{end_data}/{bound_up}/{bound_unit_up}/{form.cleaned_data["custom_radio_field"]}с', choice=pre, 
                                                     symbol=symbol, interval=interval, bound_up=bound_up, bound_unit_up=bound_unit_up, bound_low=bound_low, bound_unit_low=bound_unit_low, start_date=start_data, 
-                                                    end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'])
+                                                    end_date=end_data, min_interval=form.cleaned_data['custom_radio_field'], asset_type=asset_type)
                             messages.success(self.request, 'Шаблон был сохранен!')
                         task = Task.objects.create(user=self.request.user, is_running=True)
                         data = {
@@ -843,6 +858,7 @@ class SharesPolygonView(FormView):
                             'bound_unit_low': bound_unit_low,
                             'start_data': start_data.strftime('%Y-%m-%d'),
                             'end_data': end_data.strftime('%Y-%m-%d'),
+                            'asset_type': asset_type,
                             'api': 'EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz',
                             'pre': pre,
                             'task_id': self.request.session.get('task_id'),
@@ -865,6 +881,7 @@ class SharesPolygonView(FormView):
                     'bound_unit_low': form.cleaned_data['bound_unit_low'],
                     'custom_radio_field': form.cleaned_data['custom_radio_field'],
                     'start_data': form.cleaned_data['start_data'],
+                    'asset_type': form.cleaned_data['asset_type'],
                     'end_data': form.cleaned_data['end_data']
                 })
                 return render(self.request, self.template_name, {'form': form})           

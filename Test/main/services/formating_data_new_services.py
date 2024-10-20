@@ -6,7 +6,7 @@ import os
 from ..models import DateLog
 
 class FormatingDataServiceNew:
-    def __init__(self, symbol, timeframe, interval_start, interval_end, start_date, end_date, api_key):
+    def __init__(self, symbol, timeframe, interval_start, interval_end, start_date, end_date, api_key, asset_type):
         self.symbol = symbol
         self.interval_start = interval_start
         self.interval_end = interval_end
@@ -14,269 +14,273 @@ class FormatingDataServiceNew:
         self.end_date = end_date
         self.api_key = api_key
         self.timeframe = timeframe
+        self.asset_type = asset_type
 
 
     def check_crossing_low(self, avg, previous_high, previous_low, date, symbol, timeframe):
         crossed_avg = False
-        try:
-            interval_mapping = {
-                '1 minute': 0.0166666667,
-                '5 minute': 0.0833333333,
-                '15 minute': 0.25,
-                '30 minute': 0.5,
-                '45 minute': 0.75,
-                '1 hour': 1.0,
-                '2 hour': 2.0,
-                '3 hour': 3.0,
-                '4 hour': 4.0,
-                '5 hour': 5.0,
-                '6 hour': 6.0,
-                '7 hour': 7.0,
-                '8 hour': 8.0,
-                '9 hour': 9.0,
-                '10 hour': 10.0,
-                '11 hour': 11.0,
-                '12 hour': 12.0,
-                '1 day': 24.0,
-                '1 week': 168.0,
-                '1 month': 720.0,
-                '1 year': 8760
-            }
-            
-            start_date = date
-            print(start_date)
+        interval_mapping = {
+            '1 minute': 0.0166666667,
+            '5 minute': 0.0833333333,
+            '15 minute': 0.25,
+            '30 minute': 0.5,
+            '45 minute': 0.75,
+            '1 hour': 1.0,
+            '2 hour': 2.0,
+            '3 hour': 3.0,
+            '4 hour': 4.0,
+            '5 hour': 5.0,
+            '6 hour': 6.0,
+            '7 hour': 7.0,
+            '8 hour': 8.0,
+            '9 hour': 9.0,
+            '10 hour': 10.0,
+            '11 hour': 11.0,
+            '12 hour': 12.0,
+            '1 day': 24.0,
+            '1 week': 168.0,
+            '1 month': 720.0,
+            '1 year': 8760
+        }
+        
+        start_date = date
+        print(start_date)
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+        else:
             start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-            if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
-                start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
-            else:
-                start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-            ny_timezone = pytz.timezone('America/New_York')
-            start_date_datetime = ny_timezone.localize(start_date_datetime)
-            end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
-            start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
-            end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+        ny_timezone = pytz.timezone('America/New_York')
+        start_date_datetime = ny_timezone.localize(start_date_datetime)
+        end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
+        start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+        end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+        if self.asset_type == 'currency':
+            url = f'https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
+        else:
             url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
-            
-            response = requests.get(url).json()['results']
-            print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
+        
+        response = requests.get(url).json()['results']
+        print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
 
-            for i, candle in enumerate(response):
-                print(candle)
-                if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
-                    crossed_avg = True
-                    print('Было пересечение средины')
-                elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
-                    crossed_avg = True
-                    print('Было пересечение средины')
-                elif crossed_avg == False and candle['l'] < previous_low:
-                    output = '2'
-                    status = 'NOT ACTIVE'
-                    return output, status, crossed_avg 
-                elif crossed_avg and candle['l'] < previous_low:
-                    output = '0'
-                    status = 'ACTIVE'
-                    return output, status, crossed_avg 
-        except Exception as e:
-            print(e) 
+        for i, candle in enumerate(response):
+            print(candle)
+            if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['l'] < previous_low:
+                output = '2'
+                status = 'NOT ACTIVE'
+                return output, status, crossed_avg 
+            elif crossed_avg and candle['l'] < previous_low:
+                output = '0'
+                status = 'ACTIVE'
+                return output, status, crossed_avg 
+
         return '1/0', 'ACTIVE', crossed_avg 
 
 
     def check_crossing_low_or_high(self, avg, previous_high, previous_low, date, symbol, timeframe):
         crossed_avg = False
-        try:
-            interval_mapping = {
-                '1 minute': 0.0166666667,
-                '5 minute': 0.0833333333,
-                '15 minute': 0.25,
-                '30 minute': 0.5,
-                '45 minute': 0.75,
-                '1 hour': 1.0,
-                '2 hour': 2.0,
-                '3 hour': 3.0,
-                '4 hour': 4.0,
-                '5 hour': 5.0,
-                '6 hour': 6.0,
-                '7 hour': 7.0,
-                '8 hour': 8.0,
-                '9 hour': 9.0,
-                '10 hour': 10.0,
-                '11 hour': 11.0,
-                '12 hour': 12.0,
-                '1 day': 24.0,
-                '1 week': 168.0,
-                '1 month': 720.0,
-                '1 year': 8760
-            }
-            
-            start_date = date
-            print(start_date)
+        interval_mapping = {
+            '1 minute': 0.0166666667,
+            '5 minute': 0.0833333333,
+            '15 minute': 0.25,
+            '30 minute': 0.5,
+            '45 minute': 0.75,
+            '1 hour': 1.0,
+            '2 hour': 2.0,
+            '3 hour': 3.0,
+            '4 hour': 4.0,
+            '5 hour': 5.0,
+            '6 hour': 6.0,
+            '7 hour': 7.0,
+            '8 hour': 8.0,
+            '9 hour': 9.0,
+            '10 hour': 10.0,
+            '11 hour': 11.0,
+            '12 hour': 12.0,
+            '1 day': 24.0,
+            '1 week': 168.0,
+            '1 month': 720.0,
+            '1 year': 8760
+        }
+        
+        start_date = date
+        print(start_date)
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+        else:
             start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-            if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
-                start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
-            else:
-                start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-            ny_timezone = pytz.timezone('America/New_York')
-            start_date_datetime = ny_timezone.localize(start_date_datetime)
-            end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
-            start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
-            end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+        ny_timezone = pytz.timezone('America/New_York')
+        start_date_datetime = ny_timezone.localize(start_date_datetime)
+        end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
+        start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+        end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+        if self.asset_type == 'currency':
+            url = f'https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
+        else:
             url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
-            
-            response = requests.get(url).json()['results']
-            print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
+        
+        response = requests.get(url).json()['results']
+        print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
 
 
-            for i, candle in enumerate(response):
-                print(candle)
-                if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
-                    crossed_avg = True
-                    print('Было пересечение средины')
-                elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
-                    crossed_avg = True
-                    print('Было пересечение средины')
-                elif crossed_avg == False and candle['l'] < previous_low:
-                    output = '2'
-                    status = 'NOT ACTIVE'
-                    return output, status, crossed_avg
-                elif crossed_avg == False and candle['h'] > previous_high:
-                    output = '2'
-                    status = 'NOT ACTIVE'
-                    return output, status, crossed_avg
-                elif crossed_avg and candle['h'] > previous_high:
-                    output = '1'
-                    status = 'ACTIVE'
-                    return output, status, crossed_avg
-                elif crossed_avg and candle['l'] < previous_low:
-                    output = '0'
-                    status = 'ACTIVE'
-                    return output, status, crossed_avg 
-        except Exception as e:
-            print(e) 
+        for i, candle in enumerate(response):
+            print(candle)
+            if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['l'] < previous_low:
+                output = '2'
+                status = 'NOT ACTIVE'
+                return output, status, crossed_avg
+            elif crossed_avg == False and candle['h'] > previous_high:
+                output = '2'
+                status = 'NOT ACTIVE'
+                return output, status, crossed_avg
+            elif crossed_avg and candle['h'] > previous_high:
+                output = '1'
+                status = 'ACTIVE'
+                return output, status, crossed_avg
+            elif crossed_avg and candle['l'] < previous_low:
+                output = '0'
+                status = 'ACTIVE'
+                return output, status, crossed_avg 
+
         return '1/0', 'ACTIVE', crossed_avg
     
     
     def check_crossing_avg(self, avg, previous_high, previous_low, date, symbol, timeframe):
         crossed_avg = False
-        try:
-            interval_mapping = {
-                '1 minute': 0.0166666667,
-                '5 minute': 0.0833333333,
-                '15 minute': 0.25,
-                '30 minute': 0.5,
-                '45 minute': 0.75,
-                '1 hour': 1.0,
-                '2 hour': 2.0,
-                '3 hour': 3.0,
-                '4 hour': 4.0,
-                '5 hour': 5.0,
-                '6 hour': 6.0,
-                '7 hour': 7.0,
-                '8 hour': 8.0,
-                '9 hour': 9.0,
-                '10 hour': 10.0,
-                '11 hour': 11.0,
-                '12 hour': 12.0,
-                '1 day': 24.0,
-                '1 week': 168.0,
-                '1 month': 720.0,
-                '1 year': 8760
-            }
-            
-            start_date = date
-            print(start_date)
+        interval_mapping = {
+            '1 minute': 0.0166666667,
+            '5 minute': 0.0833333333,
+            '15 minute': 0.25,
+            '30 minute': 0.5,
+            '45 minute': 0.75,
+            '1 hour': 1.0,
+            '2 hour': 2.0,
+            '3 hour': 3.0,
+            '4 hour': 4.0,
+            '5 hour': 5.0,
+            '6 hour': 6.0,
+            '7 hour': 7.0,
+            '8 hour': 8.0,
+            '9 hour': 9.0,
+            '10 hour': 10.0,
+            '11 hour': 11.0,
+            '12 hour': 12.0,
+            '1 day': 24.0,
+            '1 week': 168.0,
+            '1 month': 720.0,
+            '1 year': 8760
+        }
+        
+        start_date = date
+        print(start_date)
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+        else:
             start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-            if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
-                start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
-            else:
-                start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-            ny_timezone = pytz.timezone('America/New_York')
-            start_date_datetime = ny_timezone.localize(start_date_datetime)
-            end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
-            start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
-            end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+        ny_timezone = pytz.timezone('America/New_York')
+        start_date_datetime = ny_timezone.localize(start_date_datetime)
+        end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
+        start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+        end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+        if self.asset_type == 'Currency':
+            url = f'https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
+        else:
             url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
-            
-            response = requests.get(url).json()['results']
-            print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
+        
+        response = requests.get(url).json()['results']
+        print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
 
 
-            for i, candle in enumerate(response):
-                print(candle)
-                if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
-                    crossed_avg = True
-                    print('Было пересечение средины')
-                elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
-                    crossed_avg = True
-                    print('Было пересечение средины')
-        except Exception as e:
-            print(e) 
+        for i, candle in enumerate(response):
+            print(candle)
+            if crossed_avg == False and candle['o'] < avg and candle['h'] > avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+
         return '1/0', 'ACTIVE', crossed_avg
 
 
     def check_crossing_high(self, avg, previous_high, previous_low, date, symbol, timeframe):
         crossed_avg = False
-        try:
-            interval_mapping = {
-                '1 minute': 0.0166666667,
-                '5 minute': 0.0833333333,
-                '15 minute': 0.25,
-                '30 minute': 0.5,
-                '45 minute': 0.75,
-                '1 hour': 1.0,
-                '2 hour': 2.0,
-                '3 hour': 3.0,
-                '4 hour': 4.0,
-                '5 hour': 5.0,
-                '6 hour': 6.0,
-                '7 hour': 7.0,
-                '8 hour': 8.0,
-                '9 hour': 9.0,
-                '10 hour': 10.0,
-                '11 hour': 11.0,
-                '12 hour': 12.0,
-                '1 day': 24.0,
-                '1 week': 168.0,
-                '1 month': 720.0,
-                '1 year': 8760
-            }
-            
-            start_date = date
-            print(start_date)
+        interval_mapping = {
+            '1 minute': 0.0166666667,
+            '5 minute': 0.0833333333,
+            '15 minute': 0.25,
+            '30 minute': 0.5,
+            '45 minute': 0.75,
+            '1 hour': 1.0,
+            '2 hour': 2.0,
+            '3 hour': 3.0,
+            '4 hour': 4.0,
+            '5 hour': 5.0,
+            '6 hour': 6.0,
+            '7 hour': 7.0,
+            '8 hour': 8.0,
+            '9 hour': 9.0,
+            '10 hour': 10.0,
+            '11 hour': 11.0,
+            '12 hour': 12.0,
+            '1 day': 24.0,
+            '1 week': 168.0,
+            '1 month': 720.0,
+            '1 year': 8760
+        }
+        
+        start_date = date
+        print(start_date)
+        start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
+        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+            start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+        else:
             start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-            if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
-                start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
-            else:
-                start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-            ny_timezone = pytz.timezone('America/New_York')
-            start_date_datetime = ny_timezone.localize(start_date_datetime)
-            end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
-            start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
-            end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+        ny_timezone = pytz.timezone('America/New_York')
+        start_date_datetime = ny_timezone.localize(start_date_datetime)
+        end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
+        start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
+        end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
+        if self.asset_type == 'currency':
+            url = f'https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
+        else:
             url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
-            
-            response = requests.get(url).json()['results']
-            print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
+        
+        response = requests.get(url).json()['results']
+        print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
 
-            for i, candle in enumerate(response):
-                print(candle)
-                if crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
-                    crossed_avg = True
-                    print('Было пересечение средины')
-                elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
-                    crossed_avg = True
-                    print('Было пересечение средины')
-                elif crossed_avg == False and candle['h'] > previous_high:
-                    output = '2'
-                    status = 'NOT ACTIVE'
-                    return output, status, crossed_avg
-                elif crossed_avg and candle['h'] > previous_high:
-                    output = '1'
-                    status = 'ACTIVE'
-                    crossed_avg = False
-                    return output, status, crossed_avg
-                
-        except Exception as e:
-            print(e)
+        for i, candle in enumerate(response):
+            print(candle)
+            if crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['o'] > avg and candle['l'] < avg:
+                crossed_avg = True
+                print('Было пересечение средины')
+            elif crossed_avg == False and candle['h'] > previous_high:
+                output = '2'
+                status = 'NOT ACTIVE'
+                return output, status, crossed_avg
+            elif crossed_avg and candle['h'] > previous_high:
+                output = '1'
+                status = 'ACTIVE'
+                crossed_avg = False
+                return output, status, crossed_avg
+            
         return '1/0', 'ACTIVE', crossed_avg
 
 
@@ -404,8 +408,10 @@ class FormatingDataServiceNew:
 
         results = []
         for i, interval in enumerate(intervals, start=1):
-            url = f'https://api.polygon.io/v2/aggs/ticker/{self.symbol}/range/30/minute/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}'
-
+            if self.asset_type == 'currency':
+                url = f'https://api.polygon.io/v2/aggs/ticker/C:{self.symbol}/range/30/minute/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}'
+            else:
+                url = f'https://api.polygon.io/v2/aggs/ticker/{self.symbol}/range/30/minute/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={self.api_key}'
             response = requests.get(url)
             results.append(response.json()['results'])
 
