@@ -459,7 +459,7 @@ def shares_polygon_async_task(data):
                 if asset_type == 'currency':
                     url = f'https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
                 else:
-                    url = f'https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
+                    url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/{interval_parts[0]}/{interval_parts[1]}/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
 
             response = requests.get(url)
             res.append(response.json()['results'])
