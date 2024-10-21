@@ -1019,7 +1019,7 @@ def tradingview_async_task(datas):
 
 
 
-def check_crossing_low(avg, previous_high, previous_low, date, symbol, timeframe):
+def check_crossing_low(avg, previous_high, previous_low, date, symbol, timeframe, asset_type):
     crossed_avg = False
     interval_mapping = {
         '1 minute': 0.0166666667,
@@ -1057,7 +1057,10 @@ def check_crossing_low(avg, previous_high, previous_low, date, symbol, timeframe
     end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
     start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
     end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
-    url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
+    if asset_type == 'currency':
+        url = f'https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
+    else:
+        url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz'
     
     response = requests.get(url).json()['results']
     print(avg, previous_high, previous_low, start_unix_timestamp_milliseconds, end_unix_timestamp_milliseconds, symbol, timeframe)
@@ -1453,7 +1456,7 @@ def shares_polygon_new_async_task(data):
                                 break
                 elif low > next_low and next_high > avg:
                     print(f'high - {high}\next_high - {next_high}\next_low - {next_low}\navg - {avg}\nlow - {low}')
-                    output, status, crossed_avg = check_crossing_low(avg, high, low, next_time, symbol, timeframe, asset_type)
+                    output, status, crossed_avg = check_crossing_low(avg, high, low, next_time, symbol, timeframe, asset_type=asset_type)
                     print(status, output)
                     if output == '1/0' and status == 'ACTIVE' and crossed_avg == True:
                         previous_high = high
