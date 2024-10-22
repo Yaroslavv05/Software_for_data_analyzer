@@ -352,7 +352,7 @@ def second_shares_polygon(symbol, timeframe, open_price, date, bound_up, bound_l
             return '0'
 
 
-def minute_shares_polygon(symbol, timeframe, open_price, date, bound_up, bound_low):
+def minute_shares_polygon(symbol, timeframe, open_price, date, bound_up, bound_low, asset_type):
     interval_mapping = {
         '1 minute': 0.0166666667,
         '5 minute': 0.0833333333,
@@ -378,19 +378,25 @@ def minute_shares_polygon(symbol, timeframe, open_price, date, bound_up, bound_l
     }
     start_date = date
     start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+    if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time() and asset_type == 'stock':
         start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
     else:
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    ny_timezone = pytz.timezone('America/New_York')
+    if asset_type == 'stock':
+        ny_timezone = pytz.timezone('America/New_York')
+    else:
+        ny_timezone = pytz.timezone('Europe/Moscow') 
     start_date_datetime = ny_timezone.localize(start_date_datetime)
     end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
     start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
     end_unix_timestamp_milliseconds = int(end_date_datetime.timestamp()) * 1000
     
     print('1 минута')
-    response = requests.get(
-        f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+    if asset_type == 'currency':
+        response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+    else:
+        response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
+
     print(response.json())
     d = response.json()['results']
     mass = []
@@ -437,7 +443,7 @@ def shares_polygon_async_task(data):
     api = data['api']
     print(start_date)
     print(timeframe)
-    if timeframe == '4 hour':
+    if timeframe == '4 hour' and asset_type == 'stock':
         formating = FormatingDataService(symbol=symbol, bound_up=bound_up, bound_unit_up=bound_unit_up, bound_low=bound_low, bound_unit_low=bound_unit_low, start_date=start_date, end_date=end_date, min_interval=data['min_interval'], api_key=api, asset_type=asset_type)
         file_path, output_data = formating.save_output_to_excel()
         task = Task.objects.get(user=data['us'], is_running=True)
@@ -449,11 +455,8 @@ def shares_polygon_async_task(data):
 
         res = []
         for i, interval in enumerate(intervals, start=1):
-            if timeframe == '1 hour':
-                if asset_type == 'currency':
-                    url = f'https://api.polygon.io/v2/aggs/ticker/C:{symbol}/range/30/minute/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
-                else:
-                    url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/30/minute/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
+            if timeframe == '1 hour' and asset_type == 'stock':
+                url = f'https://api.polygon.io/v2/aggs/ticker/{symbol}/range/30/minute/{interval[0].strftime("%Y-%m-%d")}/{interval[1].strftime("%Y-%m-%d")}?adjusted=true&sort=asc&limit=50000&apiKey={api}'
             else:
                 interval_parts = timeframe.split()
                 if asset_type == 'currency':
@@ -467,12 +470,19 @@ def shares_polygon_async_task(data):
         mass = []
         for subarray in res:
             for i in subarray:
-                unix_timestamp_seconds = i['t'] / 1000
-                unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
-                ny_timezone = pytz.timezone('America/New_York')
-                ny_datetime = unix_datetime.astimezone(ny_timezone)
+                if asset_type == 'currency':
+                    unix_time_sec = i['t'] / 1000
+                    utc_time = datetime.utcfromtimestamp(unix_time_sec).replace(tzinfo=pytz.utc)
+                    my_tz = pytz.timezone('Europe/Moscow') 
+                    ny_datetime = utc_time.strftime("%Y-%m-%d %H:%M:%S")
+                else:
+                    unix_timestamp_seconds = i['t'] / 1000
+                    unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
+                    ny_timezone = pytz.timezone('America/New_York')
+                    ny_datetime = unix_datetime.astimezone(ny_timezone).strftime("%Y-%m-%d %H:%M:%S")
+                print(ny_datetime)
                 mass.append({
-                    'time': ny_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                    'time': ny_datetime,
                     'open': i['o'],
                     'close': i['c'],
                     'high': i['h'],
@@ -494,7 +504,7 @@ def shares_polygon_async_task(data):
                 if (high_price - open_price >= bound_up) and (open_price - low_price >= bound_up):
                     if data['min_interval'] == '60':
                         output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
-                                                    date=i['time'], bound_up=bound_up, bound_low=bound_low)
+                                                    date=i['time'], bound_up=bound_up, bound_low=bound_low, asset_type=asset_type)
                     elif data['min_interval'] == '1':
                         output = second_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
                                                     date=i['time'], bound_up=bound_up, bound_low=bound_low)
@@ -508,7 +518,7 @@ def shares_polygon_async_task(data):
                 if (high_price - open_price >= (open_price / 100 * bound_up)) and (open_price - low_price >= (open_price / 100 * bound_low)):
                     if data['min_interval'] == '60':
                         output = minute_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
-                                                    date=i['time'], bound_up=(open_price / 100 * bound_up), bound_low=(open_price / 100 * bound_low))
+                                                    date=i['time'], bound_up=(open_price / 100 * bound_up), bound_low=(open_price / 100 * bound_low), asset_type=asset_type)
                     elif data['min_interval'] == '1':
                         output = second_shares_polygon(symbol=symbol, timeframe=timeframe, open_price=open_price,
                                                     date=i['time'], bound_up=(open_price / 100 * bound_up), bound_low=(open_price / 100 * bound_low))
@@ -572,7 +582,7 @@ def shares_polygon_async_task(data):
         with open(file_path, 'wb') as file:
             file.write(output_buffer.read())
 
-        if timeframe == '1 hour':
+        if timeframe == '1 hour' and asset_type == 'stock':
             input_file_path = file_path
             output_file_path = f'{symbol}_1_hour_{bound_up}{bound_unit_up}_{bound_low}{bound_unit_low}_{start_date}_{end_date}(Polygon).xlsx'
 
@@ -1048,11 +1058,15 @@ def check_crossing_low(avg, previous_high, previous_low, date, symbol, timeframe
     start_date = date
     print(start_date)
     start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+    if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time() and asset_type == 'stock':
         start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
     else:
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    ny_timezone = pytz.timezone('America/New_York')
+
+    if asset_type == 'stock':
+        ny_timezone = pytz.timezone('America/New_York')
+    else:
+        ny_timezone = pytz.timezone('Europe/Moscow')
     start_date_datetime = ny_timezone.localize(start_date_datetime)
     end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
     start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
@@ -1113,11 +1127,14 @@ def check_crossing_low_or_high(avg, previous_high, previous_low, date, symbol, t
     start_date = date
     print(start_date)
     start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+    if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time() and asset_type == 'stock':
         start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
     else:
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    ny_timezone = pytz.timezone('America/New_York')
+    if asset_type == 'stock':
+        ny_timezone = pytz.timezone('America/New_York')
+    else:
+        ny_timezone = pytz.timezone('Europe/Moscow')
     start_date_datetime = ny_timezone.localize(start_date_datetime)
     end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
     start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
@@ -1186,11 +1203,14 @@ def check_crossing_avg(avg, previous_high, previous_low, date, symbol, timeframe
         start_date = date
         print(start_date)
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+        if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time() and asset_type == 'stock':
             start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
         else:
             start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-        ny_timezone = pytz.timezone('America/New_York')
+        if asset_type == 'stock':
+            ny_timezone = pytz.timezone('America/New_York')
+        else:
+            ny_timezone = pytz.timezone('Europe/Moscow')
         start_date_datetime = ny_timezone.localize(start_date_datetime)
         end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
         start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
@@ -1245,11 +1265,14 @@ def check_crossing_high(avg, previous_high, previous_low, date, symbol, timefram
     start_date = date
     print(start_date)
     start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time():
+    if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time() and asset_type == 'stock':
         start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
     else:
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    ny_timezone = pytz.timezone('America/New_York')
+    if asset_type == 'stock':
+        ny_timezone = pytz.timezone('America/New_York')
+    else:
+        ny_timezone = pytz.timezone('Europe/Moscow')
     start_date_datetime = ny_timezone.localize(start_date_datetime)
     end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
     start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
@@ -1296,7 +1319,7 @@ def shares_polygon_new_async_task(data):
     api_key = data['api_key']
     asset_type = data['asset_type']
     
-    if timeframe == '4 hour' or timeframe == '1 hour':
+    if timeframe == '4 hour' or timeframe == '1 hour' and asset_type == 'stock':
         formating = FormatingDataServiceNew(symbol=symbol, timeframe=timeframe, interval_start=interval_start, interval_end=interval_end,  start_date=start_date, end_date=end_date, api_key=api_key, asset_type=asset_type)
         file_path, output_data = formating.save_output_to_excel()
         # task = Task.objects.get(user=data['us'], is_running=True)
@@ -1324,11 +1347,17 @@ def shares_polygon_new_async_task(data):
             candle = response[i]
             next_candle = response[i + 1]
             
-            unix_timestamp_seconds = candle['t'] / 1000
-            unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
-            ny_timezone = pytz.timezone('America/New_York')
-            ny_datetime = unix_datetime.astimezone(ny_timezone)
-            time = ny_datetime.strftime("%Y-%m-%d %H:%M:%S")
+            if asset_type == 'currency':
+                unix_time_sec = candle['t'] / 1000
+                utc_time = datetime.utcfromtimestamp(unix_time_sec).replace(tzinfo=pytz.utc)
+                my_tz = pytz.timezone('Europe/Moscow') 
+                ny_datetime = utc_time.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                unix_timestamp_seconds = candle['t'] / 1000
+                unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
+                ny_timezone = pytz.timezone('America/New_York')
+                ny_datetime = unix_datetime.astimezone(ny_timezone).strftime("%Y-%m-%d %H:%M:%S")
+            print(ny_datetime)
             open_price = candle['o']
             high = candle['h']
             low = candle['l']
@@ -1338,11 +1367,18 @@ def shares_polygon_new_async_task(data):
             next_open = next_candle['o']
             amplitude = ((high - low) / low) * 100
             print(candle)
-            unix_timestamp_seconds = next_candle['t'] / 1000
-            unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
-            ny_timezone = pytz.timezone('America/New_York')
-            ny_datetime_next = unix_datetime.astimezone(ny_timezone)
-            next_time = ny_datetime_next.strftime("%Y-%m-%d %H:%M:%S")
+            if asset_type == 'currency':
+                unix_timestamp_seconds = next_candle['t'] / 1000
+                unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
+                ny_timezone = pytz.timezone('Europe/Moscow')
+                ny_datetime_next = unix_datetime.astimezone(ny_timezone)
+                next_time = ny_datetime_next.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                unix_timestamp_seconds = next_candle['t'] / 1000
+                unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
+                ny_timezone = pytz.timezone('America/New_York')
+                ny_datetime_next = unix_datetime.astimezone(ny_timezone)
+                next_time = ny_datetime_next.strftime("%Y-%m-%d %H:%M:%S")
             if interval_start <= amplitude <= interval_end:
                 avg = (high + low) / 2
                 next_high = next_candle['h']
@@ -1492,7 +1528,7 @@ def shares_polygon_new_async_task(data):
                 print(status, output)
                 
             output_data.append({
-                'time': ny_datetime.strftime("%Y-%m-%d %H:%M:%S"),
+                'time': ny_datetime,
                 'status': status,
                 'output': output,
                 'open': candle['o'],
