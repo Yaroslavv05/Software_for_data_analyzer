@@ -1319,7 +1319,8 @@ def shares_polygon_new_async_task(data):
     api_key = data['api_key']
     asset_type = data['asset_type']
     
-    if timeframe == '4 hour' or timeframe == '1 hour' and asset_type == 'stock':
+    if timeframe == '4 hour' and asset_type == 'stock' or timeframe == '1 hour' and asset_type == 'stock':
+        print('GGGGG')
         formating = FormatingDataServiceNew(symbol=symbol, timeframe=timeframe, interval_start=interval_start, interval_end=interval_end,  start_date=start_date, end_date=end_date, api_key=api_key, asset_type=asset_type)
         file_path, output_data = formating.save_output_to_excel()
         # task = Task.objects.get(user=data['us'], is_running=True)
