@@ -380,12 +380,11 @@ def minute_shares_polygon(symbol, timeframe, open_price, date, bound_up, bound_l
     start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
     if start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time() and asset_type == 'stock':
         start_date_datetime = start_date_datetime.replace(hour=9, minute=30, second=0)
+    elif start_date_datetime.time() == datetime.strptime("00:00:00", "%H:%M:%S").time() and asset_type == 'currency':
+        start_date_datetime = start_date_datetime.replace(hour=0, minute=0, second=0)
     else:
         start_date_datetime = datetime.strptime(start_date, '%Y-%m-%d %H:%M:%S')
-    if asset_type == 'stock':
-        ny_timezone = pytz.timezone('America/New_York')
-    else:
-        ny_timezone = pytz.timezone('Europe/Moscow') 
+    ny_timezone = pytz.timezone('America/New_York')
     start_date_datetime = ny_timezone.localize(start_date_datetime)
     end_date_datetime = start_date_datetime + timedelta(hours=interval_mapping[timeframe])
     start_unix_timestamp_milliseconds = int(start_date_datetime.timestamp()) * 1000
@@ -397,6 +396,8 @@ def minute_shares_polygon(symbol, timeframe, open_price, date, bound_up, bound_l
     else:
         response = requests.get(f"https://api.polygon.io/v2/aggs/ticker/{symbol}/range/1/minute/{start_unix_timestamp_milliseconds}/{end_unix_timestamp_milliseconds}?adjusted=true&sort=asc&limit=50000&apiKey=EH2vpdYrp_dt3NHfcTjPhu0JOKKw0Lwz")
 
+    print(start_unix_timestamp_milliseconds)
+    print(end_unix_timestamp_milliseconds)
     print(response.json())
     d = response.json()['results']
     mass = []
@@ -470,16 +471,10 @@ def shares_polygon_async_task(data):
         mass = []
         for subarray in res:
             for i in subarray:
-                if asset_type == 'currency':
-                    unix_time_sec = i['t'] / 1000
-                    utc_time = datetime.utcfromtimestamp(unix_time_sec).replace(tzinfo=pytz.utc)
-                    my_tz = pytz.timezone('Europe/Moscow') 
-                    ny_datetime = utc_time.strftime("%Y-%m-%d %H:%M:%S")
-                else:
-                    unix_timestamp_seconds = i['t'] / 1000
-                    unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
-                    ny_timezone = pytz.timezone('America/New_York')
-                    ny_datetime = unix_datetime.astimezone(ny_timezone).strftime("%Y-%m-%d %H:%M:%S")
+                unix_timestamp_seconds = i['t'] / 1000
+                unix_datetime = datetime.fromtimestamp(unix_timestamp_seconds, pytz.utc)
+                ny_timezone = pytz.timezone('America/New_York')
+                ny_datetime = unix_datetime.astimezone(ny_timezone).strftime("%Y-%m-%d %H:%M:%S")
                 print(ny_datetime)
                 mass.append({
                     'time': ny_datetime,
@@ -528,9 +523,15 @@ def shares_polygon_async_task(data):
                     output = '0'
                 else:
                     output = '2'
-
+            
+            if asset_type == 'currency':
+                time_obj = datetime.strptime(i['time'], "%Y-%m-%d %H:%M:%S")
+                new_time = time_obj - timedelta(hours=15)
+                new_time = new_time.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                new_time = i['time']
             output_data.append({
-                'time': i['time'],
+                'time': new_time,
                 'output': output,
                 'open': str(open_price),
                 'close': str(i['close']),
